@@ -205,7 +205,9 @@ export async function queueSeriesInitialization(input: {
     id: `${input.title.id}_s${firstSeason.seasonNumber}`,
     mediaTitleId: input.title.id,
     seasonNumber: firstSeason.seasonNumber,
-    status: firstSeason.latestAiredEpisode >= firstSeason.totalEpisodes ? "completed" : "active",
+    // 同 tmdb-provider 建季初值:建 lock 季时无存量概念,一律 active;
+    // 播完≠收齐,completed 由 workflow-v2-bridge 的 fullyObtained 授予。
+    status: "active",
     qualityPreference: "4K",
     storageDirectoryId: "",
     totalEpisodes: firstSeason.totalEpisodes,

@@ -106,7 +106,7 @@ describe("runTvAcquisitionV2 — single TV entry over the V2 engine", () => {
     const result = await runTvAcquisitionV2({
       title,
       mode: "type3",
-      seasons: [{ seasonNumber: 1, totalEpisodes: 3, latestAiredEpisode: 0, qualityPreference: "4K", status: "active" }],
+      seasons: [{ seasonNumber: 1, totalEpisodes: 3, latestAiredEpisode: 0, qualityPreference: "4K" }],
       categoryParentId: "tv_root",
       resourceProvider: emptyProvider(),
       storage,

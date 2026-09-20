@@ -409,7 +409,11 @@ export async function prepareTrackingTarget(input: TvTrackingTargetInput): Promi
       id: `${titleId}_s${input.seasonNumber}`,
       mediaTitleId: titleId,
       seasonNumber: input.seasonNumber,
-      status: latestAiredEpisode >= totalEpisodes ? "completed" : "active",
+      // ⚠️ 建季初值一律 active:此处只有 TMDB 元数据、一集都还没入库,「播完」
+      // 不等于「收齐」。completed 只能由 workflow-v2-bridge 的 fullyObtained
+      // 授予(它是唯一 post-creation writer),否则播完即 completed → 巡检闸门
+      // (worker.ts:498)永久跳过 → 缺集再也补不上(2026-09-20 修复)。
+      status: "active",
       qualityPreference: input.qualityPreference,
       storageDirectoryId: input.storageDirectoryId ?? "",
       totalEpisodes,
