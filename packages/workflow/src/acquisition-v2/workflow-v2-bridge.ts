@@ -48,8 +48,6 @@ export interface V2BridgeSeasonIntent {
   totalEpisodes: number;
   latestAiredEpisode: number;
   qualityPreference: string;
-  /** Tracked status; defaults to completed when fully aired, else active. */
-  status?: SeasonStatus;
 }
 
 export interface BridgedSeasonResult {
@@ -208,13 +206,22 @@ function bridgeSeason(input: {
   // latestAired >= totalEpisodes 就把整季标 completed,哪怕一集都没入库。于是
   // 播完那天起巡检永久跳过它,缺的集再也补不上(线上地球超新鲜 S2:落 16/20 集,
   // E17–E20 永远缺,而 season.status 已是 completed、run 级却是 partial)。
-  // 现在:播完但没收齐 → 保持 active,巡检继续补;收齐 → completed(不再倒退)。
+  // 现在:播完但没收齐 → 保持 active,巡检继续补;收齐 → completed。
+  //
+  // ⚠️ 这个判定会**主动降级**一个已持久化为 completed 的季(收齐不再成立时),这是
+  // 有意设计,不是回归:「completed」的唯一权威含义是「已经没有要追的集了」,而存量
+  // 里被旧 bug 误标的季(播完即 completed,其实缺集)只有靠这次降级 + 巡检才能把缺的
+  // 补回来 —— 否则它们永远进不到这个 bridge(巡检在 worker.ts:498 就 continue 了),
+  // 存量死锁无法自愈。代价仅是:真收齐的完结季若某次元数据抖动导致 fullyAired 翻假,
+  // 会多巡检一次,下次跑完即回 completed —— 远小于「卡在 completed 不再补缺」的风险。
+  // ⛔ 不要加「persisted completed 就保留」的 terminal guard:那正是把旧 bug 原样请回来。
   const fullyObtained =
     fullyAired &&
     episodes.filter((episode) => episode.airStatus === "aired").every((episode) => episode.obtained) &&
     episodes.filter((episode) => episode.obtained).length >= intent.totalEpisodes;
-  // 没有「播完」兜底,也没法从 intent.status 里沿用一个来路不明的 completed:
-  // 播完与否只决定「还要不要继续追」,而那只由 fullyObtained 回答。
+  // 判据只看 fullyObtained —— 不接受调用方传进来的 persisted status:它可能来自旧
+  // 版本写下的错误 completed(见上),沿用它等于让 bug 自我延续。status 是纯派生量,
+  // 与调用方传入值无关,所以 V2BridgeSeasonIntent 不再有 status 字段。
   const status: SeasonStatus = fullyObtained ? "completed" : "active";
 
   const season: TrackedSeason = {

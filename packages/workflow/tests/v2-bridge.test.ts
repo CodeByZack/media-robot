@@ -110,7 +110,7 @@ describe("bridgeV2WorkflowToResult — V2 facts → per-season WorkflowResult sh
     const result = bridgeV2WorkflowToResult({
       title,
       mode: "type3",
-      seasons: [{ seasonNumber: 1, totalEpisodes: 3, latestAiredEpisode: 3, qualityPreference: "4K", status: "active" }],
+      seasons: [{ seasonNumber: 1, totalEpisodes: 3, latestAiredEpisode: 3, qualityPreference: "4K" }],
       v2: v2Result({
         missingBefore: [],
         obtained: ["S01E01", "S01E02", "S01E03"],
@@ -131,7 +131,7 @@ describe("bridgeV2WorkflowToResult — V2 facts → per-season WorkflowResult sh
       title,
       mode: "type3",
       // 追更中：已播 4/12，S01E01-E04 全在库，无缺无新增（金特务场景）
-      seasons: [{ seasonNumber: 1, totalEpisodes: 12, latestAiredEpisode: 4, qualityPreference: "4K", status: "active" }],
+      seasons: [{ seasonNumber: 1, totalEpisodes: 12, latestAiredEpisode: 4, qualityPreference: "4K" }],
       v2: v2Result({
         missingBefore: [],
         obtained: ["S01E01", "S01E02", "S01E03", "S01E04"],
@@ -151,7 +151,7 @@ describe("bridgeV2WorkflowToResult — V2 facts → per-season WorkflowResult sh
     const result = bridgeV2WorkflowToResult({
       title,
       mode: "type3",
-      seasons: [{ seasonNumber: 1, totalEpisodes: 12, latestAiredEpisode: 5, qualityPreference: "4K", status: "active" }],
+      seasons: [{ seasonNumber: 1, totalEpisodes: 12, latestAiredEpisode: 5, qualityPreference: "4K" }],
       v2: v2Result({
         missingBefore: ["S01E05"],
         obtained: ["S01E01", "S01E02", "S01E03", "S01E04", "S01E05"],
@@ -169,7 +169,7 @@ describe("bridgeV2WorkflowToResult — V2 facts → per-season WorkflowResult sh
     const result = bridgeV2WorkflowToResult({
       title,
       mode: "type3",
-      seasons: [{ seasonNumber: 1, totalEpisodes: 12, latestAiredEpisode: 6, qualityPreference: "4K", status: "active" }],
+      seasons: [{ seasonNumber: 1, totalEpisodes: 12, latestAiredEpisode: 6, qualityPreference: "4K" }],
       v2: v2Result({
         missingBefore: ["S01E05", "S01E06"],
         obtained: ["S01E01", "S01E02", "S01E03", "S01E04", "S01E05"],
@@ -192,7 +192,7 @@ describe("bridgeV2WorkflowToResult — V2 facts → per-season WorkflowResult sh
     const result = bridgeV2WorkflowToResult({
       title,
       mode: "type3",
-      seasons: [{ seasonNumber: 1, totalEpisodes: 3, latestAiredEpisode: 3, qualityPreference: "4K", status: "active" }],
+      seasons: [{ seasonNumber: 1, totalEpisodes: 3, latestAiredEpisode: 3, qualityPreference: "4K" }],
       v2: v2Result({
         missingBefore: [],
         obtained: ["S01E01", "S01E02", "S01E03"],
@@ -211,7 +211,7 @@ describe("bridgeV2WorkflowToResult — V2 facts → per-season WorkflowResult sh
     const result = bridgeV2WorkflowToResult({
       title,
       mode: "type3",
-      seasons: [{ seasonNumber: 1, totalEpisodes: 3, latestAiredEpisode: 3, qualityPreference: "4K", status: "active" }],
+      seasons: [{ seasonNumber: 1, totalEpisodes: 3, latestAiredEpisode: 3, qualityPreference: "4K" }],
       v2: v2Result({
         missingBefore: ["S01E02"],
         obtained: ["S01E01", "S01E03"],
@@ -228,32 +228,15 @@ describe("bridgeV2WorkflowToResult — V2 facts → per-season WorkflowResult sh
   // latestAired >= totalEpisodes 就把整季标 completed,哪怕只落了一部分集。巡检
   // 闸门(worker.ts:498)只认 active,于是播完那天起这一季永久跳过,E17–E20 再也
   // 补不上。下面两条钉住:completed 只能由「收齐」授予,与「播完」无关。
-  it("type3 patrol: fully aired, NO persisted status, real gap → active (播完≠收齐)", () => {
+  // 这条同时覆盖「存量自愈」:status 已从接口删除(纯派生量),所以一个曾被旧 bug 写成
+  // completed 的季,下次跑也会走同一条路径被纠回 active —— 这正是存量不必手工刷库的原因。
+  it("type3 patrol: fully aired + real gap → active (播完≠收齐;含存量 completed 自愈)", () => {
     const result = bridgeV2WorkflowToResult({
       title,
       mode: "type3",
-      // 无 status:旧代码在这里走 `fullyAired ? "completed" : "active"` 兜底 →
-      // 播完即 completed → 巡检永不再扫。
+      // 旧代码在 intent.status 缺省时走 `fullyAired ? "completed" : "active"`
+      // 兜底 → 播完即 completed → 巡检永不再扫。status 现已从接口删除(纯派生量)。
       seasons: [{ seasonNumber: 1, totalEpisodes: 3, latestAiredEpisode: 3, qualityPreference: "4K" }],
-      v2: v2Result({
-        missingBefore: ["S01E02", "S01E03"],
-        obtained: ["S01E01"],
-        stillMissing: ["S01E02", "S01E03"],
-      }),
-      workflowRunId: "run-x",
-      now: () => "2026-06-15T00:00:00.000Z",
-    });
-
-    expect(result.seasons[0]!.season.status).toBe("active");
-  });
-
-  it("type3 patrol: fully aired + real gap + stale persisted 'completed' → reverts to active (存量自愈)", () => {
-    const result = bridgeV2WorkflowToResult({
-      title,
-      mode: "type3",
-      // 存量被旧 bug 误标 completed 的季:必须靠这次跑纠正回来,否则修了代码也
-      // 救不活它(巡检根本不会进到这个 bridge)。
-      seasons: [{ seasonNumber: 1, totalEpisodes: 3, latestAiredEpisode: 3, qualityPreference: "4K", status: "completed" }],
       v2: v2Result({
         missingBefore: ["S01E02", "S01E03"],
         obtained: ["S01E01"],
@@ -270,7 +253,7 @@ describe("bridgeV2WorkflowToResult — V2 facts → per-season WorkflowResult sh
     const result = bridgeV2WorkflowToResult({
       title,
       mode: "type3",
-      seasons: [{ seasonNumber: 1, totalEpisodes: 12, latestAiredEpisode: 2, qualityPreference: "4K", status: "active" }],
+      seasons: [{ seasonNumber: 1, totalEpisodes: 12, latestAiredEpisode: 2, qualityPreference: "4K" }],
       v2: v2Result({
         missingBefore: [],
         obtained: ["S01E01", "S01E02"],
