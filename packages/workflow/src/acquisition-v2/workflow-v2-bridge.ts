@@ -198,19 +198,24 @@ function bridgeSeason(input: {
   }
 
   const fullyAired = intent.totalEpisodes > 0 && intent.latestAiredEpisode >= intent.totalEpisodes;
-  const baseStatus: SeasonStatus = intent.status ?? (fullyAired ? "completed" : "active");
   // The finale graduation season-sync.ts promises ("only the finale — all
-  // obtained — graduates it to completed"). Callers pass the persisted status
-  // through, and this bridge is the only post-creation writer of it — so an
-  // active season that is now fully aired AND fully obtained must graduate
-  // HERE, or the patrol re-sweeps a finished show daily and the library keeps
-  // 追更中 while the notification claims 不再追踪. A season with real aired
-  // gaps stays active so the sweep keeps filling them; completed never reverts.
+  // obtained — graduates it to completed"). This bridge is the only post-creation
+  // writer of season.status, and 收齐 is the ONLY thing that may graduate a season:
+  // `completed` is what the patrol gate reads (worker.ts:498 skips non-active
+  // seasons), so it means "nothing left to chase", NOT "the show stopped airing".
+  //
+  // ⚠️ 2026-09-20 修复:判据曾经是「播完」(fullyAired) —— 只要 TMDB 报
+  // latestAired >= totalEpisodes 就把整季标 completed,哪怕一集都没入库。于是
+  // 播完那天起巡检永久跳过它,缺的集再也补不上(线上地球超新鲜 S2:落 16/20 集,
+  // E17–E20 永远缺,而 season.status 已是 completed、run 级却是 partial)。
+  // 现在:播完但没收齐 → 保持 active,巡检继续补;收齐 → completed(不再倒退)。
   const fullyObtained =
     fullyAired &&
     episodes.filter((episode) => episode.airStatus === "aired").every((episode) => episode.obtained) &&
     episodes.filter((episode) => episode.obtained).length >= intent.totalEpisodes;
-  const status: SeasonStatus = baseStatus === "active" && fullyObtained ? "completed" : baseStatus;
+  // 没有「播完」兜底,也没法从 intent.status 里沿用一个来路不明的 completed:
+  // 播完与否只决定「还要不要继续追」,而那只由 fullyObtained 回答。
+  const status: SeasonStatus = fullyObtained ? "completed" : "active";
 
   const season: TrackedSeason = {
     id: trackedSeasonId,

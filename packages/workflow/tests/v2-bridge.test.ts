@@ -224,6 +224,48 @@ describe("bridgeV2WorkflowToResult — V2 facts → per-season WorkflowResult sh
     expect(result.seasons[0]!.season.status).toBe("active");
   });
 
+  // ⚠️ 2026-09-20(线上地球超新鲜 S2):判据曾经是「播完」(fullyAired) —— 只要
+  // latestAired >= totalEpisodes 就把整季标 completed,哪怕只落了一部分集。巡检
+  // 闸门(worker.ts:498)只认 active,于是播完那天起这一季永久跳过,E17–E20 再也
+  // 补不上。下面两条钉住:completed 只能由「收齐」授予,与「播完」无关。
+  it("type3 patrol: fully aired, NO persisted status, real gap → active (播完≠收齐)", () => {
+    const result = bridgeV2WorkflowToResult({
+      title,
+      mode: "type3",
+      // 无 status:旧代码在这里走 `fullyAired ? "completed" : "active"` 兜底 →
+      // 播完即 completed → 巡检永不再扫。
+      seasons: [{ seasonNumber: 1, totalEpisodes: 3, latestAiredEpisode: 3, qualityPreference: "4K" }],
+      v2: v2Result({
+        missingBefore: ["S01E02", "S01E03"],
+        obtained: ["S01E01"],
+        stillMissing: ["S01E02", "S01E03"],
+      }),
+      workflowRunId: "run-x",
+      now: () => "2026-06-15T00:00:00.000Z",
+    });
+
+    expect(result.seasons[0]!.season.status).toBe("active");
+  });
+
+  it("type3 patrol: fully aired + real gap + stale persisted 'completed' → reverts to active (存量自愈)", () => {
+    const result = bridgeV2WorkflowToResult({
+      title,
+      mode: "type3",
+      // 存量被旧 bug 误标 completed 的季:必须靠这次跑纠正回来,否则修了代码也
+      // 救不活它(巡检根本不会进到这个 bridge)。
+      seasons: [{ seasonNumber: 1, totalEpisodes: 3, latestAiredEpisode: 3, qualityPreference: "4K", status: "completed" }],
+      v2: v2Result({
+        missingBefore: ["S01E02", "S01E03"],
+        obtained: ["S01E01"],
+        stillMissing: ["S01E02", "S01E03"],
+      }),
+      workflowRunId: "run-x",
+      now: () => "2026-06-15T00:00:00.000Z",
+    });
+
+    expect(result.seasons[0]!.season.status).toBe("active");
+  });
+
   it("type3 patrol: still airing (latestAired < total) with everything aired obtained → stays active", () => {
     const result = bridgeV2WorkflowToResult({
       title,
