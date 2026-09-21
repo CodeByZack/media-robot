@@ -3,8 +3,8 @@
 import { useState, useTransition } from "react";
 import { Check, ExternalLink, LoaderCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { connectQuarkAction } from "../app/actions";
-import { runAction } from "../lib/run-action";
+import { apiCall } from "../lib/api";
+import type { DriveResult } from "../lib/api-types";
 
 /**
  * 夸克手动 cookie 连接 —— 扫码登录(QuarkQrConnect)的折叠回退。用户从夸克 web 请求头
@@ -18,13 +18,15 @@ export function QuarkCookieConnect() {
 
   const handleConnect = () => {
     startTransition(async () => {
-      // 必须 catch:server action 会 throw(demo 门禁、运行时错误、网络中断),
-      // 不 catch 就是未处理 rejection,界面上什么都不变(见 runAction 注释)。
-      const r = await runAction(
-        () => connectQuarkAction(cookie),
-        (msg) => setResult(`❌ ${msg}`),
-      );
-      if (!r.ok) return;
+      // 网络/运行时错误由 apiCall 内部收敛为 r.ok=false(含 demo 门禁 403)。
+      const r = await apiCall<DriveResult>("/api/drives", {
+        type: "connect-quark",
+        cookie,
+      });
+      if (!r.ok) {
+        setResult(`❌ ${r.error}`);
+        return;
+      }
       const res = r.value;
       setResult(res.ok ? `✅ ${res.message}` : `❌ ${res.message}`);
       if (res.ok) {

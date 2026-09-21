@@ -3,12 +3,8 @@
 import { Check, ChevronDown, LoaderCircle, Plus } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import {
-  requestRemainingAction,
-  requestSeasonAction,
-  type RequestTrackingActionResult,
-} from "../app/actions";
-import { runAction } from "../lib/run-action";
+import { apiCall } from "../lib/api";
+import type { AcquireResult } from "../lib/api-types";
 import { AcquireResultNotice, isLockedResult } from "./request-state";
 import { AcquireProgressBadge } from "./acquire-progress-badge";
 import { isDemoModeClient } from "../lib/demo-mode";
@@ -54,7 +50,7 @@ export function SeasonRequestMenu({
   // `onlySeason` while `selected` stays "all", so the locked badge must read this,
   // not `selected`, to match the right season's run.
   const [requestedSeason, setRequestedSeason] = useState<number | "all">("all");
-  const [result, setResult] = useState<RequestTrackingActionResult | null>(null);
+  const [result, setResult] = useState<AcquireResult | null>(null);
   // Read-only demo: any acquire trigger plays the scripted, client-only playback
   // (the server actions below are gated server-side anyway).
   const demo = isDemoModeClient();
@@ -98,15 +94,17 @@ export function SeasonRequestMenu({
     startTransition(async () => {
       // setOpen(false) 必须先关菜单(状态机);失败也要关,否则菜单卡住。
       setOpen(false);
-      // 必须 catch(见 runAction 注释)。失败走 onError 显示固定文案。
-      const r = await runAction(
-        () =>
-          selected === "all"
-            ? requestRemainingAction({ tmdbId, storageId })
-            : requestSeasonAction({ tmdbId, seasonNumber: selected, storageId }),
-        (msg) => setResult({ status: "unsupported", message: msg }),
+      // apiCall 内部已 catch 网络/运行时错误;失败走 r.ok=false 显示固定文案。
+      const r = await apiCall<AcquireResult>(
+        "/api/acquire",
+        selected === "all"
+          ? { type: "remaining", tmdbId, storageId }
+          : { type: "season", tmdbId, seasonNumber: selected, storageId },
       );
-      if (!r.ok) return;
+      if (!r.ok) {
+        setResult({ status: "unsupported", message: r.error });
+        return;
+      }
       setResult(r.value);
       // Re-fetch so the queued run mounts the AcquiringPoller; once it finishes,
       // the acquired season leaves untrackedSeasons and this menu unmounts.
@@ -133,16 +131,19 @@ export function SeasonRequestMenu({
             }
             setRequestedSeason(onlySeason);
             startTransition(async () => {
-              // 与多季路径保持一致:必须 catch,失败也 refresh 清锁
+              // 与多季路径保持一致:失败也 refresh 清锁
               // (Copilot round 2 抓到的漏网调用点)。
-              const r = await runAction(
-                () => requestSeasonAction({ tmdbId, seasonNumber: onlySeason, storageId }),
-                (msg) => {
-                  setResult({ status: "unsupported", message: msg });
-                  router.refresh();
-                },
-              );
-              if (!r.ok) return;
+              const r = await apiCall<AcquireResult>("/api/acquire", {
+                type: "season",
+                tmdbId,
+                seasonNumber: onlySeason,
+                storageId,
+              });
+              if (!r.ok) {
+                setResult({ status: "unsupported", message: r.error });
+                router.refresh();
+                return;
+              }
               setResult(r.value);
               router.refresh();
             });

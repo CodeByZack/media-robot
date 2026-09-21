@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { Film } from "lucide-react";
-import { importForeignWorkAction, type ForeignWorkImportActionResult } from "../app/actions";
-import { runAction } from "../lib/run-action";
+import { apiCall } from "../lib/api";
+import type { ImportResult } from "../lib/api-types";
 
 export function ForeignWorkImportForm({
   providerFileIds,
@@ -14,7 +14,7 @@ export function ForeignWorkImportForm({
 }) {
   const [movieTitle, setMovieTitle] = useState(suggestedTitle ?? "");
   const [year, setYear] = useState("");
-  const [result, setResult] = useState<ForeignWorkImportActionResult | null>(null);
+  const [result, setResult] = useState<ImportResult | null>(null);
   const [pending, startTransition] = useTransition();
 
   if (result?.status === "imported") {
@@ -27,15 +27,16 @@ export function ForeignWorkImportForm({
       onSubmit={(event) => {
         event.preventDefault();
         startTransition(async () => {
-          const r = await runAction(
-            () => importForeignWorkAction({
-              providerFileIds,
-              movieTitle,
-              year: Number(year),
-            }),
-            (msg) => setResult({ status: "failed", message: msg }),
-          );
-          if (!r.ok) return;
+          const r = await apiCall<ImportResult>("/api/acquire", {
+            type: "import",
+            providerFileIds,
+            movieTitle,
+            year: Number(year),
+          });
+          if (!r.ok) {
+            setResult({ status: "failed", message: r.error });
+            return;
+          }
           setResult(r.value);
         });
       }}

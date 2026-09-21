@@ -4,8 +4,8 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { CSSProperties } from "react";
 import { ChevronDown, ChevronRight, LoaderCircle, RotateCcw, Save } from "lucide-react";
-import { resetPromptOverridesAction, savePromptOverridesAction } from "../app/actions";
-import { runAction } from "../lib/run-action";
+import { apiCall } from "../lib/api";
+import type { RuleSaveResult, RuleResetResult } from "../lib/api-types";
 // 子路径导入:ruleset/prompt-templates 零 node 依赖,可安全进客户端 chunk(barrel 含 sqlite→node:module,Turbopack 会炸)。
 import { PROMPT_TEMPLATES } from "@media-track/workflow/prompt-templates";
 import { ARBITRATION_KINDS, validatePromptBody, type ArbitrationKind } from "@media-track/workflow/ruleset";
@@ -87,10 +87,11 @@ export function PromptOverridesForm({ initial }: { initial: PromptDraft[] }) {
       const payload = drafts.filter(
         (d) => d.promptText.trim().length > 0 && !isBuiltinBody(d.arbitrationKind, d.promptText),
       );
-      const r = await runAction(() => savePromptOverridesAction(payload), (msg) => {
-        setMessages((prev) => ({ ...prev, _global: msg }));
-      });
-      if (!r.ok) return;
+      const r = await apiCall<RuleSaveResult>("/api/rules", { type: "save-prompts", drafts: payload });
+      if (!r.ok) {
+        setMessages((prev) => ({ ...prev, _global: r.error }));
+        return;
+      }
       const res = r.value;
       if (!res.success) {
         if (res.errors) setMessages(res.errors);
@@ -106,10 +107,11 @@ export function PromptOverridesForm({ initial }: { initial: PromptDraft[] }) {
   function handleReset() {
     if (isResetting || isPending) return;
     startReset(async () => {
-      const r = await runAction(() => resetPromptOverridesAction(), (msg) => {
-        setMessages((prev) => ({ ...prev, _global: msg }));
-      });
-      if (!r.ok) return;
+      const r = await apiCall<RuleResetResult>("/api/rules", { type: "reset-prompts" });
+      if (!r.ok) {
+        setMessages((prev) => ({ ...prev, _global: r.error }));
+        return;
+      }
       // initial 已预填内置正文(settings/page.tsx 装配),恢复默认 = 直接回到 initial。
       setDrafts(initial);
       setMessages({});

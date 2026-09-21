@@ -3,8 +3,8 @@
 import { LoaderCircle, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { untrackTitleAction } from "../app/actions";
-import { runAction } from "../lib/run-action";
+import { apiCall } from "../lib/api";
+import type { UntrackResult } from "../lib/api-types";
 import { isDemoModeClient } from "../lib/demo-mode";
 
 /**
@@ -45,23 +45,21 @@ export function UntrackButton({
 
   const run = () => {
     startTransition(async () => {
-      // 必须 catch(见 runAction 注释)。setConfirming(false) 失败也要复位,
+      // apiCall 内部已 catch。setConfirming(false) 失败也要复位,
       // 否则按钮卡在确认态。
-      const r = await runAction(
-        () =>
-          untrackTitleAction({
-            tmdbId,
-            storageId,
-            mediaKind,
-            ...(seasonNumber !== undefined ? { seasonNumber } : {}),
-          }),
-        (msg) => {
-          setMessage(msg);
-          setConfirming(false);
-          router.refresh();
-        },
-      );
-      if (!r.ok) return;
+      const r = await apiCall<UntrackResult>("/api/acquire", {
+        type: "untrack",
+        tmdbId,
+        storageId,
+        mediaKind,
+        ...(seasonNumber !== undefined ? { seasonNumber } : {}),
+      });
+      if (!r.ok) {
+        setMessage(r.error);
+        setConfirming(false);
+        router.refresh();
+        return;
+      }
       const result = r.value;
       if (result.status === "untracked" && seasonNumber === undefined) {
         // Whole-show untracked → it's gone from the library; go there to show it.

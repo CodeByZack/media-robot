@@ -3,8 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { LoaderCircle, Plus, X } from "lucide-react";
-import { saveDailySweepTimesAction } from "../app/actions";
-import { runAction } from "../lib/run-action";
+import { apiCall } from "../lib/api";
+import type { SettingsResult } from "../lib/api-types";
 
 /**
  * 巡检时间点 chips（1~6 个，北京时间）。即改即存：添加/删除立即持久化整个列表，
@@ -19,18 +19,14 @@ export function DailySweepForm({ initial, max }: { initial: string[]; max: numbe
 
   const persist = (next: string[], previous: string[]) => {
     startTransition(async () => {
-      // 必须 catch(见 runAction 注释)。B2 漏网的调用点,此处补上。
-      const r = await runAction(
-        () => saveDailySweepTimesAction(next),
-        (msg) => {
-          // 组件注释承诺「失败回滚」:异常时也要 setTimes(previous),
-          // 否则 UI 显示未持久化的最新值(Copilot round 3)。
-          setTimes(previous);
-          setNote(`❌ ${msg}`);
-          setTimeout(() => setNote(null), 3000);
-        },
-      );
-      if (!r.ok) return;
+      const r = await apiCall<SettingsResult>("/api/settings/save", { type: "sweep", times: next });
+      if (!r.ok) {
+        // 失败回滚:异常时也要 setTimes(previous),否则 UI 显示未持久化的最新值。
+        setTimes(previous);
+        setNote(`❌ ${r.error}`);
+        setTimeout(() => setNote(null), 3000);
+        return;
+      }
       const res = r.value;
       if (!res.success) {
         setTimes(previous);

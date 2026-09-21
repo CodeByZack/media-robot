@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { Check, ChevronDown, ChevronRight, LoaderCircle, Pencil, Trash2, X } from "lucide-react";
-import { resetRulePatternsAction, saveRulePatternsAction } from "../app/actions";
-import { runAction } from "../lib/run-action";
+import { apiCall } from "../lib/api";
+import type { RuleSaveResult, RuleResetResult } from "../lib/api-types";
 import { BUILTIN_RULE_PATTERNS, type RuleRole } from "@media-track/workflow/ruleset";
 import { ruleRowError, type RulePatternDraft } from "../lib/rule-patterns-utils";
 
@@ -82,8 +82,11 @@ export function RulePatternsForm({ initial }: { initial: RulePatternDraft[] }) {
   function persist(next: RulePatternDraft[], onSaved: () => void) {
     startTransition(async () => {
       const ordered = indexSortOrder(next);
-      const r = await runAction(() => saveRulePatternsAction(ordered), (msg) => flash("❌ " + msg));
-      if (!r.ok) return;
+      const r = await apiCall<RuleSaveResult>("/api/rules", { type: "save", patterns: ordered });
+      if (!r.ok) {
+        flash("❌ " + r.error);
+        return;
+      }
       if (!r.value.success) {
         flash("❌ " + (r.value.message ?? "保存失败"));
         return;
@@ -127,8 +130,11 @@ export function RulePatternsForm({ initial }: { initial: RulePatternDraft[] }) {
   function handleReset() {
     if (isPending) return;
     startTransition(async () => {
-      const r = await runAction(() => resetRulePatternsAction(), (msg) => flash("❌ " + msg));
-      if (!r.ok) return;
+      const r = await apiCall<RuleResetResult>("/api/rules", { type: "reset" });
+      if (!r.ok) {
+        flash("❌ " + r.error);
+        return;
+      }
       if (r.value.success) {
         setCustoms([]);
         setEditor(null);
