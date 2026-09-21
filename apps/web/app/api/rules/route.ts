@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
           ["cross", isolate({ cross: slot("cross") })],
           ["chinese", isolate({ chinese: slot("chinese") })],
           ["digits", isolate({ digits: slot("digits") })],
-          ...(compiled.custom ?? []).map((c, i) => [`自定义 ${i + 1}`, isolate({ custom: [c] })]),
+          ...(compiled.custom ?? []).map((c, i): [string, EpisodeParseRules] => [`自定义 ${i + 1}`, isolate({ custom: [c] })]),
         ];
         const ROLE_LABEL: Record<string, string> = { "season-episode": "带季号", "episode-only": "仅集号" };
         const builtinById = new Map(BUILTIN_RULE_PATTERNS.map((p) => [p.ruleId, p] as const));

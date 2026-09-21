@@ -1,12 +1,12 @@
 import { connection, NextResponse, type NextRequest } from "next/server";
-import { isDemoMode } from "../../../lib/demo-mode";
+import { isDemoMode } from "../../../../lib/demo-mode";
 import {
   getCurrentAccountId,
   getAccountScopedSettings,
   resolveAgentModelConfig,
   getWorkflowRepository,
   getTmdbAccesses,
-} from "../../../lib/workflow-runtime";
+} from "../../../../lib/workflow-runtime";
 import { createAgentModel, llmConfigError, fetchTmdbList } from "@media-track/workflow";
 import { generateText } from "ai";
 

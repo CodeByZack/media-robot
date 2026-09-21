@@ -1,5 +1,5 @@
 import { connection, NextResponse, type NextRequest } from "next/server";
-import { isDemoMode } from "../../../lib/demo-mode";
+import { isDemoMode } from "../../../../lib/demo-mode";
 import {
   getWorkflowRepository,
   getCurrentAccountId,
@@ -18,9 +18,9 @@ import {
   PROWLARR_BASE_URL_SETTING_KEY,
   PROWLARR_API_KEY_SETTING_KEY,
   runScheduledType3,
-} from "../../../lib/workflow-runtime";
+} from "../../../../lib/workflow-runtime";
 import { normalizeLlmBaseUrl, sanitizeLlmApiKey } from "@media-track/workflow";
-import { probePanSou, validatePanSouBaseUrlFormat } from "../../../lib/pansou-probe";
+import { probePanSou, validatePanSouBaseUrlFormat } from "../../../../lib/pansou-probe";
 
 export async function POST(request: NextRequest) {
   await connection();
