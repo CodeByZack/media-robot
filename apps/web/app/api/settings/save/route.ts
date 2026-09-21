@@ -2,7 +2,7 @@ import { connection, NextResponse, type NextRequest } from "next/server";
 import { isDemoMode } from "../../../../lib/demo-mode";
 import {
   getWorkflowRepository,
-  getCurrentAccountId,
+  requireAuthenticatedAccountId,
   DAILY_SWEEP_TIMES_SETTING_KEY,
   MAX_DAILY_SWEEP_TIMES,
   PREFERRED_LANGUAGE_SETTING_KEY,
@@ -59,20 +59,20 @@ export async function POST(request: NextRequest) {
       case "language": {
         const language = String(body.language ?? "").trim();
         const repository = getWorkflowRepository();
-        await repository.setAccountSetting(await getCurrentAccountId(), PREFERRED_LANGUAGE_SETTING_KEY, language);
+        await repository.setAccountSetting(await requireAuthenticatedAccountId(), PREFERRED_LANGUAGE_SETTING_KEY, language);
         return NextResponse.json({ success: true });
       }
 
       case "quality": {
         const quality = String(body.quality ?? "").trim();
         const repository = getWorkflowRepository();
-        await repository.setAccountSetting(await getCurrentAccountId(), QUALITY_PREFERENCE_SETTING_KEY, quality);
+        await repository.setAccountSetting(await requireAuthenticatedAccountId(), QUALITY_PREFERENCE_SETTING_KEY, quality);
         return NextResponse.json({ success: true });
       }
 
       case "llm": {
         const repository = getWorkflowRepository();
-        const accountId = await getCurrentAccountId();
+        const accountId = await requireAuthenticatedAccountId();
         await repository.setAccountSetting(accountId, LLM_BASE_URL_SETTING_KEY, normalizeLlmBaseUrl(body.baseURL));
         await repository.setAccountSetting(accountId, LLM_MODEL_ID_SETTING_KEY, String(body.modelId ?? "").trim());
         const apiKey = sanitizeLlmApiKey(String(body.apiKey ?? ""));
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
 
       case "tmdb": {
         const repository = getWorkflowRepository();
-        const accountId = await getCurrentAccountId();
+        const accountId = await requireAuthenticatedAccountId();
         const trimmedKey = String(body.apiKey ?? "").trim();
         if (trimmedKey) {
           await repository.setAccountSetting(accountId, TMDB_API_KEY_SETTING_KEY, trimmedKey);
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
 
       case "tmdb-clear": {
         const repository = getWorkflowRepository();
-        const accountId = await getCurrentAccountId();
+        const accountId = await requireAuthenticatedAccountId();
         await repository.setAccountSetting(accountId, TMDB_API_KEY_SETTING_KEY, "");
         await repository.setAccountSetting(accountId, TMDB_BASE_URL_SETTING_KEY, "");
         return NextResponse.json({ success: true });
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
 
       case "assrt": {
         const repository = getWorkflowRepository();
-        const accountId = await getCurrentAccountId();
+        const accountId = await requireAuthenticatedAccountId();
         const token = String(body.token ?? "").trim();
         if (token) {
           await repository.setAccountSetting(accountId, ASSRT_TOKEN_SETTING_KEY, token);
@@ -115,14 +115,14 @@ export async function POST(request: NextRequest) {
 
       case "assrt-clear": {
         const repository = getWorkflowRepository();
-        const accountId = await getCurrentAccountId();
+        const accountId = await requireAuthenticatedAccountId();
         await repository.setAccountSetting(accountId, ASSRT_TOKEN_SETTING_KEY, "");
         return NextResponse.json({ success: true });
       }
 
       case "pansou": {
         const repository = getWorkflowRepository();
-        const accountId = await getCurrentAccountId();
+        const accountId = await requireAuthenticatedAccountId();
         const trimmed = String(body.baseURL ?? "").trim();
         if (!trimmed) {
           await repository.setAccountSetting(accountId, PANSOU_BASE_URL_SETTING_KEY, "");
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
 
       case "prowlarr": {
         const repository = getWorkflowRepository();
-        const accountId = await getCurrentAccountId();
+        const accountId = await requireAuthenticatedAccountId();
         await repository.setAccountSetting(accountId, PROWLARR_BASE_URL_SETTING_KEY, String(body.baseURL ?? "").trim());
         const apiKey = String(body.apiKey ?? "").trim();
         if (apiKey) {
@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
 
       case "prowlarr-clear": {
         const repository = getWorkflowRepository();
-        const accountId = await getCurrentAccountId();
+        const accountId = await requireAuthenticatedAccountId();
         await repository.setAccountSetting(accountId, PROWLARR_BASE_URL_SETTING_KEY, "");
         await repository.setAccountSetting(accountId, PROWLARR_API_KEY_SETTING_KEY, "");
         return NextResponse.json({ success: true });

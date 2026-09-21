@@ -1,6 +1,6 @@
 import { connection, NextResponse, type NextRequest } from "next/server";
 import { isDemoMode } from "../../../lib/demo-mode";
-import { getWorkflowRepository } from "../../../lib/workflow-runtime";
+import { getWorkflowRepository, requireAuthenticatedAccountId } from "../../../lib/workflow-runtime";
 import {
   validateRuleExpression,
   isArbitrationKind,
@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
         if (isDemoMode()) {
           return NextResponse.json({ success: false, message: "演示模式为只读" }, { status: 403 });
         }
+        await requireAuthenticatedAccountId();
         const patterns = body.patterns as Array<{
           ruleId: string; role: string; expression: string; label?: string; sortOrder: number; isDefault?: boolean;
         }>;
@@ -57,6 +58,7 @@ export async function POST(request: NextRequest) {
         if (isDemoMode()) {
           return NextResponse.json({ success: false, message: "演示模式为只读" }, { status: 403 });
         }
+        await requireAuthenticatedAccountId();
         await getWorkflowRepository().replaceRulePatterns([]);
         return NextResponse.json({ success: true });
       }
@@ -65,6 +67,7 @@ export async function POST(request: NextRequest) {
         if (isDemoMode()) {
           return NextResponse.json({ success: false, message: "演示模式为只读" }, { status: 403 });
         }
+        await requireAuthenticatedAccountId();
         const drafts = body.drafts as Array<{ arbitrationKind: string; promptText: string }>;
         const errors: Record<string, string> = {};
         const valid: Array<{ arbitrationKind: string; promptText: string; isActive: boolean }> = [];
@@ -85,6 +88,7 @@ export async function POST(request: NextRequest) {
         if (isDemoMode()) {
           return NextResponse.json({ success: false, message: "演示模式为只读" }, { status: 403 });
         }
+        await requireAuthenticatedAccountId();
         await getWorkflowRepository().replacePromptOverrides([]);
         return NextResponse.json({ success: true });
       }

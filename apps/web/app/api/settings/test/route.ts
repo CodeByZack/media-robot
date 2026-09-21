@@ -1,7 +1,7 @@
 import { connection, NextResponse, type NextRequest } from "next/server";
 import { isDemoMode } from "../../../../lib/demo-mode";
 import {
-  getCurrentAccountId,
+  requireAuthenticatedAccountId,
   getAccountScopedSettings,
   resolveAgentModelConfig,
   getWorkflowRepository,
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
   try {
     switch (body.type) {
       case "llm-test": {
-        const accountId = await getCurrentAccountId();
+        const accountId = await requireAuthenticatedAccountId();
         const cfg = await resolveAgentModelConfig(getAccountScopedSettings(accountId));
         const configError = llmConfigError(cfg);
         if (configError) {
@@ -34,7 +34,11 @@ export async function POST(request: NextRequest) {
       }
 
       case "tmdb-test": {
-        const accesses = await getTmdbAccesses(getWorkflowRepository());
+        const repository = getWorkflowRepository();
+        const accountId = await requireAuthenticatedAccountId();
+        const accesses = await getTmdbAccesses({
+          getSetting: (key: string) => repository.getAccountSetting(accountId, key),
+        });
         if (accesses.length === 0) {
           return NextResponse.json({ success: false, message: "未配置 TMDB API Key" });
         }

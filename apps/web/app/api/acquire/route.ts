@@ -120,7 +120,8 @@ export async function POST(request: NextRequest) {
           revalidatePath("/notifications");
           return NextResponse.json({ status: "imported", message: `已入库到 ${movieTitle} (${year})。` });
         } catch (error) {
-          return NextResponse.json({ status: "failed", message: `入库失败：${String(error)}` });
+          const msg = error instanceof Error ? error.message : String(error);
+          return NextResponse.json({ status: "failed", message: `入库失败：${msg.slice(0, 200)}` });
         }
       }
 
