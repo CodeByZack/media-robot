@@ -1,6 +1,6 @@
-# Deploy Mediary Scout
+# Deploy MediaRover
 
-Mediary Scout 有两种部署方式:
+MediaRover 有两种部署方式:
 
 | | 飞牛 fnOS 原生应用 (fpk) | Docker Compose (服务器) |
 |---|---|---|
@@ -120,7 +120,7 @@ docker compose --project-directory . -f deploy/docker/docker-compose.yml up -d  
 
 ### 1. 在设置页粘 token
 
-**设置 → 网盘连接 → 选「光鸭云盘」标签页**。最省事:把下面 Console 打印出来的内容(打印的两段、或它复制到剪贴板的 JSON,都行)整段粘到**第一个框**,再点框下方的 **「识别并拆分 token」**,两个框会自动填好;确认无误后点「连接光鸭」。(也可以仍按老办法手动把两个值分别粘进两个框。)连接时会用 token 校验登录态、并在你盘里建好 `Mediary Scout/{Movies,TV,Anime}` 分类目录。
+**设置 → 网盘连接 → 选「光鸭云盘」标签页**。最省事:把下面 Console 打印出来的内容(打印的两段、或它复制到剪贴板的 JSON,都行)整段粘到**第一个框**,再点框下方的 **「识别并拆分 token」**,两个框会自动填好;确认无误后点「连接光鸭」。(也可以仍按老办法手动把两个值分别粘进两个框。)连接时会用 token 校验登录态、并在你盘里建好 `MediaRover/{Movies,TV,Anime}` 分类目录。
 
 ### 2. 怎么拿到这两个 token
 

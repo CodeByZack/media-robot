@@ -66,7 +66,7 @@ export function createProtectedPan115CookieStorageExecutorFromEnv(
 /**
  * Bootstrap 115 executor with an EMPTY write scope = unrestricted writes. ONLY for
  * the connect-time `provisionCategoryDirs` bootstrap — find-or-create of the media
- * tree (`Mediary Scout/{Movies,TV,Anime}`) under the 115 account root.
+ * tree (`MediaRover/{Movies,TV,Anime}`) under the 115 account root.
  *
  * The protected factory REQUIRES a write scope, but a fresh drive's scope is meant
  * to come FROM the provisioned dirs → catch-22 (115 drives stuck "目录待建"). This

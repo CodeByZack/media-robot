@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { Activity, Aperture, Bell, Library, Settings } from "lucide-react";
-import { globalNavHref } from "@media-track/workflow";
+import { Activity, Bell, Library, Settings } from "lucide-react";
+import { globalNavHref } from "@mediarover/workflow";
 import { SearchNavLink } from "./search-memory";
 import { ActivityNavBadge } from "./activity-nav-badge";
 import { NotificationsNavBadge } from "./notifications-nav-badge";
@@ -26,12 +26,29 @@ export function AppSidebar({
   return (
     <aside className="sidebar">
       <div className="brand">
+        {/* 品牌标识:取自 newui/assets/brand/mediarover-icon-flat.svg(去掉最外层
+            渐变底 —— 容器 .brand-mark 已经是 navy 圆角底)。 */}
         <span className="brand-mark">
-          <Aperture size={18} aria-hidden />
+          <svg viewBox="0 0 512 512" width="26" height="26" aria-hidden focusable="false">
+            <rect x="118" y="160" width="276" height="196" rx="92" fill="#F4FAFF" />
+            <rect x="142" y="184" width="228" height="148" rx="64" fill="#102B4D" />
+            <circle cx="214" cy="255" r="15" fill="#39C5FF" />
+            <circle cx="298" cy="255" r="15" fill="#39C5FF" />
+            <rect x="246" y="91" width="20" height="69" rx="10" fill="#F4FAFF" />
+            <circle cx="256" cy="75" r="22" fill="#39C5FF" />
+            <circle cx="162" cy="370" r="47" fill="#F4FAFF" />
+            <circle cx="350" cy="370" r="47" fill="#F4FAFF" />
+            <circle cx="162" cy="370" r="21" fill="#2C83D9" />
+            <circle cx="350" cy="370" r="21" fill="#2C83D9" />
+            <rect x="72" y="276" width="118" height="118" rx="34" fill="#2C83D9" />
+            <path d="M116 305L116 365L164 335Z" fill="#fff" />
+          </svg>
         </span>
         <span className="brand-copy">
-          <strong>Mediary Scout</strong>
-          <span>multi-drive media agent</span>
+          <strong>
+            Media<span className="brand-copy-accent">Rover</span>
+          </strong>
+          <span>YOUR PERSONAL MEDIA AGENT</span>
         </span>
       </div>
 

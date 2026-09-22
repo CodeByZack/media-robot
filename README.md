@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/hero.svg" alt="Mediary Scout" width="600">
+  <img src="docs/images/hero.svg" alt="MediaRover" width="600">
 </p>
 
 <p align="center">
@@ -19,9 +19,9 @@
 
 ---
 
-You ask for a movie, show, or anime; Mediary Scout searches resource indexes (PanSou / Prowlarr), transfers the best match into your own 115 / Quark / GuangYaPan / 123 / Tianyi drive, verifies what actually landed, names it canonically, and keeps tracking what's still missing. Deterministic code owns every step; an LLM is only consulted as a single-shot referee at genuine judgement points — a clean acquisition typically costs two AI calls, often zero.
+You ask for a movie, show, or anime; MediaRover searches resource indexes (PanSou / Prowlarr), transfers the best match into your own 115 / Quark / GuangYaPan / 123 / Tianyi drive, verifies what actually landed, names it canonically, and keeps tracking what's still missing. Deterministic code owns every step; an LLM is only consulted as a single-shot referee at genuine judgement points — a clean acquisition typically costs two AI calls, often zero.
 
-![Mediary Scout — search a title, hit 获取, and the pipeline searches, transfers, and verifies it into your drive](docs/images/demo.gif)
+![MediaRover — search a title, hit 获取, and the pipeline searches, transfers, and verifies it into your drive](docs/images/demo.gif)
 
 ## Install
 
@@ -69,7 +69,7 @@ Multiple drives appear as a workspace switcher with per-brand icons:
 
 ## What it is
 
-Most "media automation" either searches well but doesn't know what you're actually missing, or moves files but never verifies what landed. Mediary Scout treats acquisition as a **state problem**, driven by evidence, not vibes:
+Most "media automation" either searches well but doesn't know what you're actually missing, or moves files but never verifies what landed. MediaRover treats acquisition as a **state problem**, driven by evidence, not vibes:
 
 - **Multi-drive, brand-extensible** — five drives today (Quark, 115, 光鸭 GuangYaPan, 123, 天翼 Tianyi), each a first-class workspace (a tree model: one account, many drives). Adding a new drive brand is a contained plugin.
 - **Deterministic-first acquisition** — candidates are A/B/C/D-graded by mechanical rules (title/alias matching incl. traditional↔simplified folding, season & episode patterns, Chinese-subtitle markers, dead-link memory). A unique grade-A candidate is transferred blind; the LLM is only asked when evidence genuinely needs judgement (selection, diagnosis, episode-mapping), always as a bounded single call.
@@ -122,7 +122,7 @@ flowchart LR
 
 ## Agent API (agent-first control)
 
-The web app exposes a local HTTP API that lets any coding agent (Claude Code, Codex, opencode, …) operate Mediary Scout without opening the GUI — change settings, trigger acquisitions, check progress. The desktop app auto-generates a Bearer token on first launch (persisted in `app_settings`); use the `Authorization: Bearer <token>` header to authenticate.
+The web app exposes a local HTTP API that lets any coding agent (Claude Code, Codex, opencode, …) operate MediaRover without opening the GUI — change settings, trigger acquisitions, check progress. The desktop app auto-generates a Bearer token on first launch (persisted in `app_settings`); use the `Authorization: Bearer <token>` header to authenticate.
 
 | Method | Path | Purpose |
 |---|---|---|
@@ -140,7 +140,7 @@ All require `Authorization: Bearer <token>`. No token configured → `404` (invi
 Prefer to have an AI agent walk you through deployment? Paste this prompt:
 
 ````markdown
-You are deploying Mediary Scout, a self-hosted media-acquisition app. Follow the repo's docs/deploy.md. Ask the user the questions below IN ORDER, then execute.
+You are deploying MediaRover, a self-hosted media-acquisition app. Follow the repo's docs/deploy.md. Ask the user the questions below IN ORDER, then execute.
 
 ## MUST ask (don't start without answers)
 1. **Where are you deploying?** 飞牛 fnOS NAS (native .fpk — see deploy/fpk/README.md), or any Docker host (NAS / router / spare PC / VPS)? How do I operate the machine — SSH, or its local terminal?
@@ -159,7 +159,7 @@ You are deploying Mediary Scout, a self-hosted media-acquisition app. Follow the
 - Verify it's up, report the URL, and tell them how to upgrade (`git pull && ./deploy/docker/deploy.sh` — it rebuilds, restarts, and self-verifies the running container serves the pulled commit)
 ```
 
-> **Disclaimer.** Mediary Scout is **open-source, self-hosted software**. It is **not** offered, and never will be offered, as a hosted service — you run your own instance and bring your own drive / LLM / metadata credentials. It performs the same kinds of file operations you could do by hand in your own cloud drive. See [docs/distribution-and-legal-positioning.md](docs/distribution-and-legal-positioning.md) for the project's stance.
+> **Disclaimer.** MediaRover is **open-source, self-hosted software**. It is **not** offered, and never will be offered, as a hosted service — you run your own instance and bring your own drive / LLM / metadata credentials. It performs the same kinds of file operations you could do by hand in your own cloud drive. See [docs/distribution-and-legal-positioning.md](docs/distribution-and-legal-positioning.md) for the project's stance.
 
 ## Status & limitations
 
@@ -180,4 +180,4 @@ Built on top of, and grateful to:
 - [cloud189-auto-save](https://github.com/1307super/cloud189-auto-save) / [cloudpan189-api](https://github.com/tickstep/cloudpan189-api) — 天翼云盘 API references
 - [TMDB](https://www.themoviedb.org/) — metadata (this product is not endorsed or certified by TMDB)
 
-Not affiliated with 115, Quark, 光鸭云盘 (GuangYaPan), 123网盘, 天翼云盘, TMDB, or any indexer. Mediary Scout is an independent, disciplined workflow built around these pieces.
+Not affiliated with 115, Quark, 光鸭云盘 (GuangYaPan), 123网盘, 天翼云盘, TMDB, or any indexer. MediaRover is an independent, disciplined workflow built around these pieces.
