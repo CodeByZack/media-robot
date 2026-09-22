@@ -1,28 +1,40 @@
-/* Media Track — Spotify design language (see apps/web/DESIGN.md) */
+/* MediaRover — MediaRover design language (graphite + cruise blue) */
+/*
+ * 阶段 1: token 层换皮(Spotify 绿 → MediaRover 石墨蓝)。
+ * 色值取自 newui/colors_and_type.css;只换值,不动结构与类名。
+ * 层级靠明度抬升(--bg 系列),不靠描边 —— border 比旧版更暗。
+ */
 
 :root {
   color-scheme: dark;
-  --bg-base: #121212;
-  --bg-surface: #181818;
-  --bg-raised: #1f1f1f;
-  --bg-card: #252525;
-  --bg-card-alt: #272727;
-  --accent: #1ed760;
-  --accent-press: #169c46;
-  --text: #ffffff;
-  --text-muted: #b3b3b3;
-  --text-soft: #cbcbcb;
-  --negative: #f3727f;
-  --warning: #ffa42b;
-  --info: #539df5;
-  --border: #4d4d4d;
-  --border-soft: #7c7c7c;
-  --text-faint: #8f8f8f;
+  --bg-base: #111419;
+  --bg-surface: #181c22;
+  --bg-raised: #1e232b;
+  --bg-card: #262d37;
+  --bg-card-alt: #313a46;
+  --accent: #4c9be8;
+  --accent-press: #3a8ad9;
+  --accent-hover: #6aaef0;
+  --accent-on: #071626;
+  --cyan: #39c5ff;
+  --navy: #102b4d;
+  --navy-deep: #0b1e38;
+  --text: #eef1f5;
+  --text-muted: #b4bdc9;
+  --text-soft: #b4bdc9;
+  --negative: #e7685a;
+  --warning: #d9a441;
+  --info: #4c9be8;
+  --success: #3fbf88;
+  --border: #2e3641;
+  --border-soft: #232a33;
+  --text-faint: #79838f;
   --radius-pill: 9999px;
   --radius-card: 8px;
   --shadow-heavy: rgba(0, 0, 0, 0.5) 0px 8px 24px;
-  --font-stack: "CircularSp", "Circular", "Inter", "PingFang SC", "Microsoft YaHei",
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font-stack: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text",
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
 * {
@@ -93,9 +105,9 @@ p {
   place-items: center;
   width: 36px;
   height: 36px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: #121212;
+  border-radius: 10px;
+  background: var(--navy);
+  color: var(--text);
 }
 
 .brand-copy {
@@ -108,9 +120,20 @@ p {
   font-size: 15px;
 }
 
-.brand-copy span:last-child {
-  color: var(--text-muted);
-  font-size: 12px;
+/* 字标双色:Media 用前景色,Rover 用信号青(品牌规范里深底上的做法) */
+.brand-copy-accent {
+  color: var(--cyan);
+}
+
+/* 只匹配 .brand-copy 的直接子 span(副标题),否则会连带命中
+   <strong> 里做双色的 .brand-copy-accent */
+.brand-copy > span:last-child {
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .nav-list {
@@ -203,12 +226,12 @@ p {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: rgba(30, 215, 96, 0.15);
+  background: rgba(76, 155, 232, 0.15);
   color: var(--accent);
 }
 
 .main {
-  background: linear-gradient(180deg, #1c1c1c 0%, var(--bg-base) 320px);
+  background: linear-gradient(180deg, #181c22 0%, var(--bg-base) 320px);
   border-radius: var(--radius-card);
   padding: 24px 32px 48px;
   min-width: 0;
@@ -238,7 +261,7 @@ p {
 
 .product-tabs a.is-active {
   background: var(--text);
-  color: #121212;
+  color: var(--accent-on);
 }
 
 .filter-pill {
@@ -257,7 +280,7 @@ p {
 
 .filter-pill.is-active {
   background: var(--text);
-  color: #121212;
+  color: var(--accent-on);
 }
 
 .category-section {
@@ -382,7 +405,7 @@ p {
 
 .search-box:focus-within {
   border-color: var(--border-soft);
-  background: #2a2a2a;
+  background: #262d37;
   color: var(--text);
 }
 
@@ -409,7 +432,7 @@ p {
   align-items: center;
   gap: 8px;
   background: var(--accent);
-  color: #121212;
+  color: var(--accent-on);
   border: none;
   border-radius: var(--radius-pill);
   height: 44px;
@@ -527,7 +550,7 @@ p {
   min-width: 96px;
   height: 132px;
   border-radius: 6px;
-  background: linear-gradient(160deg, #2a2a2a 0%, #1c1c1c 100%);
+  background: linear-gradient(160deg, #262d37 0%, #181c22 100%);
   color: var(--text-soft);
   font-weight: 700;
   font-size: 16px;
@@ -606,7 +629,7 @@ p {
 .title-stage {
   display: flex;
   gap: 24px;
-  background: linear-gradient(140deg, #2c2c2c 0%, var(--bg-surface) 70%);
+  background: linear-gradient(140deg, #313a46 0%, var(--bg-surface) 70%);
   border-radius: var(--radius-card);
   padding: 24px;
   box-shadow: var(--shadow-heavy);
@@ -621,7 +644,7 @@ p {
   min-width: 148px;
   height: 200px;
   border-radius: 6px;
-  background: linear-gradient(160deg, #3a3a3a 0%, #181818 100%);
+  background: linear-gradient(160deg, #313a46 0%, #181818 100%);
   padding: 14px;
   font-weight: 700;
   box-shadow: var(--shadow-heavy);
@@ -745,7 +768,7 @@ p {
 
 .tone-green .metric-icon {
   color: var(--accent);
-  background: rgba(30, 215, 96, 0.12);
+  background: rgba(76, 155, 232, 0.12);
 }
 
 .tone-coral .metric-icon {
@@ -755,12 +778,12 @@ p {
 
 .tone-amber .metric-icon {
   color: var(--warning);
-  background: rgba(255, 164, 43, 0.12);
+  background: rgba(217, 164, 65, 0.12);
 }
 
 .tone-blue .metric-icon {
   color: var(--info);
-  background: rgba(83, 157, 245, 0.12);
+  background: rgba(76, 155, 232, 0.12);
 }
 
 .metric-label {
@@ -863,8 +886,8 @@ p {
 }
 
 .episode-cell.obtained {
-  background: rgba(30, 215, 96, 0.12);
-  border-color: rgba(30, 215, 96, 0.55);
+  background: rgba(76, 155, 232, 0.12);
+  border-color: rgba(76, 155, 232, 0.55);
 }
 
 .episode-cell.obtained span {
@@ -872,8 +895,8 @@ p {
 }
 
 .episode-cell.provider-ahead {
-  background: rgba(83, 157, 245, 0.12);
-  border-color: rgba(83, 157, 245, 0.55);
+  background: rgba(76, 155, 232, 0.12);
+  border-color: rgba(76, 155, 232, 0.55);
 }
 
 .episode-cell.provider-ahead span {
@@ -1253,7 +1276,7 @@ p {
     top: 100%;
     min-width: 180px;
     background: var(--bg-surface);
-    border: 1px solid var(--border, #2a2a2a);
+    border: 1px solid var(--border, #262d37);
     border-radius: 10px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
     padding: 4px;
@@ -1449,9 +1472,9 @@ p {
   background: var(--bg-raised);
 }
 
-.feed-icon.tone-green { color: var(--accent); background: rgba(30, 215, 96, 0.12); }
-.feed-icon.tone-blue { color: var(--info); background: rgba(83, 157, 245, 0.12); }
-.feed-icon.tone-amber { color: var(--warning); background: rgba(255, 164, 43, 0.12); }
+.feed-icon.tone-green { color: var(--accent); background: rgba(76, 155, 232, 0.12); }
+.feed-icon.tone-blue { color: var(--info); background: rgba(76, 155, 232, 0.12); }
+.feed-icon.tone-amber { color: var(--warning); background: rgba(217, 164, 65, 0.12); }
 .feed-icon.tone-muted { color: var(--text-muted); }
 
 /* Body: the informative progress line(s), indented under the icon column. */
@@ -1490,9 +1513,9 @@ p {
   flex-shrink: 0;
 }
 
-.feed-status-pill.tone-green { color: var(--accent); background: rgba(30, 215, 96, 0.12); }
-.feed-status-pill.tone-indigo { color: var(--info); background: rgba(83, 157, 245, 0.12); }
-.feed-status-pill.tone-amber { color: var(--warning); background: rgba(255, 164, 43, 0.12); }
+.feed-status-pill.tone-green { color: var(--accent); background: rgba(76, 155, 232, 0.12); }
+.feed-status-pill.tone-indigo { color: var(--info); background: rgba(76, 155, 232, 0.12); }
+.feed-status-pill.tone-amber { color: var(--warning); background: rgba(217, 164, 65, 0.12); }
 .feed-status-pill.tone-muted { color: var(--text-muted); background: var(--bg-raised); }
 
 .feed-chip-group {
@@ -1524,8 +1547,8 @@ p {
   color: var(--text-soft);
 }
 
-.feed-chip.is-new { color: var(--accent); background: rgba(30, 215, 96, 0.1); }
-.feed-chip.is-missing { color: var(--warning); background: rgba(255, 164, 43, 0.1); }
+.feed-chip.is-new { color: var(--accent); background: rgba(76, 155, 232, 0.1); }
+.feed-chip.is-missing { color: var(--warning); background: rgba(217, 164, 65, 0.1); }
 
 /* Routine sweep — the "nothing changed" checks folded into one quiet card that
    names each show it verified, instead of a "其余 N 部" count. */
@@ -1666,7 +1689,7 @@ p {
 
 .season-chip.active {
   color: var(--accent);
-  background: rgba(30, 215, 96, 0.12);
+  background: rgba(76, 155, 232, 0.12);
 }
 
 .season-chip.completed {
@@ -1799,8 +1822,8 @@ p {
 
 .hub-badge.tone-green {
   color: #b7f5cd;
-  background: rgba(30, 215, 96, 0.16);
-  border: 1px solid rgba(30, 215, 96, 0.55);
+  background: rgba(76, 155, 232, 0.16);
+  border: 1px solid rgba(76, 155, 232, 0.55);
 }
 
 .hub-badge.tone-indigo {
@@ -1811,8 +1834,8 @@ p {
 
 .hub-badge.tone-amber {
   color: #ffd9a1;
-  background: rgba(255, 164, 43, 0.16);
-  border: 1px solid rgba(255, 164, 43, 0.55);
+  background: rgba(217, 164, 65, 0.16);
+  border: 1px solid rgba(217, 164, 65, 0.55);
 }
 
 .hub-badge.tone-muted {
@@ -1824,8 +1847,8 @@ p {
 /* 预定 (reserved movie) — info blue, matching the wall badge. */
 .hub-badge.tone-blue {
   color: #bcd9ff;
-  background: rgba(83, 157, 245, 0.16);
-  border: 1px solid rgba(83, 157, 245, 0.55);
+  background: rgba(76, 155, 232, 0.16);
+  border: 1px solid rgba(76, 155, 232, 0.55);
 }
 
 .card-badge {
@@ -1855,7 +1878,7 @@ p {
   padding-bottom: 150%;
   border-radius: 10px;
   overflow: hidden;
-  background: linear-gradient(160deg, #2a2a2a 0%, #1c1c1c 100%);
+  background: linear-gradient(160deg, #262d37 0%, #181c22 100%);
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
@@ -1905,7 +1928,7 @@ p {
 }
 
 .wall-state.tone-green {
-  background: rgba(30, 215, 96, 0.85);
+  background: rgba(76, 155, 232, 0.85);
   color: #04250f;
 }
 
@@ -1915,13 +1938,13 @@ p {
 }
 
 .wall-state.tone-amber {
-  background: rgba(255, 164, 43, 0.9);
+  background: rgba(217, 164, 65, 0.9);
   color: #341f00;
 }
 
 /* 预定 (reserved / unreleased movie) — info blue, distinct from 追更中 indigo. */
 .wall-state.tone-blue {
-  background: rgba(83, 157, 245, 0.92);
+  background: rgba(76, 155, 232, 0.92);
   color: #03203f;
 }
 
@@ -2141,7 +2164,7 @@ p {
   aspect-ratio: 2 / 3;
   border-radius: 10px;
   overflow: hidden;
-  background: linear-gradient(160deg, #2a2a2a 0%, #1c1c1c 100%);
+  background: linear-gradient(160deg, #262d37 0%, #181c22 100%);
   box-shadow: var(--shadow-heavy);
   display: grid;
   place-items: center;
@@ -2289,7 +2312,7 @@ li.hub-season-row.untracked {
 }
 
 .season-cell-progress .seg-aired {
-  background: rgba(255, 164, 43, 0.55);
+  background: rgba(217, 164, 65, 0.55);
 }
 
 .season-cell-progress .seg-obtained {
@@ -3227,9 +3250,9 @@ select.setting-control {
   color: var(--text-muted);
 }
 
-.act-poster-fallback.tone-info { background: rgba(83, 157, 245, 0.18); color: var(--info); }
-.act-poster-fallback.tone-success { background: rgba(30, 215, 96, 0.18); color: var(--accent); }
-.act-poster-fallback.tone-warn { background: rgba(255, 164, 43, 0.18); color: var(--warning); }
+.act-poster-fallback.tone-info { background: rgba(76, 155, 232, 0.18); color: var(--info); }
+.act-poster-fallback.tone-success { background: rgba(76, 155, 232, 0.18); color: var(--accent); }
+.act-poster-fallback.tone-warn { background: rgba(217, 164, 65, 0.18); color: var(--warning); }
 
 .act-row-body {
   min-width: 0;
@@ -3350,8 +3373,8 @@ select.setting-control {
   white-space: nowrap;
 }
 
-.act-pill.tone-success { background: rgba(30, 215, 96, 0.16); color: var(--accent); }
-.act-pill.tone-warn { background: rgba(255, 164, 43, 0.16); color: var(--warning); }
+.act-pill.tone-success { background: rgba(76, 155, 232, 0.16); color: var(--accent); }
+.act-pill.tone-warn { background: rgba(217, 164, 65, 0.16); color: var(--warning); }
 
 .act-cancel {
   flex: none;
@@ -3525,7 +3548,7 @@ select.setting-control {
 }
 .demo-banner {
   background: var(--accent);
-  color: #121212;
+  color: var(--accent-on);
   text-align: center;
   padding: 8px 16px;
   font-size: 13px;
@@ -3617,7 +3640,7 @@ select.setting-control {
 .account-identity-owner {
   font-size: 11px;
   color: var(--text-muted, #9a9a9a);
-  border: 1px solid var(--border, #2a2a2a);
+  border: 1px solid var(--border, #262d37);
   border-radius: 999px;
   padding: 0 6px;
 }
@@ -3660,7 +3683,7 @@ select.setting-control {
   justify-content: space-between;
   gap: 8px;
   padding: 10px 12px;
-  border: 1px solid var(--border, #2a2a2a);
+  border: 1px solid var(--border, #262d37);
   border-radius: 8px;
 }
 .account-admin-info {
@@ -3846,22 +3869,22 @@ select.setting-control {
 }
 .nav-badge-warning {
   background: var(--warning);
-  color: #121212;
+  color: var(--accent-on);
 }
 /* info tier: 纯提示，不能借用 warning 的琥珀色否则会虚报严重度。
    用 --accent 与 inbox 里的 .kind-info 信号条同色，三档在两处一致：
    info=绿 / warning=琥珀 / blocker=红。 */
 .nav-badge-info {
   background: var(--accent);
-  color: #06210f;
+  color: var(--accent-on);
 }
 
 /* ---------- deployment update hint (self-host compose, Settings top) ---------- */
 .update-card {
   max-width: 720px;
   margin-bottom: 24px;
-  background: rgba(30, 215, 96, 0.08);
-  border: 1px solid rgba(30, 215, 96, 0.25);
+  background: rgba(76, 155, 232, 0.08);
+  border: 1px solid rgba(76, 155, 232, 0.25);
   border-radius: var(--radius-card);
   padding: 16px;
 }
@@ -3936,7 +3959,7 @@ select.setting-control {
 .github-nameplate {
   margin-top: 32px;
   padding-top: 16px;
-  border-top: 1px solid var(--border, #2a2a2a);
+  border-top: 1px solid var(--border, #262d37);
   max-width: 720px;
 }
 .github-nameplate-link {
@@ -4064,7 +4087,7 @@ select.setting-control {
   display: flex;
   gap: 22px;
   margin-top: 18px;
-  border-bottom: 1px solid #2a2a2a;
+  border-bottom: 1px solid #262d37;
 }
 
 .settings-tab {
@@ -4158,7 +4181,7 @@ select.setting-control {
 }
 
 .drive-card.is-frozen {
-  border-color: rgba(255, 164, 43, 0.35);
+  border-color: rgba(217, 164, 65, 0.35);
 }
 
 .drive-card-head {
