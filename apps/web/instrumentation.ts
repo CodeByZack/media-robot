@@ -21,7 +21,7 @@ export async function register(): Promise<void> {
   // Fail fast + loud on a runtime misconfig (e.g. MEDIA_TRACK_AGENT_ADAPTER=real)
   // instead of booting a worker that can never drain the queue. Throwing here
   // aborts startup with a clear reason.
-  const { validateRuntimeConfig } = await import("@media-track/workflow");
+  const { validateRuntimeConfig } = await import("@mediarover/workflow");
 
   // Resolve MEDIA_TRACK_MODE → legacy adapter/demo env vars BEFORE validation.
   // All downstream code reads the legacy vars; the resolver is a thin translation layer.

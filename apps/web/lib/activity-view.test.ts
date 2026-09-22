@@ -7,7 +7,7 @@ import {
   type PersistWorkflowRunSnapshotInput,
   type TrackedSeason,
   type WorkflowStatus,
-} from "@media-track/workflow";
+} from "@mediarover/workflow";
 import { getActivityView } from "./activity-view";
 
 function title(tmdbId: number, name: string): MediaTitle {

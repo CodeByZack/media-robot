@@ -29,12 +29,12 @@ try {
 
 const nextConfig: NextConfig = {
   // Lean container image: a self-contained server bundle (+ traced node_modules
-  // and the @media-track/workflow workspace) the Docker runner stage copies whole.
+  // and the @mediarover/workflow workspace) the Docker runner stage copies whole.
   output: "standalone",
   // Trace from the monorepo root so standalone captures the workspace package +
   // root-hoisted deps (the app is in apps/web; deps hoist to the repo root).
   outputFileTracingRoot: path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../.."),
-  transpilePackages: ["@media-track/workflow"],
+  transpilePackages: ["@mediarover/workflow"],
   // Cache Components: PPR becomes the default rendering model. "use cache"
   // builds the static shell; runtime reads live inside Suspense holes.
   cacheComponents: true,

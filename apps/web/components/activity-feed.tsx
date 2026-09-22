@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import Link from "next/link";
 import { CheckCircle2, ChevronDown, ChevronRight, Clock3, Loader2, RotateCcw, TriangleAlert, X } from "lucide-react";
-import { showHref } from "@media-track/workflow/scope";
+import { showHref } from "@mediarover/workflow/scope";
 import type {
   ActivityActiveRun,
   ActivityCompletedItem,

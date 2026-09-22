@@ -24,8 +24,8 @@ import {
   getRegisteredDriveCount,
   getWorkflowRepository,
 } from "../lib/workflow-runtime";
-import { showHref } from "@media-track/workflow";
-import type { MediaType, SearchCandidateCard, TrackedSeasonState } from "@media-track/workflow";
+import { showHref } from "@mediarover/workflow";
+import type { MediaType, SearchCandidateCard, TrackedSeasonState } from "@mediarover/workflow";
 
 /** Shelf label for every media type. A Record (not a ternary chain), so adding a
  *  type is a compile error instead of silently landing on the last branch. */

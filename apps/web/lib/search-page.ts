@@ -4,7 +4,7 @@ import {
   InMemoryMediaSearchCache,
   type MediaSearchProvider,
   type SearchPageView,
-} from "@media-track/workflow";
+} from "@mediarover/workflow";
 import { demoMediaSearchProvider } from "./demo-candidates";
 import { isDemoMode } from "./demo-mode";
 import {

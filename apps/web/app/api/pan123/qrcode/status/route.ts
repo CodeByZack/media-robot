@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { Pan123QrLoginClient } from "@media-track/workflow";
+import { Pan123QrLoginClient } from "@mediarover/workflow";
 
 // 123's uniID is a url-safe UUID (36 chars observed live) — validate loosely
 // (shape + length cap) so a server-side format tweak doesn't 400 real polls.

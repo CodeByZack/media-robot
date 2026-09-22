@@ -48,7 +48,7 @@ import {
   PANSOU_BASE_URL_SETTING_KEY,
   resolveGlobalWorkspace,
 } from "../../lib/workflow-runtime";
-import { brandSupportsProwlarr, getStorageBrand, isRegisteredStorageProvider } from "@media-track/workflow";
+import { brandSupportsProwlarr, getStorageBrand, isRegisteredStorageProvider } from "@mediarover/workflow";
 import { isDemoMode } from "../../lib/demo-mode";
 
 export default function SettingsPage({
@@ -217,7 +217,7 @@ async function QualityPreferenceSection() {
 async function RecognitionRulesSection() {
   await connection();
   const repository = getWorkflowRepository();
-  const { loadRulePatterns, loadPromptOverrides, ARBITRATION_KINDS, BUILTIN_RULE_IDS, PROMPT_TEMPLATES } = await import("@media-track/workflow");
+  const { loadRulePatterns, loadPromptOverrides, ARBITRATION_KINDS, BUILTIN_RULE_IDS, PROMPT_TEMPLATES } = await import("@mediarover/workflow");
   // 生效规则(内置恒在 + 自定义追加,loadRulePatterns 语义)。内置只读(2026-09-07 拍板):
   // 表单拿到的只含自定义行;内置展示数据由表单直接读 BUILTIN_RULE_PATTERNS。
   const effective = await loadRulePatterns(repository);

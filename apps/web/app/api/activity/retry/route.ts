@@ -1,7 +1,7 @@
 import { isDemoMode } from "../../../../lib/demo-mode";
 import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentAccountId, getWorkflowRepository } from "../../../../lib/workflow-runtime";
-import { isQueueClaimableKind } from "@media-track/workflow";
+import { isQueueClaimableKind } from "@mediarover/workflow";
 import type { RetryRefusalReason } from "../../../../lib/activity-view";
 
 /**

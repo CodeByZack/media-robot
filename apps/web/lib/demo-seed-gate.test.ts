@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
-import { InMemoryWorkflowRepository } from "@media-track/workflow";
+import { InMemoryWorkflowRepository } from "@mediarover/workflow";
 
 // isDemoMode reads process.env.MEDIA_TRACK_DEMO_MODE at call time. We toggle it
 // per test to prove the gate.

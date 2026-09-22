@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { WorkspaceNotFoundError } from "@media-track/workflow";
+import { WorkspaceNotFoundError } from "@mediarover/workflow";
 import { HomeView } from "../../page";
 import { getActiveWorkspaceScope } from "../../../lib/workflow-runtime";
 

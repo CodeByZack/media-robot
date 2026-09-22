@@ -10,7 +10,7 @@ import {
   type MediaType,
   type MediaTitle,
   type PreparedSeriesTarget,
-} from "@media-track/workflow";
+} from "@mediarover/workflow";
 import { findDemoCandidateByTmdbId } from "./demo-candidates";
 import {
   aggregateAiring,

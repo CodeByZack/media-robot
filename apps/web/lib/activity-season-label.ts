@@ -3,7 +3,7 @@
 // component without dragging the server runtime (and transitively the `pg`
 // Postgres driver) into the browser bundle. `activity-view.ts` re-exports these
 // for server-side callers; the activity-feed client component imports them here.
-import type { EpisodeState, MediaType } from "@media-track/workflow";
+import type { EpisodeState, MediaType } from "@mediarover/workflow";
 
 /**
  * Distinct, sorted (numeric) season numbers present in an episode set, derived

@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Check, ChevronDown, ChevronRight, LoaderCircle, Pencil, Trash2, X } from "lucide-react";
 import { apiCall } from "../lib/api";
 import type { RuleSaveResult, RuleResetResult } from "../lib/api-types";
-import { BUILTIN_RULE_PATTERNS, type RuleRole } from "@media-track/workflow/ruleset";
+import { BUILTIN_RULE_PATTERNS, type RuleRole } from "@mediarover/workflow/ruleset";
 import { ruleRowError, type RulePatternDraft } from "../lib/rule-patterns-utils";
 
 /**

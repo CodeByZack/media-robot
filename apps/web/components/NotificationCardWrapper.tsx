@@ -15,7 +15,7 @@ import {
   TriangleAlert,
   XCircle,
 } from "lucide-react";
-import type { NotificationEvent, NotificationReportStatus } from "@media-track/workflow";
+import type { NotificationEvent, NotificationReportStatus } from "@mediarover/workflow";
 import { collapseToRanges } from "../lib/episode-ranges";
 import type { ActivityStepView } from "../lib/activity-view";
 import { StepList, ExpandChevron } from "./activity-feed";

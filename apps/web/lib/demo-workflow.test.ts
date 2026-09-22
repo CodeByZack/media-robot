@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { InMemoryWorkflowRepository } from "@media-track/workflow";
+import { InMemoryWorkflowRepository } from "@mediarover/workflow";
 import { seedDemoWorkflowRepository } from "./demo-workflow";
 
 async function seededStates() {

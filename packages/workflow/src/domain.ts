@@ -11,7 +11,7 @@ export const DEFAULT_ACCOUNT_ID = "acct_default";
 
 export type MediaType = "movie" | "tv" | "anime" | "variety";
 /** Runtime mirror of MediaType — the list itself lives in ./media-types.js, a
- *  dependency-free leaf also published as "@media-track/workflow/media-types"
+ *  dependency-free leaf also published as "@mediarover/workflow/media-types"
  *  (client components must not drag the package root → node:sqlite into the bundle).
  *  Add a shelf in BOTH places and every consumer guard follows. */
 export const MEDIA_TYPES: readonly MediaType[] = MEDIA_TYPES_LIST;

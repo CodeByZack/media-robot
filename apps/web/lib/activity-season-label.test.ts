@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { EpisodeState } from "@media-track/workflow";
+import type { EpisodeState } from "@mediarover/workflow";
 // Import from the PURE module (not activity-view) — this is the client-safe home
 // for these helpers, kept free of the Postgres-backed runtime.
 import { distinctSeasons, seasonLabelText } from "./activity-season-label";

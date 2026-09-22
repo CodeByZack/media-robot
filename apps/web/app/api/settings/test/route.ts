@@ -7,7 +7,7 @@ import {
   getWorkflowRepository,
   getTmdbAccesses,
 } from "../../../../lib/workflow-runtime";
-import { createAgentModel, llmConfigError, fetchTmdbList } from "@media-track/workflow";
+import { createAgentModel, llmConfigError, fetchTmdbList } from "@mediarover/workflow";
 import { generateText } from "ai";
 
 export async function POST(request: NextRequest) {

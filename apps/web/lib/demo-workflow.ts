@@ -8,7 +8,7 @@ import {
   type TrackedSeason,
   type WorkflowRepository,
   type WorkflowRun,
-} from "@media-track/workflow";
+} from "@mediarover/workflow";
 
 /** Demo notification timestamps are relative to now so they always fall inside
  *  the 通知 page's 7-day window (fixed past dates would be filtered out → empty). */

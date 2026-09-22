@@ -1,4 +1,4 @@
-import { fetchTmdbList, REALITY_GENRE_ID } from "@media-track/workflow";
+import { fetchTmdbList, REALITY_GENRE_ID } from "@mediarover/workflow";
 import { getTmdbAccesses, getAccountScopedSettings, getCurrentAccountId } from "./workflow-runtime";
 
 export type TrendingKind = "movie" | "tv" | "anime" | "variety";

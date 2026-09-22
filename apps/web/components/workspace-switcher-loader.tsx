@@ -1,5 +1,5 @@
 import { connection } from "next/server";
-import { switcherItems, isRegisteredStorageProvider } from "@media-track/workflow";
+import { switcherItems, isRegisteredStorageProvider } from "@mediarover/workflow";
 import { getAccountConnectedStorages } from "../lib/workflow-runtime";
 import { WorkspaceSwitcher } from "./workspace-switcher";
 
