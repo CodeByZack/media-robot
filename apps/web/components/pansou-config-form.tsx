@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { Check, ExternalLink, LoaderCircle } from "lucide-react";
-import { savePanSouBaseUrlAction } from "../app/actions";
-import { runAction } from "../lib/run-action";
+import { apiCall } from "../lib/api";
+import type { SettingsResult } from "../lib/api-types";
 
 export function PanSouConfigForm({
   baseURL: initialBaseURL,
@@ -16,17 +16,12 @@ export function PanSouConfigForm({
 
   const handleSave = () => {
     startTransition(async () => {
-      // 必须 catch:server action 会 throw(demo 门禁、运行时错误、网络中断),
-      // 不 catch 就是未处理 rejection,界面上什么都不变(见 runAction 注释)。
-      // 业务错误(success:false)仍走下方原逻辑;这里只拦异常。
-      const r = await runAction(
-        () => savePanSouBaseUrlAction(baseURL),
-        (msg) => {
-          setResult(`❌ ${msg}`);
-          setTimeout(() => setResult(null), 3000);
-        },
-      );
-      if (!r.ok) return;
+      const r = await apiCall<SettingsResult>("/api/settings/save", { type: "pansou", baseURL });
+      if (!r.ok) {
+        setResult(`❌ ${r.error}`);
+        setTimeout(() => setResult(null), 3000);
+        return;
+      }
       const res = r.value;
       setResult(res.success ? "✅ 保存成功" : `❌ ${res.message ?? "保存失败"}`);
       setTimeout(() => setResult(null), 3000);

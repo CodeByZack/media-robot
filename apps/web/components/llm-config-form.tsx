@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { Check, LoaderCircle } from "lucide-react";
-import { saveLlmConfigAction } from "../app/actions";
-import { runAction } from "../lib/run-action";
+import { apiCall } from "../lib/api";
+import type { SettingsResult } from "../lib/api-types";
 import { LlmTestConnectionButton } from "./llm-test-connection-button";
 
 export function LlmConfigForm({
@@ -25,17 +25,12 @@ export function LlmConfigForm({
 
   const handleSave = () => {
     startTransition(async () => {
-      // 必须 catch:server action 会 throw(demo 门禁、运行时错误、网络中断),
-      // 不 catch 就是未处理 rejection,界面上什么都不变(见 runAction 注释)。
-      // 业务错误(success:false)仍走下方原逻辑;这里只拦异常。
-      const r = await runAction(
-        () => saveLlmConfigAction({ baseURL, modelId, apiKey }),
-        (msg) => {
-          setResult(`❌ ${msg}`);
-          setTimeout(() => setResult(null), 4000);
-        },
-      );
-      if (!r.ok) return;
+      const r = await apiCall<SettingsResult>("/api/settings/save", { type: "llm", baseURL, modelId, apiKey });
+      if (!r.ok) {
+        setResult(`❌ ${r.error}`);
+        setTimeout(() => setResult(null), 4000);
+        return;
+      }
       const res = r.value;
       setResult(res.success ? "✅ 保存成功 —— 点「测试连接」确认可用" : `❌ ${res.message ?? "保存失败"}`);
       if (res.success) setApiKey("");

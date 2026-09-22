@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { Check, ExternalLink, LoaderCircle, Trash2 } from "lucide-react";
-import { saveTmdbApiKeyAction, clearTmdbApiKeyAction, testTmdbConnectionAction } from "../app/actions";
-import { runAction } from "../lib/run-action";
+import { apiCall } from "../lib/api";
+import type { SettingsResult, TestTmdbResult } from "../lib/api-types";
 
 export function TmdbApiKeyForm({ apiKeySet, baseUrlSet, currentBaseUrl }: { apiKeySet: boolean; baseUrlSet: boolean; currentBaseUrl?: string }) {
   const [isPending, startTransition] = useTransition();
@@ -15,17 +15,12 @@ export function TmdbApiKeyForm({ apiKeySet, baseUrlSet, currentBaseUrl }: { apiK
 
   const handleSave = () => {
     startTransition(async () => {
-      // 必须 catch:server action 会 throw(demo 门禁、运行时错误、网络中断),
-      // 不 catch 就是未处理 rejection,界面上什么都不变(见 runAction 注释)。
-      // 业务错误(success:false)仍走下方原逻辑;这里只拦异常。
-      const r = await runAction(
-        () => saveTmdbApiKeyAction(apiKey, baseUrl),
-        (msg) => {
-          setResult(`❌ ${msg}`);
-          setTimeout(() => setResult(null), 3000);
-        },
-      );
-      if (!r.ok) return;
+      const r = await apiCall<SettingsResult>("/api/settings/save", { type: "tmdb", apiKey, baseUrl });
+      if (!r.ok) {
+        setResult(`❌ ${r.error}`);
+        setTimeout(() => setResult(null), 3000);
+        return;
+      }
       const res = r.value;
       setResult(res.success ? "✅ 保存成功" : `❌ ${res.message ?? "保存失败"}`);
       if (res.success) {
@@ -44,17 +39,12 @@ export function TmdbApiKeyForm({ apiKeySet, baseUrlSet, currentBaseUrl }: { apiK
 
   const handleClear = () => {
     startTransition(async () => {
-      // 必须 catch:server action 会 throw(demo 门禁、运行时错误、网络中断),
-      // 不 catch 就是未处理 rejection,界面上什么都不变(见 runAction 注释)。
-      // 业务错误(success:false)仍走下方原逻辑;这里只拦异常。
-      const r = await runAction(
-        () => clearTmdbApiKeyAction(),
-        (msg) => {
-          setResult(`❌ ${msg}`);
-          setTimeout(() => setResult(null), 3000);
-        },
-      );
-      if (!r.ok) return;
+      const r = await apiCall<SettingsResult>("/api/settings/save", { type: "tmdb-clear" });
+      if (!r.ok) {
+        setResult(`❌ ${r.error}`);
+        setTimeout(() => setResult(null), 3000);
+        return;
+      }
       const res = r.value;
       setResult(res.success ? "✅ 已清除" : `❌ ${res.message ?? "清除失败"}`);
       if (res.success) {
@@ -67,14 +57,12 @@ export function TmdbApiKeyForm({ apiKeySet, baseUrlSet, currentBaseUrl }: { apiK
 
   const handleTest = () => {
     startTransition(async () => {
-      const r = await runAction(
-        () => testTmdbConnectionAction(),
-        (msg) => {
-          setResult(`❌ ${msg}`);
-          setTimeout(() => setResult(null), 3000);
-        },
-      );
-      if (!r.ok) return;
+      const r = await apiCall<TestTmdbResult>("/api/settings/test", { type: "tmdb-test" });
+      if (!r.ok) {
+        setResult(`❌ ${r.error}`);
+        setTimeout(() => setResult(null), 3000);
+        return;
+      }
       const res = r.value;
       setResult(res.success ? `✅ ${res.message ?? "连接成功"}` : `❌ ${res.message ?? "连接失败"}`);
       setTimeout(() => setResult(null), 5000);

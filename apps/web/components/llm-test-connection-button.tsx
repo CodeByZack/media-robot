@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { testLlmConnectionAction } from "../app/actions";
-import { runAction } from "../lib/run-action";
+import { apiCall } from "../lib/api";
+import type { TestLlmResult } from "../lib/api-types";
 
 /**
  * Settings → AI 模型 的「测试连接」:对**已保存**的 LLM 配置真发一发最小请求,通/
@@ -21,11 +21,11 @@ export function LlmTestConnectionButton() {
         disabled={pending}
         onClick={() =>
           startTransition(async () => {
-            const r = await runAction(
-              () => testLlmConnectionAction(),
-              (msg) => setResult({ ok: false, message: msg }),
-            );
-            if (!r.ok) return;
+            const r = await apiCall<TestLlmResult>("/api/settings/test", { type: "llm-test" });
+            if (!r.ok) {
+              setResult({ ok: false, message: r.error });
+              return;
+            }
             setResult(r.value);
           })
         }

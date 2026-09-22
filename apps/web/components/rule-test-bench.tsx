@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { FlaskConical, LoaderCircle } from "lucide-react";
-import { testEpisodeRuleAction } from "../app/actions";
-import { runAction } from "../lib/run-action";
+import { apiCall } from "../lib/api";
+import type { TestEpisodeResult } from "../lib/api-types";
 
 interface BenchResult {
   code: string | null;
@@ -21,11 +21,15 @@ export function RuleTestBench() {
   function run() {
     if (isPending) return;
     startTransition(async () => {
-      const r = await runAction(
-        () => testEpisodeRuleAction({ fileName, multiSeason }),
-        (msg) => setResult({ code: null, matched: null, message: msg }),
-      );
-      if (!r.ok) return;
+      const r = await apiCall<TestEpisodeResult>("/api/rules", {
+        type: "test-episode",
+        fileName,
+        multiSeason,
+      });
+      if (!r.ok) {
+        setResult({ code: null, matched: null, message: r.error });
+        return;
+      }
       setResult(r.value);
     });
   }

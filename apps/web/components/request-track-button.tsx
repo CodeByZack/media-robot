@@ -3,8 +3,8 @@
 import { CalendarClock, Check, LoaderCircle, Plus } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { requestTrackingAction, type RequestTrackingActionResult } from "../app/actions";
-import { runAction } from "../lib/run-action";
+import { apiCall } from "../lib/api";
+import type { AcquireResult } from "../lib/api-types";
 // Import the type from the narrow subpath, NOT the root barrel: the barrel
 // `export *`s ./postgres.js (pg), and Turbopack intermittently fails to erase a
 // type-only barrel import, dragging pg into THIS client bundle → "pg in Client
@@ -53,7 +53,7 @@ export function RequestTrackButton({
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [result, setResult] = useState<RequestTrackingActionResult | null>(null);
+  const [result, setResult] = useState<AcquireResult | null>(null);
   // Read-only demo: clicking 获取 plays a scripted, client-only acquisition (no
   // server action, which is gated server-side anyway).
   const demo = isDemoModeClient();
@@ -134,15 +134,16 @@ export function RequestTrackButton({
             return;
           }
           startTransition(async () => {
-            const r = await runAction(
-              () => requestTrackingAction({
-                  ...(candidateId ? { candidateId } : {}),
-                  currentState: actionState,
-                  ...(storageId ? { storageId } : {}),
-                }),
-              (msg) => setResult({ status: "unsupported", message: msg }),
-            );
-            if (!r.ok) return;
+            const r = await apiCall<AcquireResult>("/api/acquire", {
+              type: "track",
+              ...(candidateId ? { candidateId } : {}),
+              currentState: actionState,
+              ...(storageId ? { storageId } : {}),
+            });
+            if (!r.ok) {
+              setResult({ status: "unsupported", message: r.error });
+              return;
+            }
             setResult(r.value);
             // Re-fetch so the now-queued run mounts the AcquiringPoller, which
             // then flips this card to 已获取 when the run finishes.

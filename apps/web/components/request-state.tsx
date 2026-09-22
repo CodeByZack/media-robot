@@ -1,6 +1,6 @@
 import { LoaderCircle } from "lucide-react";
 import Link from "next/link";
-import type { RequestTrackingActionResult } from "../app/actions";
+import type { AcquireResult } from "../lib/api-types";
 
 /**
  * A request is "locked" once it has been queued, is already tracked, or has an
@@ -8,7 +8,7 @@ import type { RequestTrackingActionResult } from "../app/actions";
  * re-queue. Shared so the four acquire components agree on the exact set of
  * terminal/in-flight statuses instead of each re-listing them.
  */
-export function isLockedResult(result: RequestTrackingActionResult | null): boolean {
+export function isLockedResult(result: AcquireResult | null): boolean {
   return (
     result?.status === "requested" ||
     result?.status === "already_tracked" ||
@@ -25,7 +25,7 @@ export function isLockedResult(result: RequestTrackingActionResult | null): bool
 export function AcquireResultNotice({
   result,
 }: {
-  result: RequestTrackingActionResult | null;
+  result: AcquireResult | null;
 }) {
   if (result?.status !== "llm_not_configured") {
     return null;

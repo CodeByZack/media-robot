@@ -3,8 +3,8 @@
 import { useState, useTransition } from "react";
 import { Check, ExternalLink, LoaderCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { connectTianyiSsonAction } from "../app/actions";
-import { runAction } from "../lib/run-action";
+import { apiCall } from "../lib/api";
+import type { DriveResult } from "../lib/api-types";
 
 /**
  * 天翼手动 SSON 连接 —— 扫码登录(TianyiQrConnect)的折叠回退。用户从 cloud.189.cn
@@ -18,13 +18,15 @@ export function TianyiSsonConnect() {
 
   const handleConnect = () => {
     startTransition(async () => {
-      // 必须 catch:server action 会 throw(demo 门禁、运行时错误、网络中断),
-      // 不 catch 就是未处理 rejection,界面上什么都不变(见 runAction 注释)。
-      const r = await runAction(
-        () => connectTianyiSsonAction(sson),
-        (msg) => setResult(`❌ ${msg}`),
-      );
-      if (!r.ok) return;
+      // 网络/运行时错误由 apiCall 内部收敛为 r.ok=false(含 demo 门禁 403)。
+      const r = await apiCall<DriveResult>("/api/drives", {
+        type: "connect-tianyi",
+        sson,
+      });
+      if (!r.ok) {
+        setResult(`❌ ${r.error}`);
+        return;
+      }
       const res = r.value;
       setResult(res.ok ? `✅ ${res.message}` : `❌ ${res.message}`);
       if (res.ok) {
