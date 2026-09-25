@@ -2493,39 +2493,33 @@ p {
    page.tsx 给骨架挂了 `exit="slide-down"`、给内容挂了 `enter="slide-up"`，
    这里补上两套动画。
 
-   时长的**非对称**是刻意的（官方指南的说法）：旧内容该快快离场、不争注意力；
-   新内容该晚一点、柔和一点到达，给用户时间 register 它。所以
-     · 退场 150ms（fade + 下移，reversed keyframes = 反向播放）
-     · 入场 210ms，但**延迟 150ms** 等旧内容走完才变可见
-     · 位移跑满 400ms —— 比淡入更长，所以"到位"的观感是滑上去的，不是弹出来
-   fade 带一点 blur：形变/交接期间的像素级插值会有瑕疵，模糊把它盖住。 */
+   ⚠️ **这里只做位移，绝不碰 opacity / filter。** 踩过两次，值得写清楚：
+
+   详情页的骨架里有那张共享海报。揭幕时它**没有形成自己的分组** —— 依据是现象：
+   用户看到海报「从完全透明到不透明」，而 `vt-slide-fade` 的关键帧正是
+   `opacity: 0 → 1`（+ `blur(3px)`），两者吻合；说明海报是**被父边界 `.slide-up`
+   的快照一起带着淡进来**的。这也解释了为什么改 `.morph`（海报自己的规则）没用：
+   动的是**父边界**的伪元素，不是海报自己的。
+   （自动化环境里我没能抓到那次揭幕的逐帧画面 —— Next `<Link>` 点击链路在脚本里
+   不稳定，只能靠现象反推。）
+
+   所以父边界只做位移：谁都不会淡入淡出，海报保持实心；方向感由 translateY 给。
+
+   时长**非对称**是刻意的（官方指南的说法）：旧内容该快快离场、不争注意力；
+   新内容柔和到达，给用户时间 register 它。所以
+     · 退场 150ms
+     · 入场跑满 400ms —— 比退场长，所以"到位"的观感是滑上去的，不是弹出来 */
 :root {
   --vt-exit-duration: 150ms;
-  --vt-enter-duration: 210ms;
   --vt-move-duration: 400ms;
 }
 
 ::view-transition-old(.slide-down) {
-  animation:
-    var(--vt-exit-duration) ease-out both vt-slide-fade reverse,
-    var(--vt-exit-duration) ease-out both vt-slide-y reverse;
+  animation: var(--vt-exit-duration) ease-out both vt-slide-y reverse;
 }
 
 ::view-transition-new(.slide-up) {
-  animation:
-    var(--vt-enter-duration) ease-in var(--vt-exit-duration) both vt-slide-fade,
-    var(--vt-move-duration) ease-in both vt-slide-y;
-}
-
-@keyframes vt-slide-fade {
-  from {
-    filter: blur(3px);
-    opacity: 0;
-  }
-  to {
-    filter: blur(0);
-    opacity: 1;
-  }
+  animation: var(--vt-move-duration) ease-in both vt-slide-y;
 }
 
 @keyframes vt-slide-y {
