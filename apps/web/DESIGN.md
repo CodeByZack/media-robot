@@ -444,7 +444,30 @@ React 把 `default` 映射到 `vt-update` 属性，可在 DOM 里核对：
 | 顺序 | `animation-name` | 观感 |
 | --- | --- | --- |
 | `.slide-*` 在前、`.morph` 在后（**现在**） | `none`, `opacity: 1` | 海报干净 |
-| 反过来（曾经的 bug） | `vt-slide-fade` | 海报淡出再淡入 = 闪 |
+| 反过来（曾经的 bug） | 父边界的动画 | 海报跟着淡出再淡入 = 闪 |
+
+#### ⚠️ 揭幕（`.slide-down` / `.slide-up`）**只做位移，绝不碰 opacity**
+
+这两条规则是**共享元素的父边界**，所以它们写什么，海报就会跟着吃——哪怕海报自己有
+`.morph` 也一样。
+
+原因：骨架里那张共享海报**不会形成自己的分组**（依据：用户看到海报「从完全透明到
+不透明」，而当时入场用的 `vt-slide-fade` 关键帧正是 `opacity: 0 → 1`，两者吻合），
+于是它被父边界的快照一起带着动。**动的是父边界的伪元素，`.morph` 够不着。**
+
+所以现在：
+
+```css
+::view-transition-old(.slide-down) { animation: 150ms ease-out both vt-slide-y reverse }
+::view-transition-new(.slide-up)    { animation: 400ms ease-in  both vt-slide-y }
+```
+
+方向感全部交给 `translateY(10px → 0)`。代价是内容**纯滑动**进入、没有淡入 —— 这是
+刻意取舍：海报和内容在同一个父边界快照里，无法只让内容淡而海报不淡。
+
+> 排查这类问题时记住这个顺序：**先确认"动的是谁的伪元素"**（海报自己的 group，还是
+> 父边界的 group），再去改对应那条规则。前几轮我一直在改海报自己的规则（名字、类名、
+> 级联顺序），方向错了，所以一直没修好。
 
 #### 后退的过渡：用「记忆来路 + replace」拿到（已实现）
 
