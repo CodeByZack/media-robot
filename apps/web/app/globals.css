@@ -2468,42 +2468,43 @@ p {
   }
 }
 
-/* 整页交接：**不做淡入淡出**，旧页直接让位给新页。
+/* 整页交接：**旧页做不透明遮罩淡出**（不是"不做"）。
 
-   ⚠️⚠️ 关键：**必须用 `!important`。** 这条规则的普通声明压不住它：
+   ⚠️ 这条一定不要删。踩过一次，代价很大：我为了"彻底没有透明度"把 root 的淡出也去掉，
+   结果**旧页整层留在新页上面**，两层内容在过渡中途混在一起（用户截图：搜索页半透明
+   叠在详情页上，"内容全都混在一起"）。
 
-   实测 A/B（同一条 热路由 导航：列表页 → 详情页，**不涉及骨架屏**）
+   为什么必须是"旧页遮罩 + 淡出"：
+   1. 旧页快照必须**盖在新页之上**（`z-index: 2`），否则新页不透明、旧页白淡。
+   2. 有它当遮罩，过程就是 `α·旧 + (1-α)·新` —— 干净的交叉淡入，不会出现"两层同时
+      半透明叠加"的双重曝光。
+   3. 旧页是**不透明遮罩**这一点很关键：它盖着的时候，海报在哪一层都不会双重曝光。
 
-   | 写法 | `::view-transition-group(root)` 的 opacity |
-   | --- | --- |
-   | 只写 `opacity: 1`（普通声明） | `["1","0"]` —— **中途掉到 0** |
-   | 写 `opacity: 1 !important` | `["1"]` —— 恒为 1 ✅ |
+   同时保留"揭幕只做位移"（见下面的 `.slide-*`）与"海报 `.morph` 始终实心"。
 
-   而且同时读到的 `animation-name` 是 `none` —— 说明动它的不是普通 CSS 动画，而是
-   优先级更高的东西（UA 样式 / WAAPI），所以普通声明会被静默覆盖。这也是为什么
-   前几轮我把 `old(root)`、`new(root)`、`(*)` 都改遍了却没效果：**动的是
-   `group(root)`，而且只有 `!important` 压得住**。
-
-   root 的 `group` 一旦半透明，整页（包括海报）都会跟着淡 —— 因为海报如果没进自己的
-   命名分组，就落在 root 快照里。用户看到的就是"海报有透明度变化"，而且**和骨架屏
-   无关**：热路由（无骨架）一样会中招。
-
-   现在整个 VT 不留任何透明度动画，观感全部交给
-     · 海报的共享元素形变（`::view-transition-group(*)` 的位移/缩放）
-     · 揭幕的位移（`.slide-down` / `.slide-up`）
-   代价是旧页不再淡出、直接消失。这是用户明确要的（"透明效果不好，保留位移就行"）。
-
-   ⚠️ 刻意只写 `(root)` 不写 `(*)`：`::view-transition-group(*)` 承载着海报的共享元素
-   形变，压掉它会把形变一起弄没。 */
-::view-transition-group(root) {
-  animation: none !important;
-  opacity: 1 !important;
+   ⚠️ 缓动不要前倾：曾共用海报的 `cubic-bezier(0.2,0.8,0.2,1)`，实测 opacity 在 80ms
+   就掉到 0.44 —— 420ms 的动画前 20% 就结束，肉眼就是"啪一下换掉"。用对称缓动铺满全程。
+   ⚠️ 若调试时用 `document.head.appendChild(<style>)` 临时注入过时长，那条样式会留在
+   页面上直到刷新 —— 别被自己的临时注入骗了。 */
+:root {
+  --vt-fade-duration: 420ms;
+  --vt-fade-ease: cubic-bezier(0.45, 0, 0.55, 1);
 }
 
-::view-transition-old(root),
+@keyframes vt-root-out {
+  to {
+    opacity: 0;
+  }
+}
+
+::view-transition-old(root) {
+  z-index: 2;
+  animation: vt-root-out var(--vt-fade-duration) var(--vt-fade-ease) both;
+}
+
+/* 新页不做动画：它是被旧页"揭示"出来的那一层（浏览器也不给 root 的新帧做动画）。 */
 ::view-transition-new(root) {
-  animation: none !important;
-  opacity: 1 !important;
+  animation: none;
 }
 
 /* ---------- Suspense reveal（骨架 → 内容）----------
