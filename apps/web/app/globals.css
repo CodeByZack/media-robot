@@ -2510,6 +2510,31 @@ p {
   animation: none;
 }
 
+/* ⚠️⚠️ **这一条才是最后那个"透明度过渡"的来源，必须 `!important`。**
+
+   DevTools 的 Animations 面板里，`::view-transition-group(root)` 是**带角标**的 ——
+   它自己有动画，名字是浏览器自动生成的 `-ua-view-transition-group-anim-root`。
+   这条 UA 动画就在做 root 的淡入淡出，**整页（含正在形变的海报）都会跟着淡**。
+   普通声明压不住它：实测只写 `opacity: 1` 时仍读得到 `opacity: 0`，加上
+   `!important` 后才恒为 `1` —— 它是 UA 样式，优先级高于作者样式的普通声明。
+
+   现在 `old(root)` 已经 `display: none`（没有旧帧，不存在双重曝光），所以关掉这条是
+   安全的：页面直接切换，海报走自己的命名分组干净地形变。
+
+   只写 `(root)`，不要写 `(*)` —— `::view-transition-group(*)` 承载着海报的共享元素
+   形变，压掉它形变就没了。
+
+   ⚠️ **`animation: none` 压不住它，必须靠 `opacity: 1 !important`。** 因为浏览器给
+   View Transition 生成的是 **WAAPI 动画**（不是 CSS 动画）：`animation: none` 对它无效，
+   `animationName` 也读作 `none`，但 opacity 照样掉到 0（实测：`root` 读到 `["1","0"]`
+   而对照组 `::view-transition-group(zzz-none-42)` 恒为 `1`，证明伪元素确实存在、
+   这个 0 是真的）。而 `!important` 的作者声明**优先级高于 WAAPI 动画**，所以
+   `opacity: 1 !important` 能把它按住（A/B 实测确认）。 */
+::view-transition-group(root) {
+  animation: none !important;
+  opacity: 1 !important;
+}
+
 /* ---------- Suspense reveal（骨架 → 内容）----------
    详情页必然 suspend 一次，而 React 眼里「骨架 → 内容」**也是一次 transition**。
    page.tsx 给骨架挂了 `exit="slide-down"`、给内容挂了 `enter="slide-up"`，
