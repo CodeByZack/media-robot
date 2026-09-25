@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { isDetailHref, rememberDetailOrigin } from "../lib/detail-origin";
+import { isDetailHref, rememberDetailOrigin, rememberScrollY } from "../lib/detail-origin";
 
 /**
  * 记录「点进详情页之前所在的那个 URL」。挂在 `(shell)/layout.tsx`，全局只此一处 ——
@@ -23,6 +23,8 @@ export function DetailOriginMemory() {
       if (!isDetailHref(href)) return;
       // 新标签页打开时当前页不导航，记了也不会被用到；但记下也无害（值仍然正确）。
       rememberDetailOrigin(window.location.pathname + window.location.search);
+      // 连同滚动位置一起记 —— 返回用的是普通导航，浏览器不会自动恢复位置。
+      rememberScrollY(window.scrollY);
     };
 
     document.addEventListener("click", onClick, true);

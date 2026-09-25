@@ -13,9 +13,33 @@
 
 export interface PosterKeyParts {
   tmdbId: number;
-  /** 用 MediaType（movie/tv/anime/variety）而不只是 movie/tv —— 它本来就是
-   *  卡片数据里现成的字段，且天然带上命名空间信息。 */
+  /** 卡片的 `MediaType`（movie/tv/anime/variety）或详情页的 `kind`（只有 movie/tv）。 */
   mediaType: string;
+}
+
+/**
+ * 把各种「类型」归一到 TMDB 的 **id 命名空间**（只有 tv / movie 两种）。
+ *
+ * ⚠️ 不归一化会让动漫/综艺**完全没有形变**（实测踩过）：卡片用的是站内
+ * `MediaType`，动漫是 `anime`、综艺是 `variety`（见 domain.ts）；而详情页
+ * `view.kind` 只有 `"tv" | "movie"` —— 于是卡片拼出 `poster-anime-30981`、
+ * 详情页拼出 `poster-tv-30981`，**配不上对**。而配对失败是静默的：不报错、
+ * 就是不动，最难查。
+ *
+ * 归到 tv 是对的：动漫和综艺在 TMDB 里都走 tv 命名空间（它们本来就是剧集）。
+ */
+function tmdbNamespace(mediaType: string): string {
+  switch (mediaType) {
+    case "movie":
+      return "movie";
+    case "tv":
+    case "anime":
+    case "variety":
+      return "tv";
+    default:
+      // 未知类型原样带出（仍是合法标识符），至少不会与已知类型撞名。
+      return mediaType;
+  }
 }
 
 /**
@@ -32,7 +56,7 @@ export function posterTransitionName({ tmdbId, mediaType }: PosterKeyParts): str
   if (typeof mediaType !== "string" || mediaType === "" || !Number.isFinite(tmdbId)) {
     return null;
   }
-  const safe = mediaType.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase();
+  const safe = tmdbNamespace(mediaType).replace(/[^a-zA-Z0-9]/g, "-").toLowerCase();
   // CSS 自定义标识符不能以数字开头（tmdbId 是数字，所以前面必须有前缀），
   // 且不能为空 —— 这两个都由 `poster-${safe}-` 保证。
   return `poster-${safe}-${tmdbId}`;

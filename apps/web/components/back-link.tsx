@@ -2,7 +2,7 @@
 
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { readDetailOrigin } from "../lib/detail-origin";
+import { readDetailOrigin, scheduleScrollRestore } from "../lib/detail-origin";
 
 /**
  * 回到用户真正来的那一页。
@@ -33,7 +33,10 @@ export function BackLink({
   const goBack = () => {
     const origin = readDetailOrigin();
     if (origin) {
-      router.replace(origin);
+      // scroll: false —— 不让 Next 先滚到顶部再被我们拉回去（会闪一下）。
+      router.replace(origin, { scroll: false });
+      // 普通导航不会自动恢复滚动位置，自己放回去（见 lib/detail-origin.ts）。
+      scheduleScrollRestore();
       return;
     }
     if (window.history.length > 1) {

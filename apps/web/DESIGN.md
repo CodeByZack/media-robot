@@ -385,6 +385,21 @@ Chrome 默认对 `old(root)`/`new(root)` 用**叠加混合**（实测 keyframes 
 | `components/detail-origin-memory.tsx` | 挂在 `(shell)/layout.tsx`；全局捕获 `click`，只对 `/show/...` 链接记来路 |
 | `components/back-link.tsx` | 读来路 → `replace`；退化到 `back()` / `push()` |
 
+**两个实测踩过的坑**（改这块之前先读）：
+
+- **滚动位置不会自动恢复**。`router.replace(来路)` 是**普通导航**，而浏览器只在
+  popstate 时自动恢复滚动 —— 于是"滑到底部点进详情、再返回"会跳回顶部。
+  对策：点击时记下 `scrollY`，返回后在**模块级函数**里放回去（挂组件上没用：调用它的
+  返回按钮导航完就卸载了）。且必须等渲染稳定（scrollHeight 连续几帧不变）再滚，
+  否则会被钳到当时的最大值；**滚不到原位置时滚到能到的最远处**，不要放弃 ——
+  实测返回后的页面可能比离开时矮几十像素。
+- **媒体类型有 2 个 id 命名空间，不是 4 个**。卡片用站内 `MediaType`
+  （movie/tv/anime/variety），详情页 `kind` 只有 `tv | movie`。不归一化的话动漫/综艺
+  会拼出 `poster-anime-30981` 对 `poster-tv-30981`，**配不上对且完全静默**（不报错、
+  就是不动）。见 `lib/poster-transition.ts` 的 `tmdbNamespace()`。
+  ⚠️ 曾经有个测试断言「四个类型互不撞名」—— 那条断言把 bug 固化成了期望；正确的不变量
+  是命名空间数量（2），不是媒体类型数量（4）。
+
 两个**取舍**，改之前先读：
 
 - 走 `replace` 会**盖掉详情页那条历史记录**，所以**浏览器自带的后退按钮**在这个页面
