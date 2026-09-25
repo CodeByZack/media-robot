@@ -84,7 +84,70 @@ function isRemoteRequest(request: NextRequest): boolean {
   );
 }
 
+const DRIVE_COOKIE_NAME = "mr_drive";
+
+/**
+ * 老的 `/w/<storageId>` 工作区链接 —— 兼容重定向。
+ *
+ * 盘已移出 URL（改由 cookie 决定当前盘），所以这些旧链接不再是页面。它们散落在书签与
+ * 历史里，用户意图完全明确（"我要看这块盘"），所以读懂并转成 cookie，而不是 404。
+ *
+ * ⚠️ **为什么在中介件里而不是页面里**（这里是两处踩坑换来的）：
+ *   1. **页面渲染期不能设置 cookie** —— 只有中介件 / 路由处理器 / Server Action 可以。
+ *      写在 page.tsx 里在 dev 下"能用"，但生产构建会挂。
+ *   2. 页面里读数据库（为校验归属）会在 `cacheComponents` 下让路由无法预渲染 ——
+ *      实测 `next build` 直接失败（blocking-route）。
+ * 中介件同时满足这两点：可以写 cookie，且运行在 Edge、本来就不该碰数据库。
+ *
+ * **归属校验不在这里做，是刻意的**：校验由 `resolveCurrentWorkspace()` 在每次读取时
+ * 兜底——cookie 里的盘不属于本账号就静默回退主盘。所以即使有人手改 URL 塞一个别人的
+ * 盘 id，也读不到任何越权数据；这里省掉一次 DB 往返，Edge 侧也保持无依赖。
+ *
+ * 只搬 `q` / `type` / `filter`：旧链接的筛选与搜索词不能在跳转中丢掉。旧实现里
+ * `?tab=library` 表示媒体库面，其余一律搜索面。
+ */
+function legacyWorkspaceRedirect(request: NextRequest): NextResponse | null {
+  const { pathname } = request.nextUrl;
+  if (!pathname.startsWith("/w/")) {
+    return null;
+  }
+  const driveId = pathname.slice("/w/".length).split("/")[0] ?? "";
+  if (driveId === "") {
+    return null;
+  }
+
+  // 默认落到搜索面（旧实现的默认），`?tab=library` 时改到媒体库面。
+  const target = new URL("/", request.nextUrl.origin);
+  if (request.nextUrl.searchParams.get("tab") === "library") {
+    target.pathname = "/library";
+  }
+  for (const key of ["q", "type", "filter"]) {
+    const value = request.nextUrl.searchParams.get(key);
+    if (value) {
+      target.searchParams.set(key, value);
+    }
+  }
+
+  const response = NextResponse.redirect(target);
+  // secure 依据客户端可见的协议：隧道/反代会写 x-forwarded-proto。与 auth 路由的
+  // isCookieSecure 同语义（此处不能复用那个函数——它在 workflow-runtime 里，带着
+  // node:sqlite，Edge 运行时引不进来；该模块的 SESSION_COOKIE_NAME 也是同样原因重复的）。
+  const proto = request.headers.get("x-forwarded-proto") ?? request.nextUrl.protocol;
+  response.cookies.set(DRIVE_COOKIE_NAME, driveId, {
+    sameSite: "lax",
+    secure: proto.startsWith("https"),
+    path: "/",
+    maxAge: 365 * 24 * 60 * 60,
+  });
+  return response;
+}
+
 export function proxy(request: NextRequest): NextResponse {
+  const legacy = legacyWorkspaceRedirect(request);
+  if (legacy) {
+    return legacy;
+  }
+
   const forwardedHeaders = serverActionForwardedHeaders(request);
 
   const gated = isRemoteRequest(request);

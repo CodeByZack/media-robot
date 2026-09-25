@@ -94,6 +94,7 @@ const nextConfig: NextConfig = {
   // arrives after the window / on a real change (the AcquiringPoller refreshes
   // mid-acquisition regardless).
   experimental: {
+    viewTransition: true,
     staleTimes: { dynamic: 60, static: 300 },
     serverActions: {
       allowedOrigins: (process.env.MEDIA_TRACK_ALLOWED_ORIGINS ?? "")
