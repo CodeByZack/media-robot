@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isDetailHref, isUsableOrigin } from "./detail-origin";
+import { isDetailHref, isUsableOrigin, originPathname, shouldRestoreScroll } from "./detail-origin";
 
 describe("isUsableOrigin", () => {
   it("接受站内相对路径（含 query）", () => {
@@ -45,5 +45,60 @@ describe("isDetailHref", () => {
     expect(isDetailHref(null)).toBe(false);
     expect(isDetailHref(undefined)).toBe(false);
     expect(isDetailHref("")).toBe(false);
+  });
+});
+
+describe("originPathname", () => {
+  it("丢掉 query，只留路径", () => {
+    expect(originPathname("/library?type=tv&filter=all")).toBe("/library");
+    expect(originPathname("/?q=%E6%80%AA%E7%89%A9")).toBe("/");
+    expect(originPathname("/library")).toBe("/library");
+  });
+
+  it("路径里的 / 不受影响（只切第一个 ?）", () => {
+    expect(originPathname("/show/30981?from=library")).toBe("/show/30981");
+  });
+});
+
+describe("shouldRestoreScroll", () => {
+  it("当前页正是当初点进详情页的那一页 → 恢复", () => {
+    expect(
+      shouldRestoreScroll({ pendingY: 482, originPath: "/library", currentPath: "/library" }),
+    ).toBe(true);
+  });
+
+  it("路径不同 → 不恢复", () => {
+    // 点了海报、进了详情页，然后没返回而是去点「通知」—— 不能把媒体库的位置套上去
+    expect(
+      shouldRestoreScroll({ pendingY: 482, originPath: "/library", currentPath: "/notifications" }),
+    ).toBe(false);
+  });
+
+  it("同路径不同 state 也算同一页（query 已被丢掉）", () => {
+    // 记的是 /library?type=tv&filter=all，当前是 /library —— pathname 相同即认账
+    expect(
+      shouldRestoreScroll({ pendingY: 482, originPath: "/library", currentPath: "/library" }),
+    ).toBe(true);
+  });
+
+  it("没有待恢复的位置 → 不恢复", () => {
+    expect(
+      shouldRestoreScroll({ pendingY: null, originPath: "/library", currentPath: "/library" }),
+    ).toBe(false);
+  });
+
+  it("位置是 0 或负数 → 没什么可恢复的", () => {
+    expect(
+      shouldRestoreScroll({ pendingY: 0, originPath: "/library", currentPath: "/library" }),
+    ).toBe(false);
+    expect(
+      shouldRestoreScroll({ pendingY: -5, originPath: "/library", currentPath: "/library" }),
+    ).toBe(false);
+  });
+
+  it("没有来路记忆 → 不恢复", () => {
+    expect(
+      shouldRestoreScroll({ pendingY: 482, originPath: null, currentPath: "/library" }),
+    ).toBe(false);
   });
 });

@@ -1,6 +1,6 @@
 import { Suspense, type ReactNode } from "react";
 import { AppSidebar } from "../../components/app-sidebar";
-import { DetailOriginMemory } from "../../components/detail-origin-memory";
+import { DetailOriginMemory, ScrollRestore } from "../../components/detail-origin-memory";
 
 /**
  * 后台外壳（侧栏 + 主区）。
@@ -28,6 +28,14 @@ export default function ShellLayout({ children }: { children: ReactNode }) {
       {/* 只挂一个全局 click 监听、渲染 null（见组件注释：不碰渲染期路由状态，
           所以不违反上面那条「不能读 pathname」的限制）。 */}
       <DetailOriginMemory />
+      {/* 返回列表页时把滚动位置放回去。必须在目标页自己的 layout effect 里跑 ——
+          点击「返回」的那一刻目标页还没渲染，那时去恢复会误判并清掉记忆（详见
+          lib/detail-origin.ts 的 restorePendingScroll）。
+          它读 `usePathname()` 来按导航重跑，故按静态壳的要求包一层 Suspense
+          （fallback 为 null —— 组件本来就渲染 null，不存在高度跳动）。 */}
+      <Suspense fallback={null}>
+        <ScrollRestore />
+      </Suspense>
       <Suspense fallback={null}>
         <AppSidebar />
       </Suspense>

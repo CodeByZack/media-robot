@@ -377,22 +377,34 @@ Chrome 默认对 `old(root)`/`new(root)` 用**叠加混合**（实测 keyframes 
    但回到正确位置、状态也不丢。
 3. 也没有历史 → `push(fallbackHref)`。
 
-实现三件套：
+实现四件套：
 
 | 文件 | 职责 |
 | --- | --- |
-| `lib/detail-origin.ts` | 纯函数：记/读来路（sessionStorage）+ `isUsableOrigin` 形状校验 |
-| `components/detail-origin-memory.tsx` | 挂在 `(shell)/layout.tsx`；全局捕获 `click`，只对 `/show/...` 链接记来路 |
-| `components/back-link.tsx` | 读来路 → `replace`；退化到 `back()` / `push()` |
+| `lib/detail-origin.ts` | 纯函数：记/读来路与 scrollY（sessionStorage）+ 形状校验 + 恢复决策 |
+| `components/detail-origin-memory.tsx` | `DetailOriginMemory`：全局捕获 `click`，只对 `/show/...` 链接记来路 + scrollY<br>`ScrollRestore`：按 pathname 重跑，把 scrollY 放回去 |
+| `components/back-link.tsx` | 读来路 → `replace`；退化到 `back()` / `push()`。**不负责滚动** |
+| `app/(shell)/layout.tsx` | 挂上面两个组件 |
 
-**两个实测踩过的坑**（改这块之前先读）：
+**三个实测踩过的坑**（改这块之前先读）：
 
-- **滚动位置不会自动恢复**。`router.replace(来路)` 是**普通导航**，而浏览器只在
-  popstate 时自动恢复滚动 —— 于是"滑到底部点进详情、再返回"会跳回顶部。
-  对策：点击时记下 `scrollY`，返回后在**模块级函数**里放回去（挂组件上没用：调用它的
-  返回按钮导航完就卸载了）。且必须等渲染稳定（scrollHeight 连续几帧不变）再滚，
-  否则会被钳到当时的最大值；**滚不到原位置时滚到能到的最远处**，不要放弃 ——
-  实测返回后的页面可能比离开时矮几十像素。
+- **滚动恢复不能放在「点击返回」的处理函数里**。那一刻目标页还没渲染，`document` 里
+  还是详情页 —— 于是"等高度稳定"的判据立刻成立，函数误判"页面就这么高"，滚到详情页的
+  maxScroll（0）并**清掉记忆**；等列表页真渲染出来已经没人再恢复它了。表现为「返回后停在
+  顶部」，而且是**间歇性**的（取决于导航比高度稳定快还是慢，同一操作时好时坏）。
+  正解：`ScrollRestore` 挂在 `(shell)/layout.tsx`，在**目标页自己的 layout effect** 里消费。
+  layout 常驻所以不会卸载，用 `usePathname()` 进依赖数组让它每次导航重跑
+  （⚠️ 空依赖的 effect 在 layout 里**整个会话只跑一次** —— 实测就是这么静默失效的）。
+- **恢复动作还必须早于 View Transition 抓新快照**，所以用 `useLayoutEffect`。抓快照时页面
+  还没滚，形变的目标位置就按"未滚动的布局"算；页面随后被滚走，而动画层是视口固定的，
+  海报便悬在原地不动 —— 用户描述为「海报卡在列表页上」。
+  实测对照：改前恢复发生在过渡中途（`y` 在 `vt` 动画进行中从 0 跳到 458），
+  改后与形变同时落地（`t=89ms` 时 `y=458` 且形变组正在跑），且形变末帧
+  `translate(296, 457)` 与卡片返回后的实际视口位置 `y:457` **精确吻合**。
+- **记忆是 sessionStorage，会跨导航留着**，所以恢复前必须校验"当前页正是当初点进详情页
+  的那一页"（比对 pathname，不是整个 URL —— query 的序列化顺序/编码不保证逐字一致）。
+  不校验的话：点海报进详情页、然后不返回而是去点「通知」，媒体库的位置就会套到通知页上。
+  过期记忆要**清掉**，否则它会在下次碰巧回到同一路径时突然生效。
 - **媒体类型有 2 个 id 命名空间，不是 4 个**。卡片用站内 `MediaType`
   （movie/tv/anime/variety），详情页 `kind` 只有 `tv | movie`。不归一化的话动漫/综艺
   会拼出 `poster-anime-30981` 对 `poster-tv-30981`，**配不上对且完全静默**（不报错、

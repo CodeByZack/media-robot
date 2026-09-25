@@ -1,7 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
-import { isDetailHref, rememberDetailOrigin, rememberScrollY } from "../lib/detail-origin";
+import { useEffect, useLayoutEffect } from "react";
+import { usePathname } from "next/navigation";
+import {
+  isDetailHref,
+  rememberDetailOrigin,
+  rememberScrollY,
+  restorePendingScroll,
+} from "../lib/detail-origin";
 
 /**
  * 记录「点进详情页之前所在的那个 URL」。挂在 `(shell)/layout.tsx`，全局只此一处 ——
@@ -30,6 +36,36 @@ export function DetailOriginMemory() {
     document.addEventListener("click", onClick, true);
     return () => document.removeEventListener("click", onClick, true);
   }, []);
+
+  return null;
+}
+
+/**
+ * 导航回列表页时把滚动位置放回去。
+ *
+ * 挂在 `(shell)/layout.tsx`，与 `DetailOriginMemory` 并列（后者记来路，这个消费滚动位置）。
+ *
+ * 三个约束，缺一个都会出问题：
+ *
+ *  1. **依赖 pathname，不能是空依赖**。layout 在导航时**不重新挂载**，空依赖的 effect
+ *     只会在整个会话里跑一次 —— 实测就是这么静默失效的。订阅 pathname 让它在每次
+ *     路由变化时都重跑。
+ *  2. **用 `useLayoutEffect`**。必须早于浏览器抓 View Transition 的新快照，否则形变动画
+ *     的目标位置按"未滚动"的布局算，页面随后被滚走，海报就悬在原地。layout effect 在
+ *     同一个 commit 里跑（DOM 已换好、快照还没抓），正好。
+ *  3. **不读渲染期的路由状态**。pathname 只进依赖数组；真正要比对的当前路径在 effect
+ *     里从 `window.location` 读，所以不碰 layout 顶部那条「渲染期不能读 pathname」
+ *     的限制（那条踩过 blocking-route）。
+ */
+export function ScrollRestore() {
+  const pathname = usePathname();
+  // `useLayoutEffect` 在服务端渲染时会告警，用同构别名换成 `useEffect`（服务端它本来
+  // 也不执行，换掉只是消掉噪音）。客户端留在 layout effect —— 时序要求见上。
+  const useIsomorphicLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
+
+  useIsomorphicLayoutEffect(() => {
+    restorePendingScroll();
+  }, [pathname]);
 
   return null;
 }

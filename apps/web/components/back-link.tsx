@@ -2,7 +2,7 @@
 
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { readDetailOrigin, scheduleScrollRestore } from "../lib/detail-origin";
+import { readDetailOrigin } from "../lib/detail-origin";
 
 /**
  * 回到用户真正来的那一页。
@@ -15,11 +15,11 @@ import { readDetailOrigin, scheduleScrollRestore } from "../lib/detail-origin";
  *     跨路由回退没有过渡，但至少回到正确的地方、状态也不丢。
  *  3. 也没有历史 → `push(fallbackHref)`。
  *
- * 为什么不用 `router.back()` 一条道走到黑：它走 popstate，而 **popstate + 跨路由**
- * 不触发过渡（实测 0 次；popstate + 同路由会触发）。这是 Next `onPopState` 走
- * `startTransition` 的窗口太小所致，详见 DESIGN.md 的四象限表。
- * ⚠️ 已知取舍：走 replace 会把详情页这条历史记录盖掉，所以**浏览器自带的后退按钮**
- * 在这个页面依旧没有过渡（那是 popstate 路径，改不动）—— 本组件只解决应用内的返回。
+ * ⚠️ **这里不负责恢复滚动位置。** 曾经在这里调 `scheduleScrollRestore()`，但那一刻
+ * 目标页还没渲染，函数看到的还是详情页的 DOM —— 于是它误判"页面就这么高"、把记忆
+ * 清掉，等列表页真出现时已经没人再恢复它了。恢复动作现在归目标页自己：
+ * `<ScrollRestore />`（挂在 `(shell)/layout.tsx`）在 layout effect 里消费记忆，
+ * 既拿到正确的 DOM，也赶在 View Transition 抓新快照之前落地。
  */
 export function BackLink({
   label = "返回",
@@ -33,10 +33,8 @@ export function BackLink({
   const goBack = () => {
     const origin = readDetailOrigin();
     if (origin) {
-      // scroll: false —— 不让 Next 先滚到顶部再被我们拉回去（会闪一下）。
+      // scroll: false —— 不让 Next 先滚到顶部（会闪一下）。真正的恢复由 ScrollRestore 做。
       router.replace(origin, { scroll: false });
-      // 普通导航不会自动恢复滚动位置，自己放回去（见 lib/detail-origin.ts）。
-      scheduleScrollRestore();
       return;
     }
     if (window.history.length > 1) {
