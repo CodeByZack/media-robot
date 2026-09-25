@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { connection } from "next/server";
-import { Suspense, type ReactNode } from "react";
+import { Suspense, ViewTransition, type ReactNode } from "react";
 import { TriangleAlert } from "lucide-react";
 import { isMovieUnreleased } from "@mediarobot/workflow";
 import { AcquiringPoller } from "../../../../components/acquiring-poller";
 import { AcquisitionLockProvider } from "../../../../components/acquisition-lock";
+import { HubSkeletonPoster } from "../../../../components/hub-skeleton-poster";
 import { PosterTransition } from "../../../../components/poster-transition";
 import { posterTransitionName } from "../../../../lib/poster-transition";
 import { BackLink } from "../../../../components/back-link";
@@ -50,11 +51,24 @@ export default function ShowPage({
   // streams inside one Suspense — cacheComponents forbids reading uncached data
   // outside a boundary. The fallback mirrors the hub骨架（侧栏与 <main> 已由
   // (shell)/layout.tsx 提供，这里只需骨架）。
+  //
+  // 为什么要给两侧都包 `<ViewTransition>`（官方指南的 Suspense reveal）：
+  // 详情页必然 suspend 一次，而 Suspense 的「骨架 → 内容」在 React 眼里**也是一次
+  // transition**。不写的话那就是硬切（骨架啪一下消失、内容啪一下出现）。
+  // 这里让骨架 `exit="slide-down"`、内容 `enter="slide-up"`，交接就有了方向：
+  // 占位者向下让位，真内容向上到位。
+  // `default="none"` 保证它俩不参与**别的**过渡（否则每次导航都会跟着动一下）。
   return (
     <Suspense
-      fallback={<HubSkeleton backLabel="返回" backHref="/" />}
+      fallback={
+        <ViewTransition exit="slide-down" default="none">
+          <HubSkeleton backLabel="返回" backHref="/" />
+        </ViewTransition>
+      }
     >
-      <ShowContent params={params} searchParams={searchParams} />
+      <ViewTransition enter="slide-up" default="none">
+        <ShowContent params={params} searchParams={searchParams} />
+      </ViewTransition>
     </Suspense>
   );
 }
@@ -355,7 +369,8 @@ function HubSkeleton({ backLabel, backHref }: { backLabel: string; backHref: str
       <div className="hub-hero">
         <BackLink label={backLabel} fallbackHref={backHref} />
         <header className="hub-header">
-          <div className="skeleton skeleton-hub-poster" />
+          {/* 有交接海报时这里就是真海报（见 components/hub-skeleton-poster）。 */}
+          <HubSkeletonPoster />
           <div className="skeleton-hub-titleblock">
             <div className="skeleton skeleton-hub-badge" />
             <div className="skeleton skeleton-hub-h1" />

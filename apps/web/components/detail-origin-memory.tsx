@@ -8,6 +8,12 @@ import {
   rememberScrollY,
   restorePendingScroll,
 } from "../lib/detail-origin";
+import {
+  posterKeyFromHref,
+  posterPathFromSrc,
+  setPendingPoster,
+} from "../lib/poster-handoff";
+import { posterTransitionName } from "../lib/poster-transition";
 
 /**
  * 记录「点进详情页之前所在的那个 URL」。挂在 `(shell)/layout.tsx`，全局只此一处 ——
@@ -31,6 +37,9 @@ export function DetailOriginMemory() {
       rememberDetailOrigin(window.location.pathname + window.location.search);
       // 连同滚动位置一起记 —— 返回用的是普通导航，浏览器不会自动恢复位置。
       rememberScrollY(window.scrollY);
+      // 把这张海报交给详情页的骨架屏：冷启动时详情页先 suspend 到骨架，
+      // 骨架带上名字才配得上对，形变才成立（见 lib/poster-handoff）。
+      rememberPosterHandoff(href, anchor);
     };
 
     document.addEventListener("click", onClick, true);
@@ -38,6 +47,29 @@ export function DetailOriginMemory() {
   }, []);
 
   return null;
+}
+
+/**
+ * 记下「这次要交给详情页骨架屏的海报」。**总是**写入（取不到时写 `null`）——
+ * 否则上一次点击的海报会留在那里，被下一次导航误用成"串片"。
+ *
+ * 海报图可能不在被点的这个 `<a>` 里：搜索页的候选卡把「海报」和「标题」拆成了
+ * 两个链接，点标题时锚点内没有 `img`。所以退一步到外层 `<article>` 里找。
+ */
+function rememberPosterHandoff(href: string, anchor: HTMLAnchorElement): void {
+  const key = posterKeyFromHref(href);
+  if (key === null) {
+    setPendingPoster(null);
+    return;
+  }
+  const img = anchor.querySelector("img") ?? anchor.closest("article")?.querySelector("img") ?? null;
+  const posterPath = posterPathFromSrc(img?.getAttribute("src"));
+  const name = posterTransitionName({ tmdbId: key.tmdbId, mediaType: key.mediaType });
+  if (posterPath === null || name === null) {
+    setPendingPoster(null);
+    return;
+  }
+  setPendingPoster({ tmdbId: key.tmdbId, name, posterPath });
 }
 
 /**

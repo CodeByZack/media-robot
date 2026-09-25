@@ -2503,6 +2503,55 @@ p {
   animation: none;
 }
 
+/* ---------- Suspense reveal（骨架 → 内容）----------
+   详情页必然 suspend 一次，而 React 眼里「骨架 → 内容」**也是一次 transition**。
+   page.tsx 给骨架挂了 `exit="slide-down"`、给内容挂了 `enter="slide-up"`，
+   这里补上两套动画。
+
+   时长的**非对称**是刻意的（官方指南的说法）：旧内容该快快离场、不争注意力；
+   新内容该晚一点、柔和一点到达，给用户时间 register 它。所以
+     · 退场 150ms（fade + 下移，reversed keyframes = 反向播放）
+     · 入场 210ms，但**延迟 150ms** 等旧内容走完才变可见
+     · 位移跑满 400ms —— 比淡入更长，所以"到位"的观感是滑上去的，不是弹出来
+   fade 带一点 blur：形变/交接期间的像素级插值会有瑕疵，模糊把它盖住。 */
+:root {
+  --vt-exit-duration: 150ms;
+  --vt-enter-duration: 210ms;
+  --vt-move-duration: 400ms;
+}
+
+::view-transition-old(.slide-down) {
+  animation:
+    var(--vt-exit-duration) ease-out both vt-slide-fade reverse,
+    var(--vt-exit-duration) ease-out both vt-slide-y reverse;
+}
+
+::view-transition-new(.slide-up) {
+  animation:
+    var(--vt-enter-duration) ease-in var(--vt-exit-duration) both vt-slide-fade,
+    var(--vt-move-duration) ease-in both vt-slide-y;
+}
+
+@keyframes vt-slide-fade {
+  from {
+    filter: blur(3px);
+    opacity: 0;
+  }
+  to {
+    filter: blur(0);
+    opacity: 1;
+  }
+}
+
+@keyframes vt-slide-y {
+  from {
+    transform: translateY(10px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
 .hub-poster {
   width: 180px;
   min-width: 180px;

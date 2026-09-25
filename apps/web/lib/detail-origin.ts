@@ -24,8 +24,14 @@ export function isUsableOrigin(value: string | null | undefined): value is strin
   return typeof value === "string" && value.startsWith("/") && !value.startsWith("//");
 }
 
-/** 是不是指向详情页的链接 —— 只有点进详情页时才值得记住来路。 */
-export function isDetailHref(href: string | null | undefined): boolean {
+/**
+ * 是不是指向详情页的链接 —— 只有点进详情页时才值得记住来路。
+ *
+ * 写成**类型谓词**（`href is string`）而不是普通 boolean：调用方拿到 true 之后
+ * 通常马上要用 `href` 本身（拿去解析、存起来），普通 boolean 还得再写一次
+ * `typeof href === "string"` 才能过类型检查。
+ */
+export function isDetailHref(href: string | null | undefined): href is string {
   if (typeof href !== "string") return false;
   return href === "/show" || href.startsWith("/show/");
 }
