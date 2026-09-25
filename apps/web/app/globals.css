@@ -2427,21 +2427,6 @@ p {
   animation-timing-function: var(--vt-poster-ease);
 }
 
-/* 共享元素（海报）**不做交叉淡入**。
-   默认行为会让同一张图的新旧两帧叠加：group 在放大，而 old/new 又在互相淡入淡出，
-   中途就变成重影/发糊 —— 观感是"海报怪怪的"。既然 group 已经在做位置+尺寸的形变，
-   两帧本来就该是同一张图，直接都保持不透明即可（谁在上层都一样）。
-   `.morph` 由 components/poster-transition.tsx 的 `share="morph"` 挂上（React 官方
-   给共享元素形变的 prop）；用 class 是因为元素名带 tmdbId、运行时生成，静态选择器选不到。
-   这与 Chrome 官方文档「处理宽高比变化」里的做法一致（同样是一对
-   `animation: none` + `mix-blend-mode: normal`，理由也一样：让新帧盖住旧帧）。 */
-::view-transition-old(.morph),
-::view-transition-new(.morph) {
-  animation: none;
-  opacity: 1;
-  mix-blend-mode: normal;
-}
-
 /* 过渡期间 `::view-transition` 覆盖层会吃掉指针事件 → 动画那几百毫秒里的点击全部丢失。
    放行即可（官方文档明确推荐）。命名元素仍会被命中排除，所以过渡要短。 */
 ::view-transition {
@@ -2550,6 +2535,31 @@ p {
   to {
     transform: translateY(0);
   }
+}
+
+/* 共享元素（海报）**不做交叉淡入**。
+   默认行为会让同一张图的新旧两帧叠加：group 在放大，而 old/new 又在互相淡入淡出，
+   中途就变成重影/发糊 —— 观感是"海报怪怪的"。既然 group 已经在做位置+尺寸的形变，
+   两帧本来就该是同一张图，直接都保持不透明即可（谁在上层都一样）。
+   `.morph` 由 components/poster-transition.tsx 的 `share="morph"` 挂上（React 官方
+   给共享元素形变的 prop）；用 class 是因为元素名带 tmdbId、运行时生成，静态选择器选不到。
+   这与 Chrome 官方文档「处理宽高比变化」里的做法一致（同样是一对
+   `animation: none` + `mix-blend-mode: normal`，理由也一样：让新帧盖住旧帧）。
+
+   ⚠️⚠️ **这段必须留在 `.slide-*` 之后，不要往上挪。** 顺序在这里是有语义的，不是排版：
+   揭幕时（骨架 → 内容）海报那个伪元素会**同时**带上两个 class ——
+   `.morph`（它自己与内容里的同一张海报配对成功 → share）**和**
+   `.slide-down` / `.slide-up`（它所在的 Suspense 骨架/内容边界在做 exit/enter）。
+   两条规则都是伪元素 + 一个 class，**优先级完全相同 → 后写的赢**。
+   放在前面时 `.slide-down` 会赢，于是 `animation: none` 被覆盖成
+   「淡出 + 下移」→ 海报在揭幕那一瞬间**暗一下再亮回来**（实测被用户看到：
+   "在骨架屏数据回来的那一瞬间，海报闪烁了一下"）。挪到后面，海报的
+   old/new 两帧永远是不透明的，位移交给它的 group 去做。 */
+::view-transition-old(.morph),
+::view-transition-new(.morph) {
+  animation: none;
+  opacity: 1;
+  mix-blend-mode: normal;
 }
 
 .hub-poster {

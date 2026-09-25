@@ -404,9 +404,31 @@ Chrome 默认对 `old(root)`/`new(root)` 用**叠加混合**（实测 keyframes 
 淡出），新页不做动画、被"揭示"出来。
 
 共享元素（海报）反过来要**关掉交叉淡入**：同一张图的新旧两帧叠加会变成发白重影。
-`components/poster-transition.tsx` 用 `default="mr-shared"`（= view-transition-class）
-挂类名，CSS 里以 `::view-transition-old(.mr-shared)` 关掉它 —— 用 class 是因为元素名
-带 `tmdbId`、运行时生成，静态选择器选不到。
+`components/poster-transition.tsx` 用 `share="morph"`（= view-transition-class）
+挂类名，CSS 里以 `::view-transition-old(.morph)` / `new(.morph)` 关掉它（`animation:
+none; opacity: 1`）—— 用 class 是因为元素名带 `tmdbId`、运行时生成，静态选择器选不到。
+`default="none"` 必须与 `share` 成对出现（只给 `default="none"` 会让配对静默失去形变）。
+
+#### ⚠️ 那条 `.morph` 规则的位置是**有语义的**，不要挪
+
+`globals.css` 里 `::view-transition-old(.morph)` / `new(.morph)` 必须写在
+`::view-transition-old(.slide-down)` / `new(.slide-up)` **之后**。
+
+原因：揭幕（骨架 → 内容）时，海报那个伪元素会**同时**带上两个 class ——
+`.morph`（它自己与内容里的同一张海报配对成功 → share）**和** `.slide-down`／
+`.slide-up`（它所在的 Suspense 边界在做 exit/enter）。两条规则都是
+「伪元素 + 一个 class」，**优先级完全相同 → 后写的赢**。放在前面时 `.slide-down`
+会赢，`animation: none` 被覆盖成「淡出 + 位移」，于是海报在揭幕那一瞬间
+**暗一下再亮回来**（用户实测原话：\"在骨架屏数据回来的那一瞬间，海报闪烁了一下\"）。
+
+验证方式（不需要真实导航，也不依赖能不能复现骨架）：造一个
+`view-transition-class: morph slide-down` 的元素跑一次手动 `startViewTransition`，
+读 `getComputedStyle(documentElement, '::view-transition-old(<name>)')`：
+
+| 顺序 | `animation-name` | 观感 |
+| --- | --- | --- |
+| `.slide-*` 在前、`.morph` 在后（**现在**） | `none`, `opacity: 1` | 海报干净 |
+| 反过来（曾经的 bug） | `vt-slide-fade` | 海报淡出再淡入 = 闪 |
 
 #### 后退的过渡：用「记忆来路 + replace」拿到（已实现）
 
