@@ -3816,24 +3816,46 @@ select.setting-control {
   background: var(--bg-surface);
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
+/* 盘列表项是 <button>（切盘不导航，只写 cookie）——**不是** <a>。所以必须显式清掉
+   按钮的 UA 默认样式（边框 / 背景 / 字体 / 居中 / 光标）：这套规则最初是给锚点写的，
+   `text-decoration: none` 只对 <a> 有意义，换成 button 后浏览器默认的浅色描边和
+   底色就露出来了（看着像一堆描边方块）。 */
 .workspace-switcher .ws-tab {
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
   padding: 7px 10px;
+  border: 0;
   border-radius: 8px;
+  background: none;
+  font: inherit;
   font-size: 13px;
   color: var(--text-muted);
-  text-decoration: none;
+  text-align: left;
+  cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
-.workspace-switcher .ws-tab:hover {
+.workspace-switcher .ws-tab:hover:not(:disabled) {
   background: var(--bg-raised);
   color: var(--text);
 }
 .workspace-switcher .ws-tab.is-active {
   background: var(--bg-raised);
   color: var(--text);
+}
+/* 掉线的盘保留可见但不可点（去设置重新绑定才能恢复） */
+.workspace-switcher .ws-tab:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+/* 切换中的行内提示。切换完成后必须消失 —— 它由组件的 switchingTo 控制，
+   而那个状态在服务端下发新 active 时清空。 */
+.workspace-switcher .ws-pending {
+  margin-left: auto;
+  flex: none;
+  font-size: 11px;
+  color: var(--text-faint);
 }
 /* 盘标识方牌的尺寸。**配色不在这里** —— 见 .drive-mark（三处共用的唯一配色定义）。
    尺寸随场景（盘卡 38 / 品牌胶囊 24 / 侧栏 20），配色必须一致。
@@ -3849,6 +3871,9 @@ select.setting-control {
    "这是哪个品牌"，行的 `.is-active` 底 + 提亮文字已经表达了"当前是它"。标识在
    三处（侧栏 / 盘卡 / 品牌胶囊）必须长得完全一样，不该因状态变颜色。 */
 .workspace-switcher .ws-label {
+  /* min-width:0：flex 子项默认 min-width:auto，会拒绝收缩到内容宽以下 ——
+     没有它 overflow/text-overflow 都不会生效（长盘名不会截断，只会把行撑开）。 */
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

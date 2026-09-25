@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { lastQueryKeyForDrive } from "../lib/drive-cookie";
 
@@ -32,6 +32,17 @@ export function WorkspaceSwitcher({ tabs }: { tabs: WorkspaceTab[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [switchingTo, setSwitchingTo] = useState<string | null>(null);
+  // 当前盘（服务端按 cookie 算出来的）。钩子必须在提前 return 之前调用，所以
+  // 这里先算出一个可空值。
+  const activeId = tabs.find((tab) => tab.isActive)?.id ?? null;
+
+  // 切换完成 = 服务端下发了新的当前盘。此时清掉"切换中"——**不能在 switchTo 里清**：
+  // 切盘后页面不卸载（同路由 + refresh），组件实例保留，过早清除会让提示闪一下就没了；
+  // 而如果只在成功分支清，失败后又清不到（原来就是这个 bug：提示永久卡住）。
+  useEffect(() => {
+    setSwitchingTo(null);
+  }, [activeId]);
+
   if (tabs.length < 2) {
     return null;
   }
