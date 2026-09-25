@@ -311,17 +311,31 @@ App Router 的 layout **在导航间不重新渲染**，所以侧栏放这里，
 
 `媒体库卡片 → 详情页大图`（以及反向）走 View Transitions：源和目标共用同一个
 `view-transition-name`，由 React 19.3 的 `<ViewTransition>` 驱动（需
-`next.config.ts` 的 `experimental.viewTransition`）。**只做媒体库 ↔ 详情页这一条
-链路**；搜索页候选卡暂未接入。
+`next.config.ts` 的 `experimental.viewTransition`）。
+
+**接入点**（都指向 `/show/...`）：
+
+| 来源 | 位置 | 备注 |
+| --- | --- | --- |
+| 媒体库海报 | `app/(shell)/library/page.tsx` | 最早接的一处，基线 |
+| 搜索候选卡海报 | `app/(shell)/page.tsx` | 候选列表，需去重 |
+| 活动页「获取中」海报 | `components/activity-feed.tsx` | 多季并发时同 tmdbId 会撞名，必须去重 |
+| 详情页大图 | `app/(shell)/show/[tmdbId]/page.tsx` | 两端 |
 
 | 项 | 值 / 位置 |
 | --- | --- |
 | 名字规则 | `poster-<type>-<tmdbId>`，见 `lib/poster-transition.ts` |
+| 同页去重 | `posterNamePicker(items)` —— 撞名的**整批**返回 `null` |
 | 时长 / 曲线 | `--vt-poster-duration: 420ms`、`--vt-poster-ease`，`globals.css` 的 `:root` |
 | 包裹组件 | `components/poster-transition.tsx`（`name: string \| null`） |
 
-两条**踩过的坑**，改这块之前先读：
+三条**踩过的坑**，改这块之前先读：
 
+- **同一页出现重复的 `view-transition-name`，浏览器会放弃「整个」过渡** —— 不是少一个
+  元素形变，是全页都不动（只在控制台丢一句 duplicate，极易漏掉）。所以「撞名的代价」
+  远大于「少一次形变」：`posterNamePicker` 对重复项**全部**返回 `null`（不是只留第一个
+  —— 那样「哪一张动」会变得不可预测）。这不是理论风险：活动页**多季并发获取**是常规
+  场景，同一部剧的第 1、2 季在同一页、tmdbId 相同；搜索候选列表也没有去重保证。
 - **时长必须写成 `::view-transition-group(*)` + CSS 变量。**
   `::view-transition-group(...)` 括号里是**运行时**生成的元素名，静态选择器
   `::view-transition-group(poster-movie-*)` 永远命中不了 —— 实测一直停在默认

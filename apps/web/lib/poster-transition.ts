@@ -61,3 +61,34 @@ export function posterTransitionName({ tmdbId, mediaType }: PosterKeyParts): str
   // 且不能为空 —— 这两个都由 `poster-${safe}-` 保证。
   return `poster-${safe}-${tmdbId}`;
 }
+
+/**
+ * 造一个「本页可用」的海报名取值器：**同一页里重复的名字一律返回 null**。
+ *
+ * 为什么必须去重 —— 重复的 `view-transition-name` 会让浏览器**放弃整个过渡**：
+ * 不是少一个元素形变，是全页都不动（Chrome 只在控制台丢一句 duplicate，很容易漏掉）。
+ * 所以「撞名的代价」远大于「少一次形变」，宁可那一个不形变。
+ *
+ * 这不是理论风险，两个调用点上都有真实来源：
+ *   - 活动页：**多季并发获取**是本站常规场景，同一个 tmdbId 会同时有多条 run；
+ *   - 搜索页：候选列表没有显式的去重保证。
+ *
+ * ⚠️ `items` 必须是**页面上真正会渲染 name 的那批条目**。查不到的一律当重复处理
+ * （返回 null）—— 这样万一调用方传的是子集，失败方向是「少一次形变」而不是
+ * 「整页过渡消失」，前者用户几乎察觉不到，后者是明显退化。
+ */
+export function posterNamePicker(
+  items: readonly PosterKeyParts[],
+): (parts: PosterKeyParts) => string | null {
+  const counts = new Map<string, number>();
+  for (const item of items) {
+    const name = posterTransitionName(item);
+    if (name === null) continue;
+    counts.set(name, (counts.get(name) ?? 0) + 1);
+  }
+  return (parts) => {
+    const name = posterTransitionName(parts);
+    if (name === null) return null;
+    return counts.get(name) === 1 ? name : null;
+  };
+}

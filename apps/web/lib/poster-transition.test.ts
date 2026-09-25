@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { posterTransitionName } from "./poster-transition";
+import { posterNamePicker, posterTransitionName } from "./poster-transition";
 
 describe("posterTransitionName", () => {
   it("同一部作品在同一页面类型下名字一致（两侧才能配上对）", () => {
@@ -76,5 +76,66 @@ describe("类型归一：动漫/综艺必须与详情页配对", () => {
 
   it("未知类型原样带出，不会与已知类型撞名", () => {
     expect(posterTransitionName({ tmdbId: 7, mediaType: "documentary" })).toBe("poster-documentary-7");
+  });
+});
+
+describe("posterNamePicker：同页同名一律放弃（保整页过渡）", () => {
+  // 为什么宁可不形变也要去重：重复的 view-transition-name 会让浏览器**放弃整个过渡**
+  // ——不是少一个元素动，是全页都不动。所以撞名比缺一次形变严重得多。
+  it("唯一的条目拿到名字", () => {
+    const pick = posterNamePicker([
+      { tmdbId: 1, mediaType: "movie" },
+      { tmdbId: 2, mediaType: "tv" },
+    ]);
+    expect(pick({ tmdbId: 1, mediaType: "movie" })).toBe("poster-movie-1");
+    expect(pick({ tmdbId: 2, mediaType: "tv" })).toBe("poster-tv-2");
+  });
+
+  it("重复的条目全部返回 null（不是留一个）", () => {
+    // 全部不给：只留第一个会让「哪一张动」变得不确定，行为更难解释。
+    const pick = posterNamePicker([
+      { tmdbId: 5, mediaType: "tv" },
+      { tmdbId: 5, mediaType: "tv" },
+    ]);
+    expect(pick({ tmdbId: 5, mediaType: "tv" })).toBeNull();
+  });
+
+  it("归一后撞名也算重复 —— 多季并发获取正是这个形状", () => {
+    // 活动页：同一部剧的第 1 季和第 2 季同时在下，两条 run 的 tmdbId 相同。
+    // anime 与 tv 归一到同一命名空间，所以这里也会撞。
+    const pick = posterNamePicker([
+      { tmdbId: 9, mediaType: "anime" },
+      { tmdbId: 9, mediaType: "tv" },
+    ]);
+    expect(pick({ tmdbId: 9, mediaType: "anime" })).toBeNull();
+    expect(pick({ tmdbId: 9, mediaType: "tv" })).toBeNull();
+  });
+
+  it("不同作品互不影响（一个重复不该拖累别人）", () => {
+    const pick = posterNamePicker([
+      { tmdbId: 5, mediaType: "tv" },
+      { tmdbId: 5, mediaType: "tv" },
+      { tmdbId: 6, mediaType: "tv" },
+    ]);
+    expect(pick({ tmdbId: 5, mediaType: "tv" })).toBeNull();
+    expect(pick({ tmdbId: 6, mediaType: "tv" })).toBe("poster-tv-6");
+  });
+
+  it("查不到的条目返回 null（传了子集时宁可少一次形变）", () => {
+    const pick = posterNamePicker([{ tmdbId: 1, mediaType: "movie" }]);
+    expect(pick({ tmdbId: 999, mediaType: "movie" })).toBeNull();
+  });
+
+  it("拿不到类型的条目本来就无名字，不影响计数", () => {
+    const pick = posterNamePicker([
+      { tmdbId: 1, mediaType: "" },
+      { tmdbId: 1, mediaType: "movie" },
+    ]);
+    expect(pick({ tmdbId: 1, mediaType: "movie" })).toBe("poster-movie-1");
+  });
+
+  it("空列表：什么都拿不到名字", () => {
+    const pick = posterNamePicker([]);
+    expect(pick({ tmdbId: 1, mediaType: "movie" })).toBeNull();
   });
 });

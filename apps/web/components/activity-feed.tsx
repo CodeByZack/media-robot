@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 
 import Link from "next/link";
 import { CheckCircle2, ChevronDown, ChevronRight, Clock3, Loader2, RotateCcw, TriangleAlert, X } from "lucide-react";
 import { showHref } from "@mediarobot/workflow/scope";
+import { PosterTransition } from "./poster-transition";
+import { posterNamePicker } from "../lib/poster-transition";
 import type {
   ActivityActiveRun,
   ActivityCompletedItem,
@@ -70,6 +72,12 @@ export function ActivityFeed() {
   const demoDone = isDemo ? demoCompletedItems(demoAcq) : [];
   const demoActive = demoInProgressActivityItems(useDemoInProgress());
   const allCompleted = [...demoDone, ...completed];
+  // 共享元素：获取中的海报 → 详情页大图。**多季并发获取**是本站常规场景（同一部剧的
+  // 第 1、2 季同时在下），两条 run 的 tmdbId 完全相同 → 撞名 → 必须整批放弃，
+  // 否则浏览器会放弃**整个**过渡（不只是少一张形变）。
+  const runningPosterName = posterNamePicker(
+    running.map((run) => ({ tmdbId: run.tmdbId, mediaType: run.type })),
+  );
 
   return (
     <div className="activity">
@@ -83,7 +91,11 @@ export function ActivityFeed() {
               <DemoRunningRow item={item} key={item.id} />
             ))}
             {running.map((run) => (
-              <RunningRow run={run} key={run.runId} />
+              <RunningRow
+                run={run}
+                posterName={runningPosterName({ tmdbId: run.tmdbId, mediaType: run.type })}
+                key={run.runId}
+              />
             ))}
           </>
         )}
@@ -283,7 +295,7 @@ function StepEvidence({ detail }: { detail: NonNullable<StepEvidenceView> }) {
   );
 }
 
-function RunningRow({ run }: { run: ActivityActiveRun }) {
+function RunningRow({ run, posterName }: { run: ActivityActiveRun; posterName: string | null }) {
   const [open, setOpen] = useState(false);
   const percent = Math.max(3, Math.min(100, run.progress?.percent ?? 3));
   const headline =
@@ -293,6 +305,8 @@ function RunningRow({ run }: { run: ActivityActiveRun }) {
   return (
     <div className={`act-row act-row-active act-row-expandable${open ? " is-open" : ""}`}>
       <div className="act-row-toggle" onClick={() => setOpen((value) => !value)}>
+        {/* 共享元素：点开时这张海报形变到详情页大图。 */}
+        <PosterTransition name={posterName}>
         <Link
           className="act-poster-link"
           href={showHref(run.tmdbId, "library", run.type)}
@@ -300,6 +314,7 @@ function RunningRow({ run }: { run: ActivityActiveRun }) {
         >
           {poster(run.posterPath, run.title, "info")}
         </Link>
+        </PosterTransition>
         <div className="act-row-body">
           <div className="act-row-head">
             <strong>{run.title}</strong>

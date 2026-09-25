@@ -5,11 +5,13 @@ import { AcquiringPoller } from "../../components/acquiring-poller";
 import { RequestTrackButton } from "../../components/request-track-button";
 import { AcquireProgressBadge } from "../../components/acquire-progress-badge";
 import { DemoSessionLibrary } from "../../components/demo-session-library";
+import { PosterTransition } from "../../components/poster-transition";
 import { RememberQuery } from "../../components/search-memory";
 import { SearchForm } from "../../components/search-form";
 import { SeasonRequestMenu } from "../../components/season-request-menu";
 import { TrendingRow } from "../../components/trending-row";
 import { getSearchView } from "../../lib/search-page";
+import { posterNamePicker } from "../../lib/poster-transition";
 import {
   getInProgressTitles,
   getLibraryWall,
@@ -103,6 +105,9 @@ async function HomeSurface({
 
 async function SearchResults({ query }: { query: string }) {
   const searchView = await getSearchView(query);
+  // 共享元素：候选卡海报 → 详情页大图。名字统一从这里出，但**同页撞名的一律不给**
+  // （重复的 view-transition-name 会让浏览器放弃整个过渡，见 lib/poster-transition）。
+  const candidatePosterName = posterNamePicker(searchView.candidates);
   // Library awareness on results: a tracked title shows WHICH seasons are
   // obtained and routes to the same title page as the library — search must
   // anticipate re-searching something already obtained. Scoped to the active
@@ -167,6 +172,10 @@ async function SearchResults({ query }: { query: string }) {
               {searchView.candidates.map((candidate) => (
                 <CandidateCard
                   candidate={candidate}
+                  posterName={candidatePosterName({
+                    tmdbId: candidate.tmdbId,
+                    mediaType: candidate.mediaType,
+                  })}
                   acquiring={inProgressIds.has(candidate.tmdbId)}
                   trackedLabel={
                     // The per-season summary ("第 N 季已获取/追更中") is a TV concept.
@@ -242,12 +251,15 @@ function trackedSummaryLabel(states: TrackedSeasonState[], totalSeasonCount: num
 
 function CandidateCard({
   candidate,
+  posterName,
   acquiring,
   trackedLabel,
   trackedSeasonNumbers,
   storageId,
 }: {
   candidate: SearchCandidateCard;
+  /** 共享元素的 name；null = 本页撞名或字段缺失，这张不做形变（见 lib/poster-transition）。 */
+  posterName: string | null;
   /** This title has a queued/running acquisition — show 获取中, not its
    *  (possibly "有缺集") tracked snapshot, which is misleading mid-acquisition. */
   acquiring: boolean;
@@ -264,6 +276,8 @@ function CandidateCard({
   );
   return (
     <article className="candidate-card">
+      {/* 共享元素：点开时这张海报会形变到详情页大图，而不是小图消失、大图突兀出现。 */}
+      <PosterTransition name={posterName}>
       <Link className="candidate-poster" href={showHref(candidate.tmdbId, "search", candidate.mediaType)} aria-hidden tabIndex={-1}>
         {candidate.posterPath ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -272,6 +286,7 @@ function CandidateCard({
           <span>{candidate.title.slice(0, 4)}</span>
         )}
       </Link>
+      </PosterTransition>
       <div className="candidate-body">
         <div className="candidate-title-row">
           <div>
