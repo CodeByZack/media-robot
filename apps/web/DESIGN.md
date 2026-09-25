@@ -334,6 +334,32 @@ App Router 的 layout **在导航间不重新渲染**，所以侧栏放这里，
 > 尺寸契约：卡片海报 160×240，详情页大图 180×270 —— 同为 **2:3**，缩放才不拉伸。
 > 以后改任何一侧的宽高比，两边都要一起改。
 
+#### 整页怎么交接（以及一个必须改的默认行为）
+
+Chrome 默认对 `old(root)`/`new(root)` 用**叠加混合**（实测 keyframes 里带
+`mix-blend-mode`）。后果是新页从第一帧就以全不透明呈现、旧页的淡出被盖住看不见 ——
+测下来 80ms 与 220ms 两帧截图除海报外**完全一致**，观感就是"整页瞬间出现，只有海报
+在自己滑"。所以显式把旧页变成**遮罩层**（`z-index: 2` + `mix-blend-mode: normal`，
+淡出），新页不做动画、被"揭示"出来。
+
+共享元素（海报）反过来要**关掉交叉淡入**：同一张图的新旧两帧叠加会变成发白重影。
+`components/poster-transition.tsx` 用 `default="mr-shared"`（= view-transition-class）
+挂类名，CSS 里以 `::view-transition-old(.mr-shared)` 关掉它 —— 用 class 是因为元素名
+带 `tmdbId`、运行时生成，静态选择器选不到。
+
+#### ⚠️ 后退没有过渡（已知限制，不要"修"）
+
+实测 `router.back()` / `history.back()` **完全不触发** `startViewTransition`（次数 0），
+正向 push 是 1。根因在 Next 的 `onPopState` 走 `ACTION_RESTORE`，React 不为它发起过渡
+（源码留了 TODO）。两条自救路径都不划算：
+
+- 自己包 `startViewTransition(() => router.back())`：抓不到新帧（`ready` 都不解析），
+  还会因 DOM 更新超时抛 `TimeoutError`。已试过，回滚了。
+- 改用 `router.push(返回地址)`：过渡有了，但**丢掉上一页状态** —— 媒体库的
+  `type`/`filter`、搜索页的 `?q=` 都不在详情页 URL 里。
+
+**功能优先 → 保持 `back()`**。要真正修，得等框架支持（或自己记状态再 push）。
+
 ---
 
 ## 9. 品牌

@@ -2421,14 +2421,44 @@ p {
   animation-timing-function: var(--vt-poster-ease);
 }
 
-/* Next 的 root 过渡默认是 250ms 交叉淡出，与海报形变时长不一致会让整页先淡完、
-   海报还在飞 → 观感是"画面闪一下"。这里把两侧都对齐到同一时长。
-   注意 `::view-transition-old/new(root)` 必须显式写出来：`group(*)` 只改组时长，
-   不覆盖 old/new 自身的动画时长。 */
-::view-transition-old(root),
+/* 共享元素（海报）**不做交叉淡入**。
+   默认行为会让同一张图的新旧两帧叠加：group 在放大，而 old/new 又在互相淡入淡出，
+   中途就变成重影/发糊 —— 观感是"海报怪怪的"。既然 group 已经在做位置+尺寸的形变，
+   两帧本来就该是同一张图，直接都保持不透明即可（谁在上层都一样）。
+   `.mr-shared` 由 components/poster-transition.tsx 的 `default` prop 挂上，
+   因为元素名是运行时生成的、没法用静态选择器选中。 */
+::view-transition-old(.mr-shared),
+::view-transition-new(.mr-shared) {
+  animation: none;
+  opacity: 1;
+  mix-blend-mode: normal;
+}
+
+/* 整页的交接：**旧页盖在上层淡出**，新页被"揭示"出来。
+
+   ⚠️ 这里踩过一个不明显的坑，是本条规则存在的唯一理由：
+   Chrome 对 old/new 默认使用混合模式（实测 `old(root)` 的 keyframes 里带
+   `mix-blend-mode`），于是旧帧是**叠加**在新帧上而不是盖住它。结果是新页从第一帧
+   就以全不透明呈现，而旧页的淡出根本看不见 —— 实测 80ms 和 220ms 两帧截图除海报
+   外完全一致，观感就是"整页瞬间出现，只有海报在自己滑"，非常割裂。
+   解法：`mix-blend-mode: normal` + 给旧帧抬 `z-index`，让它变成真正的遮罩层。
+   新帧不需要动画：它就是被揭示出来的那一层（再加淡入反而会与新页自身叠加发白）。 */
+@keyframes vt-root-out {
+  to {
+    opacity: 0;
+  }
+}
+
+::view-transition-old(root) {
+  z-index: 2;
+  mix-blend-mode: normal;
+  animation: vt-root-out var(--vt-poster-duration) var(--vt-poster-ease) both;
+}
+
 ::view-transition-new(root) {
-  animation-duration: var(--vt-poster-duration);
-  animation-timing-function: var(--vt-poster-ease);
+  z-index: 1;
+  mix-blend-mode: normal;
+  animation: none;
 }
 
 .hub-poster {

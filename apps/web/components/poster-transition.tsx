@@ -10,9 +10,17 @@ import { ViewTransition } from "react";
  * 而 name 的拼法有坑（见 lib/poster-transition.ts：TMDB 的 movie/tv 是两套 id 命名
  * 空间，名字重复会让过渡**静默不发生**）。把拼法收敛到一个函数，两边就不可能拼歪。
  *
- * 为什么是"永远渲染"而不是"点的时候才加 name"：用户可能用**浏览器前进/后退**完成同一
- * 次跳转（甚至直接键盘操作），那时没有任何点击事件可挂钩 —— 而 View Transition 是浏览器
- * 在导航时自己比对新旧树的。让 name 常驻，前进/后退也自然获得同样的形变。
+ * 为什么是"永远渲染"而不是"点的时候才加 name"：View Transition 是浏览器在导航时
+ * 自己比对新旧树、按 name 配对的，没有点击事件可挂钩。让 name 常驻，任何**能触发
+ * React transition 的导航**（`<Link>`、`router.push`）都会自动获得同样的形变。
+ *
+ * ⚠️ **后退不会播过渡**（实测：`router.back()` / `history.back()` 完全不调用
+ * `startViewTransition`，次数 0；而正向 push 是 1）。原因是 Next 的 popstate 处理
+ * （`app-router.js` 的 `onPopState`）走 `ACTION_RESTORE`，React 不会为它发起过渡，
+ * 源码里还留着 TODO。自己包一层 `startViewTransition(() => router.back())` 也抓不到
+ * 新帧（实测 `ready` 都不解析，并在 DOM 更新超时后抛 TimeoutError）。改用
+ * `router.push(返回地址)` 可以得到过渡，但会**丢掉上一页的完整状态**（媒体库的
+ * type/filter、搜索页的 ?q=，这些都不在详情页 URL 里）。功能优先 → 保持 back()。
  *
  * ⚠️ `name` 在同一时刻的整棵树里必须唯一 —— 所以同一部作品在同一页只能出现一次带
  * name 的元素。若日后出现"同一个卡片渲染两遍"的布局（例如桌面/移动双份），需要改成
@@ -33,5 +41,12 @@ export function PosterTransition({
     // 退化成普通渲染：动画没了，内容照常。装饰性功能不该有"失败也把页面搞崩"的能力。
     return <>{children}</>;
   }
-  return <ViewTransition name={name}>{children}</ViewTransition>;
+  // `default` = view-transition-class。名字是**运行时**生成的（带 tmdbId），没法用
+  // 静态选择器批量选中；class 可以，于是 CSS 写得成
+  // `::view-transition-old(.mr-shared)`（见 globals.css：关掉它的交叉淡入）。
+  return (
+    <ViewTransition name={name} default="mr-shared">
+      {children}
+    </ViewTransition>
+  );
 }
