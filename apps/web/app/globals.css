@@ -664,7 +664,13 @@ p {
   place-items: center;
   width: 96px;
   min-width: 96px;
-  height: 132px;
+  /* 2:3 —— 与其它共享元素端点（.hub-poster / .wall-poster / .act-poster）一致。
+     形变要在两个盒子之间插值：比例不同时，动画**中途**的快照是被拉伸的（整张图都在、
+     被压扁），而动画结束由真实元素接管、走的是 object-fit: cover（裁掉上下）——
+     两种取景不一样，收尾那一下就会看到底部“多一截然后瞬间消失”。
+     原先硬编码 96×132（比例 1.375），现改为比例推导 → 96×144。契约见 DESIGN.md。 */
+  aspect-ratio: 2 / 3;
+  height: auto;
   border-radius: 6px;
   background: linear-gradient(160deg, #262d37 0%, #181c22 100%);
   color: var(--text-soft);
@@ -3669,7 +3675,10 @@ select.setting-control {
 
 .act-poster {
   width: 46px;
-  height: 69px;
+  /* 2:3（46×69）—— 与其它共享元素端点一致，故写成比例而不是硬编码高度，
+     免得日后改宽度时比例悄悄跑掉。 */
+  aspect-ratio: 2 / 3;
+  height: auto;
   border-radius: 8px;
   object-fit: cover;
   flex: none;
