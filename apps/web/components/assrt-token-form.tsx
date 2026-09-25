@@ -69,16 +69,20 @@ export function AssrtTokenForm({ tokenSet }: { tokenSet: boolean }) {
           注册页面 <ExternalLink size={12} style={{ verticalAlign: "-1px" }} />
         </a>
       </p>
-      <div className="setting-row">
+      <div className="field">
+        <label htmlFor="assrt-token">assrt.net Token</label>
         <input
+          id="assrt-token"
           type="password"
-          className="setting-control"
+          className="input input-mono"
           value={token}
           onChange={(event) => setToken(event.target.value)}
-          placeholder={hasToken ? "已设置(留空不改)" : "assrt Token"}
+          placeholder={hasToken ? "已设置(留空不改)" : "免费申请，留空则不启用字幕补全"}
           aria-label="assrt Token"
           autoComplete="off"
         />
+      </div>
+      <div className="form-foot">
         <button type="button" className="primary-button" onClick={handleSave} disabled={isPending}>
           {isPending ? <LoaderCircle size={14} className="spin" aria-hidden /> : <Check size={14} aria-hidden />}
           保存
@@ -89,12 +93,8 @@ export function AssrtTokenForm({ tokenSet }: { tokenSet: boolean }) {
             清除
           </button>
         ) : null}
+        {result ? <span className="panel-note">{result}</span> : null}
       </div>
-      {result ? (
-        <p className="panel-note" style={{ marginTop: 10 }}>
-          {result}
-        </p>
-      ) : null}
     </div>
   );
 }

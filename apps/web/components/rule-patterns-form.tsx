@@ -4,18 +4,20 @@ import { useState, useTransition } from "react";
 import { Check, ChevronDown, ChevronRight, LoaderCircle, Pencil, Trash2, X } from "lucide-react";
 import { apiCall } from "../lib/api";
 import type { RuleSaveResult, RuleResetResult } from "../lib/api-types";
-import { BUILTIN_RULE_PATTERNS, type RuleRole } from "@mediarover/workflow/ruleset";
+import { BUILTIN_RULE_PATTERNS, type RuleRole } from "@mediarobot/workflow/ruleset";
 import { ruleRowError, type RulePatternDraft } from "../lib/rule-patterns-utils";
 
 /**
  * 正则区 UI(2026-09-07 用户拍板定稿 + 当晚微调):
- * - 节标题「正则」+ 右侧文字链接「恢复默认」;内置 6 条**只读**展示;
- * - 带季号 / 仅集号 两组像 Prompt 卡片一样可折叠(默认展开);
- * - 每组标题行尾部「+ 添加」文字链接,点开才出现输入框;
- * - 自定义排在各组内置之后,每条独立 保存 / 编辑 / 删除(每条自己带保存)。
+ * - 节标题 + 右侧「恢复默认」;内置 N 条**只读**;
+ * - 带季号 / 仅集号 两组可折叠(默认折叠);
+ * - 每组标题行尾部「+ 添加」,点开才出现输入框;
+ * - 自定义排在各组内置之后,每条独立 保存 / 编辑 / 删除。
+ *
+ * 2026-09 样式改造:内联样式全部换成 .rule-* 类(见 globals.css 的设置页区块),
+ * 内置规则从「编号文本行」改成设计稿的 chip 列表 —— 更紧凑,且天然表达只读。
+ * 功能与数据流未变。
  */
-
-const MONO = "ui-monospace, SFMono-Regular, Menlo, monospace";
 
 const ROLES: Array<{ role: RuleRole; title: string; note: string }> = [
   { role: "season-episode", title: "带季号", note: "文件名里同时带季号和集号,任何任务都认" },
@@ -148,18 +150,8 @@ export function RulePatternsForm({ initial }: { initial: RulePatternDraft[] }) {
   const editorForm = (role: RuleRole) => {
     const captureHint = role === "season-episode" ? "第 1 组季号、第 2 组集号" : "1 个捕获组:集号";
     return (
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 6,
-          margin: "8px 0",
-          padding: "10px 12px",
-          border: "1px dashed rgba(127,127,127,.35)",
-          borderRadius: 8,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+      <div className="rule-editor">
+        <div className="rule-editor-row">
           <input
             value={editor?.expression ?? ""}
             onChange={(e) => setEditor((prev) => (prev ? { ...prev, expression: e.target.value } : prev))}
@@ -169,20 +161,10 @@ export function RulePatternsForm({ initial }: { initial: RulePatternDraft[] }) {
             }}
             placeholder={"正则,如 [Ss]([0-9]{1,2})_([0-9]{1,4}) —— " + captureHint}
             spellCheck={false}
-            style={{
-              flex: 1,
-              minWidth: 240,
-              fontFamily: MONO,
-              fontSize: 12.5,
-              padding: "6px 8px",
-              borderRadius: 6,
-              border: "1px solid rgba(127,127,127,.3)",
-              background: "transparent",
-              color: "inherit",
-            }}
+            className="input input-mono"
             aria-label={role === "season-episode" ? "自定义带季号正则" : "自定义仅集号正则"}
           />
-          <button type="button" className="secondary-button" onClick={commit} disabled={isPending}>
+          <button type="button" className="primary-button" onClick={commit} disabled={isPending}>
             {isPending ? <LoaderCircle size={14} className="spin" aria-hidden /> : <Check size={14} aria-hidden />}
             保存
           </button>
@@ -191,108 +173,113 @@ export function RulePatternsForm({ initial }: { initial: RulePatternDraft[] }) {
             取消
           </button>
         </div>
-        {editorError ? <span style={{ color: "#dc2626", fontSize: 12.5 }}>⚠ {editorError}</span> : null}
+        {editorError ? <span className="rule-editor-error">⚠ {editorError}</span> : null}
       </div>
     );
   };
 
   return (
-    <div>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-        <h3 style={{ fontSize: 15, margin: 0 }}>正则</h3>
-        <span style={{ fontSize: 12, color: "var(--text-secondary, #888)" }}>文件名 → 集数 解析规则</span>
-        <button
-          type="button"
-          onClick={handleReset}
-          disabled={isPending}
-          style={{
-            marginLeft: "auto",
-            background: "none",
-            border: "none",
-            padding: 0,
-            cursor: isPending ? "wait" : "pointer",
-            color: "var(--text-secondary, #888)",
-            fontSize: 12.5,
-            textDecoration: "underline",
-          }}
-        >
+    <div className="rule-form">
+      <div className="rule-toolbar">
+        <button type="button" className="rule-reset" onClick={handleReset} disabled={isPending}>
           恢复默认
         </button>
       </div>
-      <div style={{ fontSize: 12.5, color: "var(--text-secondary, #888)", lineHeight: 1.7, margin: "8px 0 12px" }}>
-        <div>· 内置规则只读,不可修改;自定义规则排在各组内置之后(内置不认的写法才轮到自定义)。</div>
-        <div>· 正则只决定匹配文本;剥扩展名 / 集数守卫 / 年份排除 / 衍生黑名单等由解析代码固定保留。</div>
-      </div>
+      <p className="rule-note">
+        正则只决定匹配文本；剥扩展名 / 集数守卫 / 年份排除 / 衍生黑名单由解析代码固定保留。
+      </p>
 
-      {ROLES.map(({ role, title, note }) => {
-        const isOpen = expanded[role] ?? false;
-        const slots = BUILTIN_RULE_PATTERNS.filter((p) => p.role === role);
-        const groupCustoms = customs.filter((c) => c.role === role);
-        const editingThisGroup = editor?.role === role;
-        return (
-          <div key={role} style={{ marginBottom: 8, border: "1px solid rgba(127,127,127,.18)", borderRadius: 8, overflow: "hidden" }}>
-            <div
-              role="button"
-              tabIndex={0}
-              aria-expanded={isOpen}
-              onClick={() => setExpanded((prev) => ({ ...prev, [role]: !prev[role] }))}
-              style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", cursor: "pointer", userSelect: "none" }}
-            >
-              {isOpen ? <ChevronDown size={15} aria-hidden /> : <ChevronRight size={15} aria-hidden />}
-              <strong style={{ fontSize: 13.5 }}>{title}</strong>
-              <span style={{ fontSize: 12, color: "var(--text-secondary, #888)" }}>{note}</span>
-              <span
+      <div className="rule-list">
+        {ROLES.map(({ role, title, note }) => {
+          const isOpen = expanded[role] ?? false;
+          const slots = BUILTIN_RULE_PATTERNS.filter((p) => p.role === role);
+          const groupCustoms = customs.filter((c) => c.role === role);
+          const editingThisGroup = editor?.role === role;
+          const captureHint = role === "season-episode" ? "需 2 个捕获组：第 1 组季号、第 2 组集号" : "需 1 个捕获组：集号";
+          return (
+            <div className="rule-group" key={role}>
+              <div
+                className="rule-group-head"
                 role="button"
                 tabIndex={0}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openAdd(role);
+                aria-expanded={isOpen}
+                onClick={() => setExpanded((prev) => ({ ...prev, [role]: !prev[role] }))}
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter" && e.key !== " ") return;
+                  e.preventDefault();
+                  setExpanded((prev) => ({ ...prev, [role]: !prev[role] }));
                 }}
-                style={{ marginLeft: "auto", fontSize: 12.5, color: "inherit", cursor: "pointer", userSelect: "none" }}
               >
-                + 添加
-              </span>
-            </div>
-            {isOpen ? (
-              <div style={{ padding: "0 12px 10px", borderTop: "1px solid rgba(127,127,127,.12)" }}>
-                <div style={{ fontSize: 12, color: "var(--text-secondary, #888)", margin: "8px 0 6px" }}>
-                  {role === "season-episode" ? "需 2 个捕获组:第 1 组季号、第 2 组集号" : "需 1 个捕获组:集号"}
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  {slots.map((p, i) => (
-                    <div key={p.ruleId} style={{ display: "flex", alignItems: "baseline", gap: 8, fontFamily: MONO, fontSize: 12.5 }}>
-                      <span style={{ minWidth: 22, textAlign: "right", color: "var(--text-secondary, #888)" }}>{i + 1}.</span>
-                      <code>{p.expression}</code>
-                      {p.example ? <span style={{ color: "var(--text-secondary, #888)" }}>example: {p.example}</span> : null}
-                    </div>
-                  ))}
-                  {groupCustoms.map((c, i) => (
-                    <div key={c.ruleId} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, flexWrap: "wrap" }}>
-                      <span style={{ minWidth: 22, textAlign: "right", color: "#2563eb" }}>自{i + 1}.</span>
-                      {editingThisGroup && editor.editingId === c.ruleId ? (
-                        editorForm(role)
-                      ) : (
-                        <>
-                          <code style={{ fontFamily: MONO }}>{c.expression}</code>
-                          <button type="button" className="secondary-button" style={{ padding: "2px 6px", fontSize: 12 }} onClick={() => openEdit(role, c)} disabled={isPending}>
-                            <Pencil size={12} aria-hidden /> 编辑
-                          </button>
-                          <button type="button" className="secondary-button" style={{ padding: "2px 6px", fontSize: 12 }} onClick={() => remove(c)} disabled={isPending}>
-                            <Trash2 size={12} aria-hidden /> 删除
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                {editingThisGroup && editor?.editingId === null ? editorForm(role) : null}
+                {isOpen ? <ChevronDown size={15} aria-hidden /> : <ChevronRight size={15} aria-hidden />}
+                <strong className="rule-group-title">{title}</strong>
+                {/* 角色徽章：设计稿 .role —— 把「这组要几个捕获组」变成一眼可读的标记 */}
+                <span className="role">{role === "season-episode" ? "2 组" : "1 组"}</span>
+                <span className="rule-group-note">{note}</span>
+                <button
+                  type="button"
+                  className="rule-group-add"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openAdd(role);
+                  }}
+                >
+                  ＋ 添加
+                </button>
               </div>
-            ) : null}
-          </div>
-        );
-      })}
+              {isOpen ? (
+                <div className="rule-group-body">
+                  <div className="rule-hint">{captureHint}</div>
+                  {/* 内置规则以 chip 展示（设计稿 .builtin）：紧凑，且天然表达只读 */}
+                  <div className="builtin">
+                    {slots.map((p) => (
+                      <span className="chip" key={p.ruleId} title={p.example ? `例：${p.example}` : undefined}>
+                        {p.expression}
+                      </span>
+                    ))}
+                  </div>
+                  {groupCustoms.length > 0 ? (
+                    <div className="rule-customs">
+                      {groupCustoms.map((c) => (
+                        <div className="rule-row" key={c.ruleId}>
+                          {editingThisGroup && editor.editingId === c.ruleId ? (
+                            editorForm(role)
+                          ) : (
+                            <>
+                              <code className="rule-expr">{c.expression}</code>
+                              {c.label ? <span className="rule-row-label">{c.label}</span> : null}
+                              <span className="rule-row-actions">
+                                <button
+                                  type="button"
+                                  className="icon-act"
+                                  onClick={() => openEdit(role, c)}
+                                  disabled={isPending}
+                                >
+                                  <Pencil size={12} aria-hidden /> 编辑
+                                </button>
+                                <button
+                                  type="button"
+                                  className="icon-act danger"
+                                  onClick={() => remove(c)}
+                                  disabled={isPending}
+                                >
+                                  <Trash2 size={12} aria-hidden /> 删除
+                                </button>
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                  {editingThisGroup && editor?.editingId === null ? editorForm(role) : null}
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
 
-      {feedback ? <p className="panel-note" style={{ marginTop: 8 }}>{feedback}</p> : null}
+      {feedback ? <p className="panel-note">{feedback}</p> : null}
     </div>
   );
 }

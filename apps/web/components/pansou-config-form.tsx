@@ -39,28 +39,25 @@ export function PanSouConfigForm({
           项目主页 <ExternalLink size={12} style={{ verticalAlign: "-1px" }} />
         </a>
       </p>
-      <div className="push-field">
-        <label className="push-label">服务地址（网盘搜索源）</label>
-        <div className="setting-row">
-          <input
-            type="text"
-            className="setting-control"
-            value={baseURL}
-            onChange={(event) => setBaseURL(event.target.value)}
-            placeholder="形如 http://host:port，留空用默认实例"
-            aria-label="PanSou Base URL"
-          />
-          <button type="button" className="primary-button" onClick={handleSave} disabled={isPending}>
-            {isPending ? <LoaderCircle size={14} className="spin" aria-hidden /> : <Check size={14} aria-hidden />}
-            保存
-          </button>
-        </div>
+      <div className="field">
+        <label htmlFor="pansou-base-url">服务地址（网盘搜索源）</label>
+        <input
+          id="pansou-base-url"
+          type="text"
+          className="input input-mono"
+          value={baseURL}
+          onChange={(event) => setBaseURL(event.target.value)}
+          placeholder="形如 http://host:port，留空用默认实例"
+          aria-label="PanSou Base URL"
+        />
       </div>
-      {result ? (
-        <p className="panel-note" style={{ marginTop: 10 }}>
-          {result}
-        </p>
-      ) : null}
+      <div className="form-foot">
+        <button type="button" className="primary-button" onClick={handleSave} disabled={isPending}>
+          {isPending ? <LoaderCircle size={14} className="spin" aria-hidden /> : <Check size={14} aria-hidden />}
+          保存
+        </button>
+        {result ? <span className="panel-note">{result}</span> : null}
+      </div>
     </div>
   );
 }

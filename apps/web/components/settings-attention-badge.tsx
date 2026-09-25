@@ -1,50 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 /** Live count of Settings attention items. Hidden at zero.
- *  Mobile nav + desktop footer each mount one instance; only the instance
- *  matching the current breakpoint polls (same 860px switch as the sidebar). */
+ *  设置 现在只挂在主导航一处（桌面与移动共用同一个 nav 列表），所以只有
+ *  一个实例，不再需要按断点择一挂载 —— 常驻轮询即可。 */
 export function SettingsAttentionBadge({
   storageId,
-  visibleWhen,
 }: {
   storageId?: string | undefined;
-  visibleWhen: "mobile" | "desktop";
 }) {
-  const [visible, setVisible] = useState(false);
   const [count, setCount] = useState(0);
   const [severity, setSeverity] = useState<"info" | "warning" | "blocker" | null>(null);
-  // Bumped when hidden so late poll responses from a previous visible window are ignored.
-  const epochRef = useRef(0);
 
   useEffect(() => {
-    const mq = window.matchMedia("(max-width: 860px)");
-    const sync = () => {
-      const next = visibleWhen === "mobile" ? mq.matches : !mq.matches;
-      setVisible(next);
-      if (!next) {
-        epochRef.current += 1;
-        // Drop stale count so a later resize doesn't flash an old badge.
-        setCount(0);
-        setSeverity(null);
-      }
-    };
-    sync();
-    // Older Safari only has addListener/removeListener on MediaQueryList.
-    if (typeof mq.addEventListener === "function") {
-      mq.addEventListener("change", sync);
-      return () => mq.removeEventListener("change", sync);
-    }
-    mq.addListener(sync);
-    return () => mq.removeListener(sync);
-  }, [visibleWhen]);
-
-  useEffect(() => {
-    if (!visible) return;
     let alive = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const epochAtStart = epochRef.current;
     const poll = async () => {
       const controller = new AbortController();
       const abortTimer = setTimeout(() => controller.abort(), 10000);
@@ -58,7 +29,7 @@ export function SettingsAttentionBadge({
           count?: number;
           severity?: "info" | "warning" | "blocker" | null;
         };
-        if (!alive || epochRef.current !== epochAtStart) return;
+        if (!alive) return;
         setCount(typeof data.count === "number" ? data.count : 0);
         setSeverity(
           data.severity === "blocker" || data.severity === "warning" || data.severity === "info"
@@ -70,7 +41,7 @@ export function SettingsAttentionBadge({
       } finally {
         clearTimeout(abortTimer);
         // Self-schedule so slow/hung requests never stall the loop forever.
-        if (alive && epochRef.current === epochAtStart) {
+        if (alive) {
           timer = setTimeout(() => void poll(), 8000);
         }
       }
@@ -80,9 +51,9 @@ export function SettingsAttentionBadge({
       alive = false;
       if (timer) clearTimeout(timer);
     };
-  }, [storageId, visible]);
+  }, [storageId]);
 
-  if (!visible || count <= 0) return null;
+  if (count <= 0) return null;
   const tone =
     severity === "blocker"
       ? "nav-badge-alert"

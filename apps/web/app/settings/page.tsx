@@ -3,7 +3,7 @@ import { maskProviderUid } from "../../lib/mask-provider-uid";
 import { connection } from "next/server";
 import { headers } from "next/headers";
 import { Suspense } from "react";
-import { Bot, Cable, CalendarClock, Clapperboard, Gauge, Languages, Radio, ShieldCheck, Subtitles, TriangleAlert } from "lucide-react";
+import { Bot, Cable, CalendarClock, Clapperboard, Gauge, Languages, MessageSquare, Radio, ScrollText, ShieldCheck, Subtitles, TriangleAlert } from "lucide-react";
 import { AppSidebar } from "../../components/app-sidebar";
 import { AddDriveBrandTabs } from "../../components/add-drive-brand-tabs";
 import { TestConnectionButton } from "../../components/test-connection-button";
@@ -21,7 +21,6 @@ import { PanSouConfigForm } from "../../components/pansou-config-form";
 import { DailySweepForm } from "../../components/daily-sweep-form";
 import { PatrolNowButton } from "../../components/patrol-now-button";
 import { SettingsTabs } from "../../components/settings-tabs";
-import { GitHubNameplate } from "../../components/github-nameplate";
 import { SettingsActionInbox } from "../../components/settings-action-inbox";
 import { loadSettingsAttentionSummary, markSettingsAttentionSeen } from "../../lib/settings-attention-server";
 import { resolveRequestOrigin } from "../../lib/request-origin";
@@ -48,7 +47,7 @@ import {
   PANSOU_BASE_URL_SETTING_KEY,
   resolveGlobalWorkspace,
 } from "../../lib/workflow-runtime";
-import { brandSupportsProwlarr, getStorageBrand, isRegisteredStorageProvider } from "@mediarover/workflow";
+import { brandSupportsProwlarr, getStorageBrand, isRegisteredStorageProvider } from "@mediarobot/workflow";
 import { isDemoMode } from "../../lib/demo-mode";
 
 export default function SettingsPage({
@@ -65,12 +64,12 @@ export default function SettingsPage({
         <SettingsSidebar searchParams={searchParams} />
       </Suspense>
       <main className="main product-main">
-        <div className="section-heading library-heading">
-          <div>
-            <h1>设置</h1>
-            <p>网盘连接与系统配置</p>
-          </div>
-        </div>
+        {/* 设计稿的页头:mono 全大写 eyebrow + 主标题 + 一句说明 */}
+        <section className="page-head">
+          <p className="eyebrow">SETTINGS</p>
+          <h1>设置</h1>
+          <p>网盘连接与系统配置</p>
+        </section>
         {isDemoMode() ? (
           <div className="settings-card">
             <p>
@@ -88,6 +87,10 @@ export default function SettingsPage({
               <SettingsAttentionSection searchParams={searchParams} />
             </Suspense>
             <Suspense fallback={<div className="skeleton skeleton-heading" />}>
+            {/* .settings-shell 是设计稿的外壳(tab 导航 + 面板区)。设置页专属的
+                样式微调都挂在它下面,不改动 .panel/.panel-title 等共享类,
+                以免影响 login / foreign-work 等同样在用这些类的页面。 */}
+            <div className="settings-shell">
             <SettingsTabs
               drives={
                 <Suspense fallback={<div className="skeleton skeleton-heading" />}>
@@ -140,10 +143,10 @@ export default function SettingsPage({
               // visible before we know whether the viewer is the 站主.
               remote={null}
             />
+            </div>
             </Suspense>
           </>
         )}
-        <GitHubNameplate />
       </main>
     </div>
   );
@@ -178,14 +181,16 @@ async function PreferredLanguageSection() {
   const initial = (await repository.getSetting(PREFERRED_LANGUAGE_SETTING_KEY)) ?? "中文";
 
   return (
-    <section className="panel" style={{ maxWidth: 720, marginTop: 24 }}>
+    <section className="panel">
       <div className="panel-header">
         <div>
           <h2 className="panel-title">
-            <Languages size={16} aria-hidden style={{ verticalAlign: "-2px", marginRight: 8 }} />
+            <Languages size={16} aria-hidden />
             偏好语言
           </h2>
-          <p className="panel-note">搜索资源时优先你偏好的字幕语言，避免拿到看不了的版本</p>
+          <p className="panel-note">
+            资源用什么语言起名，就更可能带那个语言的字幕；设置后作为上下文传给 AI，优先搜你能看的语言的资源。
+          </p>
         </div>
       </div>
       <PreferredLanguageForm initial={initial} />
@@ -199,14 +204,16 @@ async function QualityPreferenceSection() {
   const initial = (await repository.getSetting(QUALITY_PREFERENCE_SETTING_KEY)) ?? "any";
 
   return (
-    <section className="panel" style={{ maxWidth: 720, marginTop: 24 }}>
+    <section className="panel">
       <div className="panel-header">
         <div>
           <h2 className="panel-title">
-            <Gauge size={16} aria-hidden style={{ verticalAlign: "-2px", marginRight: 8 }} />
+            <Gauge size={16} aria-hidden />
             偏好画质
           </h2>
-          <p className="panel-note">优先获取的画质档位（覆盖优先，找不到不留缺）</p>
+          <p className="panel-note">
+            作为「召回后选片优先级」传给 AI；找不到目标画质时仍优先保证入库完整（覆盖优先）。画质不进搜索关键词。
+          </p>
         </div>
       </div>
       <QualityPreferenceForm initial={initial} />
@@ -217,7 +224,7 @@ async function QualityPreferenceSection() {
 async function RecognitionRulesSection() {
   await connection();
   const repository = getWorkflowRepository();
-  const { loadRulePatterns, loadPromptOverrides, ARBITRATION_KINDS, BUILTIN_RULE_IDS, PROMPT_TEMPLATES } = await import("@mediarover/workflow");
+  const { loadRulePatterns, loadPromptOverrides, ARBITRATION_KINDS, BUILTIN_RULE_IDS, PROMPT_TEMPLATES } = await import("@mediarobot/workflow");
   // 生效规则(内置恒在 + 自定义追加,loadRulePatterns 语义)。内置只读(2026-09-07 拍板):
   // 表单拿到的只含自定义行;内置展示数据由表单直接读 BUILTIN_RULE_PATTERNS。
   const effective = await loadRulePatterns(repository);
@@ -243,22 +250,38 @@ async function RecognitionRulesSection() {
   }));
 
   return (
-    <section className="panel" style={{ maxWidth: 960, marginTop: 24 }}>
-      {/* 大 Section ① 正则:节标题 + 恢复默认 由 RulePatternsForm 渲染 */}
-      <div>
+    <>
+      {/* 设计稿把这一区拆成两个 panel（规则 / Prompt），各自带头部。
+          此前是一个 panel 里用 <h3> + 分隔线硬分节。 */}
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h2 className="panel-title">
+              <ScrollText size={16} aria-hidden />
+              识别规则
+            </h2>
+            <p className="panel-note">
+              用正则把文件名里的季号 / 集号解析出来。内置规则只读且恒在，自定义规则排在各组内置之后。
+            </p>
+          </div>
+        </div>
         <RulePatternsForm initial={customInitial} />
         <RuleTestBench />
-      </div>
+      </section>
 
-      {/* 大 Section ② Prompt:AI 仲裁升级点的提示词覆盖 */}
-      <div style={{ marginTop: 26, paddingTop: 18, borderTop: "1px solid rgba(127,127,127,.18)" }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-          <h3 style={{ fontSize: 15, margin: 0 }}>Prompt</h3>
-          <span style={{ fontSize: 12, color: "var(--text-secondary, #888)" }}>AI 仲裁升级点的提示词覆盖（留空 = 内置模板）</span>
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h2 className="panel-title">
+              <MessageSquare size={16} aria-hidden />
+              Prompt 覆盖
+            </h2>
+            <p className="panel-note">AI 仲裁升级点的提示词覆盖（留空 = 内置模板）</p>
+          </div>
         </div>
         <PromptOverridesForm initial={promptInitial} />
-      </div>
-    </section>
+      </section>
+    </>
   );
 }
 async function LlmConfigSection() {
@@ -269,11 +292,11 @@ async function LlmConfigSection() {
   const apiKeySet = Boolean((await repository.getSetting(LLM_API_KEY_SETTING_KEY))?.trim());
 
   return (
-    <section className="panel" style={{ maxWidth: 720, marginTop: 24 }}>
+    <section className="panel">
       <div className="panel-header">
         <div>
           <h2 className="panel-title">
-            <Bot size={16} aria-hidden style={{ verticalAlign: "-2px", marginRight: 8 }} />
+            <Bot size={16} aria-hidden />
             AI 模型
           </h2>
           <p className="panel-note">
@@ -294,11 +317,11 @@ async function TmdbApiKeySection() {
   const baseUrlSet = Boolean(baseUrl);
 
   return (
-    <section className="panel" style={{ maxWidth: 720, marginTop: 24 }}>
+    <section className="panel">
       <div className="panel-header">
         <div>
           <h2 className="panel-title">
-            <Clapperboard size={16} aria-hidden style={{ verticalAlign: "-2px", marginRight: 8 }} />
+            <Clapperboard size={16} aria-hidden />
             TMDB 元数据
           </h2>
           <p className="panel-note">影视元数据来源；<strong>强烈建议配置</strong>，可填自己的 key 直连，大陆网络可自建 tmdb-proxy</p>
@@ -328,11 +351,11 @@ async function ResourceProviderSection() {
   const showProwlarr = drives.length === 0 || drives.some((drive) => brandSupportsProwlarr(drive.provider));
 
   return (
-    <section className="panel" style={{ maxWidth: 720, marginTop: 24 }}>
+    <section className="panel">
       <div className="panel-header">
         <div>
           <h2 className="panel-title">
-            <Radio size={16} aria-hidden style={{ verticalAlign: "-2px", marginRight: 8 }} />
+            <Radio size={16} aria-hidden />
             资源提供商
           </h2>
           <p className="panel-note">
@@ -361,11 +384,11 @@ async function SubtitleSourceSection() {
   const tokenSet = Boolean((await repository.getSetting(ASSRT_TOKEN_SETTING_KEY))?.trim());
 
   return (
-    <section className="panel" style={{ maxWidth: 720, marginTop: 24 }}>
+    <section className="panel">
       <div className="panel-header">
         <div>
           <h2 className="panel-title">
-            <Subtitles size={16} aria-hidden style={{ verticalAlign: "-2px", marginRight: 8 }} />
+            <Subtitles size={16} aria-hidden />
             字幕来源
           </h2>
           <p className="panel-note">外挂中文字幕自动补全（assrt.net，免费）；仅对非国产内容生效，需网盘支持外链离线（目前：115）</p>
@@ -382,17 +405,24 @@ function providerLabel(provider: string): string {
   return isRegisteredStorageProvider(provider) ? getStorageBrand(provider).label : provider;
 }
 
+/** 盘卡左侧文字标识（设计稿 `.drive-icon`）。已注册品牌走注册表的 `mark`；
+ *  未注册品牌兜底取 provider 串首字符，保证方牌永远有内容、不会空框。 */
+function providerMark(provider: string): string {
+  if (isRegisteredStorageProvider(provider)) return getStorageBrand(provider).mark;
+  return provider.trim().charAt(0).toUpperCase();
+}
+
 async function Pan115Section() {
   await connection();
   const status = await getPan115ConnectionStatus();
   const drives = await getAccountConnectedStorages();
 
   return (
-    <section className="panel" style={{ maxWidth: 720 }}>
+    <section className="panel">
       <div className="panel-header">
         <div>
           <h2 className="panel-title">
-            <Cable size={16} aria-hidden style={{ verticalAlign: "-2px", marginRight: 8 }} />
+            <Cable size={16} aria-hidden />
             网盘连接
           </h2>
           <p className="panel-note">每块盘是独立工作区，左上角可切换；凭证入库后自动用于转存</p>
@@ -426,14 +456,12 @@ async function Pan115Section() {
             return (
               <div key={drive.id} className={`drive-card${frozen ? " is-frozen" : ""}`}>
                 <div className="drive-card-head">
-                  {isRegisteredStorageProvider(drive.provider) ? (
-                    // 已注册品牌必有 svg(workspace-switcher 同款资产)
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img className="drive-card-icon" src={`/brands/${drive.provider}.svg`} alt="" width={26} height={26} />
-                  ) : (
-                    // 未注册品牌:中性方形占位(与右侧状态圆点区分形状,避免双点误读)
-                    <span className="drive-card-icon-fallback" aria-hidden />
-                  )}
+                  {/* 设计稿的盘卡标识是**文字方牌**（`.drive-icon`：navy 底 + 白字），
+                      不是品牌 logo 图片 —— 五个品牌并排时，字母牌比小图标更快扫读，
+                      也少一层图片请求。mark 取自 workflow 注册表（单一事实源）。 */}
+                  <span className="drive-card-icon" aria-hidden>
+                    {providerMark(drive.provider)}
+                  </span>
                   <span className="drive-card-name">{providerLabel(drive.provider)}</span>
                   <span
                     className={`drive-dot ${ready ? "green" : "amber"}`}
@@ -504,11 +532,11 @@ async function DailySweepSection() {
       : "尚未巡检";
 
   return (
-    <section className="panel" style={{ maxWidth: 720, marginTop: 24 }}>
+    <section className="panel">
       <div className="panel-header">
         <div>
           <h2 className="panel-title">
-            <CalendarClock size={16} aria-hidden style={{ verticalAlign: "-2px", marginRight: 8 }} />
+            <CalendarClock size={16} aria-hidden />
             每日定时巡检
           </h2>
           <p className="panel-note">在这些时间点自动追更：检查已追踪剧集，获取新播出或仍缺失的集数</p>

@@ -10,7 +10,6 @@ import { RememberQuery } from "../components/search-memory";
 import { SearchForm } from "../components/search-form";
 import { SeasonRequestMenu } from "../components/season-request-menu";
 import { TrendingRow } from "../components/trending-row";
-import { isTrendingKind, type TrendingKind } from "../lib/trending";
 import { getSearchView } from "../lib/search-page";
 import {
   getInProgressTitles,
@@ -24,8 +23,8 @@ import {
   getRegisteredDriveCount,
   getWorkflowRepository,
 } from "../lib/workflow-runtime";
-import { showHref } from "@mediarover/workflow";
-import type { MediaType, SearchCandidateCard, TrackedSeasonState } from "@mediarover/workflow";
+import { showHref } from "@mediarobot/workflow";
+import type { MediaType, SearchCandidateCard, TrackedSeasonState } from "@mediarobot/workflow";
 
 /** Shelf label for every media type. A Record (not a ternary chain), so adding a
  *  type is a compile error instead of silently landing on the last branch. */
@@ -95,11 +94,6 @@ async function HomeSurface({
       ? typeParam
       : "all";
   const filter = stringParam(params.filter) || "all";
-  // `?trending=` is validated against the known feeds: an unrecognized value falls
-  // back to the default feed. The old ternary chain silently treated every unknown
-  // value as "movie", so a 4th feed would have been unreachable from the URL.
-  const trendingParam = stringParam(params.trending);
-  const activeTrending: TrendingKind = isTrendingKind(trendingParam) ? trendingParam : "movie";
   // Tree model: keep searches inside the ACTIVE workspace so an acquisition lands
   // on the drive you're viewing — not silently on the primary drive. Root route
   // (no storageId) posts to "/" as before.
@@ -130,7 +124,6 @@ async function HomeSurface({
               <SearchResults
                 query={query}
                 storageId={storageId}
-                activeTrending={activeTrending}
                 basePath={basePath}
               />
             </Suspense>
@@ -151,12 +144,10 @@ async function HomeSurface({
 async function SearchResults({
   query,
   storageId,
-  activeTrending,
   basePath,
 }: {
   query: string;
   storageId?: string | undefined;
-  activeTrending: TrendingKind;
   basePath: string;
 }) {
   const searchView = await getSearchView(query, storageId);
@@ -192,7 +183,7 @@ async function SearchResults({
     <>
       {inProgress.length > 0 ? <AcquiringPoller /> : null}
       {searchView.state === "empty" ? (
-        <TrendingRow activeKind={activeTrending} basePath={basePath} />
+        <TrendingRow basePath={basePath} />
       ) : searchView.state === "provider_error" ? (
         // TMDB access failed — either no key configured or network unreachable.
         // Show actionable guidance instead of crashing the page.

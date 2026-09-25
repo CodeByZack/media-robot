@@ -40,44 +40,47 @@ export function LlmConfigForm({
 
   return (
     <div className="push-form">
-      <p className="panel-note" style={{ marginBottom: 12 }}>
-        AI 模型(OpenAI 兼容)。自带你自己的 key——它只存在你这台机器的数据库里,作者看不到。留空 API Key 不会改动已保存的值。
-      </p>
-      <div className="push-field">
-        <label className="push-label">Base URL</label>
-        <input
-          type="text"
-          className="setting-control"
-          value={baseURL}
-          onChange={(event) => setBaseURL(event.target.value)}
-          placeholder="https://api.openai.com/v1"
-          aria-label="LLM Base URL"
-        />
+      <div className="field-row">
+        <div className="field">
+          <label htmlFor="llm-base-url">接口地址 Base URL</label>
+          <input
+            id="llm-base-url"
+            type="text"
+            className="input input-mono"
+            value={baseURL}
+            onChange={(event) => setBaseURL(event.target.value)}
+            placeholder="https://api.openai.com/v1"
+            aria-label="LLM Base URL"
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="llm-model-id">模型 ID</label>
+          <input
+            id="llm-model-id"
+            type="text"
+            className="input input-mono"
+            value={modelId}
+            onChange={(event) => setModelId(event.target.value)}
+            placeholder="gpt-4o-mini"
+            aria-label="LLM Model ID"
+          />
+        </div>
       </div>
-      <div className="push-field">
-        <label className="push-label">Model ID</label>
+      <div className="field">
+        <label htmlFor="llm-api-key">API Key</label>
         <input
-          type="text"
-          className="setting-control"
-          value={modelId}
-          onChange={(event) => setModelId(event.target.value)}
-          placeholder="gpt-4o-mini"
-          aria-label="LLM Model ID"
-        />
-      </div>
-      <div className="push-field">
-        <label className="push-label">API Key</label>
-        <input
+          id="llm-api-key"
           type="password"
-          className="setting-control"
+          className="input input-mono"
           value={apiKey}
           onChange={(event) => setApiKey(event.target.value)}
           placeholder={apiKeySet ? "已设置(留空不改)" : "sk-…"}
           aria-label="LLM API Key"
           autoComplete="off"
         />
+        <span className="hint">仅存本机数据库，不会随任何请求外发；留空不会改动已保存的值。</span>
       </div>
-      <div className="setting-row" style={{ marginTop: 4, gap: 12, flexWrap: "wrap" }}>
+      <div className="form-foot">
         <button type="button" className="primary-button" onClick={handleSave} disabled={isPending}>
           {isPending ? <LoaderCircle size={14} className="spin" aria-hidden /> : <Check size={14} aria-hidden />}
           保存

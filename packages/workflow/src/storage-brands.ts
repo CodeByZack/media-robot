@@ -31,6 +31,11 @@ export interface StorageBrand {
   provider: StorageProvider;
   /** Display name shown in the UI (switcher chip, settings tab). */
   label: string;
+  /** 极短标识（1–3 字），用于设置页盘卡左侧的方牌 —— 设计稿用文字牌而不是品牌
+   *  logo（`.drive-icon`：navy 底 + 白字）。取自各家最易辨识的那一段：
+   *  数字牌用产品号（115 / 123），中文牌取一个有记忆点的字（夸 / 鸭 / 翼）。
+   *  注意：这是**展示数据**，不是 provider id，别拿它做任何匹配。 */
+  mark: string;
   /** Extract the instance-wide-unique account id from the brand's credential —
    *  a cookie string for cookie brands (115/夸克), a JWT access token for 光鸭,
    *  the loginName for 天翼. Callers pass the brand-appropriate string, never a
@@ -72,6 +77,7 @@ export const STORAGE_BRANDS: StorageBrand[] = [
   {
     provider: "pan115",
     label: "115 网盘",
+    mark: "115",
     parseUid: parsePan115Uid,
     isAuthError: isPan115AuthError,
     resourceProviderKinds: ["pansou-115", "prowlarr"],
@@ -82,6 +88,7 @@ export const STORAGE_BRANDS: StorageBrand[] = [
   {
     provider: "quark",
     label: "夸克网盘",
+    mark: "夸",
     parseUid: parseQuarkUid,
     isAuthError: isQuarkAuthError,
     resourceProviderKinds: ["pansou-quark"],
@@ -92,6 +99,7 @@ export const STORAGE_BRANDS: StorageBrand[] = [
   {
     provider: "guangya",
     label: "光鸭云盘",
+    mark: "鸭",
     parseUid: parseGuangYaUid,
     isAuthError: isGuangYaAuthError,
     resourceProviderKinds: ["pansou-magnet", "prowlarr"],
@@ -103,6 +111,7 @@ export const STORAGE_BRANDS: StorageBrand[] = [
   {
     provider: "tianyi",
     label: "天翼云盘",
+    mark: "翼",
     parseUid: parseTianyiUid,
     isAuthError: isTianyiAuthError,
     resourceProviderKinds: ["pansou-tianyi"],
@@ -114,6 +123,7 @@ export const STORAGE_BRANDS: StorageBrand[] = [
   {
     provider: "pan123",
     label: "123网盘",
+    mark: "123",
     parseUid: parsePan123Uid,
     isAuthError: isPan123AuthError,
     // Share links + native offline (magnet/ed2k) — OpenList drivers/123 OfflineDownload.

@@ -69,7 +69,7 @@ describe("trending feed contract (must match workers/tmdb-proxy getTrendingFeeds
     expect(varietyLastAirDateFloor(new Date("2026-05-12T00:00:00Z"))).toBe("2025-11-12");
   });
 
-  it("isTrendingKind accepts every known feed and rejects unknowns (the ?trending= guard)", () => {
+  it("isTrendingKind accepts every known feed and rejects unknowns (feed-set guard)", () => {
     for (const kind of Object.keys(TRENDING_KINDS)) {
       expect(isTrendingKind(kind)).toBe(true);
     }

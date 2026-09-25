@@ -1,246 +1,401 @@
-# Design System Inspired by Spotify
+# MediaRobot — 设计系统（应用表面）
 
-## 1. Visual Theme & Atmosphere
+> 本文档描述**仓库内实际生效**的设计系统。
+>
+> 视觉契约的原始来源是设计交付包（本地 `.design/`，已 gitignore、不入库）：
+> `DESIGN.md`（系统说明）、`colors_and_type.css`（权威 token 表）、六张应用页 HTML。
+> 本文档是它的**落地版本**：凡代码与设计稿有出入，以本文档记录的实际值为准，
+> 差异集中在 §3 与 §12，别照抄设计稿的 token 名。
 
-Spotify's web interface is a dark, immersive music player that wraps listeners in a near-black cocoon (`#121212`, `#181818`, `#1f1f1f`) where album art and content become the primary source of color. The design philosophy is "content-first darkness" — the UI recedes into shadow so that music, podcasts, and playlists can glow. Every surface is a shade of charcoal, creating a theater-like environment where the only true color comes from the iconic Spotify Green (`#1ed760`) and the album artwork itself.
+---
 
-The typography uses SpotifyMixUI and SpotifyMixUITitle — proprietary fonts from the CircularSp family (Circular by Lineto, customized for Spotify) with an extensive fallback stack that includes Arabic, Hebrew, Cyrillic, Greek, Devanagari, and CJK fonts, reflecting Spotify's global reach. The type system is compact and functional: 700 (bold) for emphasis and navigation, 600 (semibold) for secondary emphasis, and 400 (regular) for body. Buttons use uppercase with positive letter-spacing (1.4px–2px) for a systematic, label-like quality.
+## 1. 产品语境
 
-What distinguishes Spotify is its pill-and-circle geometry. Primary buttons use 500px–9999px radius (full pill), circular play buttons use 50% radius, and search inputs are 500px pills. Combined with heavy shadows (`rgba(0,0,0,0.5) 0px 8px 24px`) on elevated elements and a unique inset border-shadow combo (`rgb(18,18,18) 0px 1px 0px, rgb(124,124,124) 0px 0px 0px 1px inset`), the result is an interface that feels like a premium audio device — tactile, rounded, and built for touch.
+MediaRobot 是一个**自托管**的个人媒体获取 Agent。它替你**巡弋**想看的剧集与电影，
+从多个来源检索候选、按确定规则筛选，把文件转存到你自己的网盘，最后回读校验并按
+规范名归位。它不猜、不赌：确定性优先，AI 只在选片、诊断、集数映射三处各做一次仲裁；
+读不回来就如实标注，**绝不假报成功**。
 
-**Key Characteristics:**
-- Near-black immersive dark theme (`#121212`–`#1f1f1f`) — UI disappears behind content
-- Spotify Green (`#1ed760`) as singular brand accent — never decorative, always functional
-- SpotifyMixUI/CircularSp font family with global script support
-- Pill buttons (500px–9999px) and circular controls (50%) — rounded, touch-optimized
-- Uppercase button labels with wide letter-spacing (1.4px–2px)
-- Heavy shadows on elevated elements (`rgba(0,0,0,0.5) 0px 8px 24px`)
-- Semantic colors: negative red (`#f3727f`), warning orange (`#ffa42b`), announcement blue (`#539df5`)
-- Album art as the primary color source — the UI is achromatic by design
+**界面立场.** 深色石墨底，大面积近黑，**没有彩色背景**。颜色只来自两处：海报本身，
+以及代表"执行"的巡弋蓝 / 信号青。屏幕上永远只有一件事在发光 —— 正在进行的操作。
 
-## 2. Color Palette & Roles
+**两种表面，同一套品牌.** 应用（默认）= 深色石墨，靠**明度层级**分层，阴影只在海报下出现；
+对外页（`site/`）= 浅色，靠**描边**分层。只要有海报，就回到深色。
 
-### Primary Brand
-- **Spotify Green** (`#1ed760`): Primary brand accent — play buttons, active states, CTAs
-- **Near Black** (`#121212`): Deepest background surface
-- **Dark Surface** (`#181818`): Cards, containers, elevated surfaces
-- **Mid Dark** (`#1f1f1f`): Button backgrounds, interactive surfaces
+---
 
-### Text
-- **White** (`#ffffff`): `--text-base`, primary text
-- **Silver** (`#b3b3b3`): Secondary text, muted labels, inactive nav
-- **Near White** (`#cbcbcb`): Slightly brighter secondary text
-- **Light** (`#fdfdfd`): Near-pure white for maximum emphasis
+## 2. Token 落在哪
 
-### Semantic
-- **Negative Red** (`#f3727f`): `--text-negative`, error states
-- **Warning Orange** (`#ffa42b`): `--text-warning`, warning states
-- **Announcement Blue** (`#539df5`): `--text-announcement`, info states
+全部在 `apps/web/app/globals.css` 的 `:root`。**设计交付包与本仓库的 token 命名并不一致**
+（代码里是早期 `--bg-* / --text-*` 家族，设计稿是 `--surface-* / --fg-*` 家族）。
+新增样式请**用代码这一套**，并在 §3 对照表里查值。
 
-### Surface & Border
-- **Dark Card** (`#252525`): Elevated card surface
-- **Mid Card** (`#272727`): Alternate card surface
-- **Border Gray** (`#4d4d4d`): Button borders on dark
-- **Light Border** (`#7c7c7c`): Outlined button borders, muted links
-- **Separator** (`#b3b3b3`): Divider lines
-- **Light Surface** (`#eeeeee`): Light-mode buttons (rare)
-- **Spotify Green Border** (`#1db954`): Green accent border variant
+⚠️ **引用未定义的 `var()` 不会报错**，只会静默回退到继承值 —— 这类 bug 已经踩过三次
+（`--radius-md` / `--danger` / `--fg-2`，见 §12）。写 `var()` 前先在 `:root` 里搜一下。
 
-### Shadows
-- **Heavy** (`rgba(0,0,0,0.5) 0px 8px 24px`): Dialogs, menus, elevated panels
-- **Medium** (`rgba(0,0,0,0.3) 0px 8px 8px`): Cards, dropdowns
-- **Inset Border** (`rgb(18,18,18) 0px 1px 0px, rgb(124,124,124) 0px 0px 0px 1px inset`): Input border-shadow combo
+---
 
-## 3. Typography Rules
+## 3. Token 对照表（★ 最常查的一节）
 
-### Font Families
-- **Title**: `SpotifyMixUITitle`, fallbacks: `CircularSp-Arab, CircularSp-Hebr, CircularSp-Cyrl, CircularSp-Grek, CircularSp-Deva, Helvetica Neue, helvetica, arial, Hiragino Sans, Hiragino Kaku Gothic ProN, Meiryo, MS Gothic`
-- **UI / Body**: `SpotifyMixUI`, same fallback stack
+### 明度阶梯（分层只靠抬明度，不靠堆描边）
 
-### Hierarchy
+| 设计稿 token | **代码 token** | 值 | 角色 |
+| --- | --- | --- | --- |
+| `--bg` | `--bg-base` | `#111419` | 页面底色 |
+| `--bg-elev` | `--bg-surface` | `#181c22` | 侧栏 / 顶栏 / 抬升行 |
+| `--surface` | `--bg-raised` | `#1e232b` | 卡片 |
+| `--surface-2` | `--bg-card` | `#262d37` | 输入框 / hover 卡 |
+| `--surface-3` | `--bg-card-alt` | `#313a46` | 高亮 / 激活分段 / 进度槽 |
 
-| Role | Font | Size | Weight | Line Height | Letter Spacing | Notes |
-|------|------|------|--------|-------------|----------------|-------|
-| Section Title | SpotifyMixUITitle | 24px (1.50rem) | 700 | normal | normal | Bold title weight |
-| Feature Heading | SpotifyMixUI | 18px (1.13rem) | 600 | 1.30 (tight) | normal | Semibold section heads |
-| Body Bold | SpotifyMixUI | 16px (1.00rem) | 700 | normal | normal | Emphasized text |
-| Body | SpotifyMixUI | 16px (1.00rem) | 400 | normal | normal | Standard body |
-| Button Uppercase | SpotifyMixUI | 14px (0.88rem) | 600–700 | 1.00 (tight) | 1.4px–2px | `text-transform: uppercase` |
-| Button | SpotifyMixUI | 14px (0.88rem) | 700 | normal | 0.14px | Standard button |
-| Nav Link Bold | SpotifyMixUI | 14px (0.88rem) | 700 | normal | normal | Navigation |
-| Nav Link | SpotifyMixUI | 14px (0.88rem) | 400 | normal | normal | Inactive nav |
-| Caption Bold | SpotifyMixUI | 14px (0.88rem) | 700 | 1.50–1.54 | normal | Bold metadata |
-| Caption | SpotifyMixUI | 14px (0.88rem) | 400 | normal | normal | Metadata |
-| Small Bold | SpotifyMixUI | 12px (0.75rem) | 700 | 1.50 | normal | Tags, counts |
-| Small | SpotifyMixUI | 12px (0.75rem) | 400 | normal | normal | Fine print |
-| Badge | SpotifyMixUI | 10.5px (0.66rem) | 600 | 1.33 | normal | `text-transform: capitalize` |
-| Micro | SpotifyMixUI | 10px (0.63rem) | 400 | normal | normal | Smallest text |
+每级约 +0.05 L。**层级靠抬明度表达，不靠加边框。**
 
-### Principles
-- **Bold/regular binary**: Most text is either 700 (bold) or 400 (regular), with 600 used sparingly. This creates a clear visual hierarchy through weight contrast rather than size variation.
-- **Uppercase buttons as system**: Button labels use uppercase + wide letter-spacing (1.4px–2px), creating a systematic "label" voice distinct from content text.
-- **Compact sizing**: The range is 10px–24px — narrower than most systems. Spotify's type is compact and functional, designed for scanning playlists, not reading articles.
-- **Global script support**: The extensive fallback stack (Arabic, Hebrew, Cyrillic, Greek, Devanagari, CJK) reflects Spotify's 180+ market reach.
+### 文字
 
-## 4. Component Stylings
+| 设计稿 token | **代码 token** | 值 | 角色 |
+| --- | --- | --- | --- |
+| `--fg` | `--text` | `#eef1f5` | 主文字 |
+| `--fg-2` | `--text-muted` | `#b4bdc9` | 次文字 |
+| `--muted` | `--text-faint` | `#79838f` | 弱文字 / 占位 / 时间戳 |
 
-### Buttons
+`--text-faint` 对 `--bg-base` 对比约 4.9:1。它**只服务默认态**的弱信息
+（占位符、时间戳、页脚）—— **永远不能**作为 hover / focus / active 之后的前景色。
 
-**Dark Pill**
-- Background: `#1f1f1f`
-- Text: `#ffffff` or `#b3b3b3`
-- Padding: 8px 16px
-- Radius: 9999px (full pill)
-- Use: Navigation pills, secondary actions
+### 描边 / 品牌 / 语义
 
-**Dark Large Pill**
-- Background: `#181818`
-- Text: `#ffffff`
-- Padding: 0px 43px
-- Radius: 500px
-- Use: Primary app navigation buttons
+| 设计稿 token | **代码 token** | 值 | 备注 |
+| --- | --- | --- | --- |
+| `--border` | `--border` | `#2e3641` | 同名 |
+| `--border-soft` | `--border-soft` | `#232a33` | 同名，发丝分隔线 |
+| `--navy-tint` | `--navy-tint` | `#12345a` | 盘卡文字方牌底色 |
+| `--navy` | `--navy` | `#102b4d` | 标识底 |
+| `--navy-deep` | `--navy-deep` | `#0b1e38` | — |
+| `--accent` | `--accent` | `#4c9be8` | **巡弋蓝**，同名 |
+| `--accent-on` | `--accent-on` | `#071626` | 主操作上的前景，**深墨蓝不是白** |
+| `--accent-hover` | `--accent-hover` | `#6aaef0` | 同名 |
+| `--accent-active` | `--accent-press` | `#3a8ad9` | ⚠️ **名字不同** |
+| `--cyan` | `--cyan` | `#39c5ff` | 信号青：焦点 / 进度尾端 / AI 标记 |
+| `--success` | `--success` | `#3fbf88` | 回读校验通过 · 已归位 |
+| `--warn` | `--warning` | `#d9a441` | ⚠️ **名字不同** |
+| `--danger` | `--negative`（另有别名 `--danger`） | `#e7685a` | ⚠️ **代码里两者并存** |
 
-**Light Pill**
-- Background: `#eeeeee`
-- Text: `#181818`
-- Radius: 500px
-- Use: Light-mode CTAs (cookie consent, marketing)
+### 圆角
 
-**Outlined Pill**
-- Background: transparent
-- Text: `#ffffff`
-- Border: `1px solid #7c7c7c`
-- Padding: 4px 16px 4px 36px (asymmetric for icon)
-- Radius: 9999px
-- Use: Follow buttons, secondary actions
+| 设计稿 token | **代码 token** | 设计值 | 代码值 | 备注 |
+| --- | --- | --- | --- | --- |
+| `--radius-sm` | `--radius-sm` | 4px | 4px | — |
+| `--radius-md` | `--radius-md` | 8px | 8px | — |
+| `--radius-lg` | `--radius-lg` | 12px | 12px | — |
+| `--radius-card` | `--radius-card` | **13px** | **8px** | ⚠️ 同名不同值，见 §12 |
+| `--radius-art` | — | 9px | **未落地** | 海报圆角目前直接用 `--radius-md` |
+| `--radius-pill` | `--radius-pill` | 9999px | 9999px | 搜索框 / 状态胶囊 / 分段控件 |
 
-**Circular Play**
-- Background: `#1f1f1f`
-- Text: `#ffffff`
-- Padding: 12px
-- Radius: 50% (circle)
-- Use: Play/pause controls
+---
 
-### Cards & Containers
-- Background: `#181818` or `#1f1f1f`
-- Radius: 6px–8px
-- No visible borders on most cards
-- Hover: slight background lightening
-- Shadow: `rgba(0,0,0,0.3) 0px 8px 8px` on elevated
+## 4. 颜色规则
 
-### Inputs
-- Search input: `#1f1f1f` background, `#ffffff` text
-- Radius: 500px (pill)
-- Padding: 12px 96px 12px 48px (icon-aware)
-- Focus: border becomes `#000000`, outline `1px solid`
+1. **一个强调色原则.** `--accent` 每屏最多出现两处。第二处之后改用 `--text-muted`
+   \+ 描边 + 等宽字号来表达层级。
+2. **派生色一律 `color-mix(in oklab, …)`.** 状态胶囊底 =
+   `color-mix(in oklab, var(--success), transparent 84%)`。**不写裸 hex，不做 `opacity` 叠加**
+   （会串色）。
+3. **状态永远成对.** 任何状态色都必须同时给出前景与背景（`.chip-ok / .chip-warn /
+   .chip-error / .chip-info / .chip-neutral`）。禁止只给文字上色让它落在同色底上。
+4. **深色不是纯黑.** `--bg-base` 保持近黑而非 `#000`，让海报的黑色边角仍然"贴在墙上"。
+5. **浅色表面**只用于对外页（`site/`），且整页切换，不与深色混排。
 
-### Navigation
-- Dark sidebar with SpotifyMixUI 14px weight 700 for active, 400 for inactive
-- `#b3b3b3` muted color for inactive items, `#ffffff` for active
-- Circular icon buttons (50% radius)
-- Spotify logo top-left in green
+---
 
-## 5. Layout Principles
+## 5. 排版
 
-### Spacing System
-- Base unit: 8px
-- Scale: 1px, 2px, 3px, 4px, 5px, 6px, 8px, 10px, 12px, 14px, 15px, 16px, 20px
+两把声音，**互不越位**：
 
-### Grid & Container
-- Sidebar (fixed) + main content area
-- Grid-based album/playlist cards
-- Full-width now-playing bar at bottom
-- Responsive content area fills remaining space
+- **界面黑体**（`--font-stack`）承担全部操作语言：标题、正文、按钮、导航、表单。
+- **证据等宽**（`--font-mono`）承担全部**可核对**信息：工具名 `searchCandidates`、
+  时间戳 `23:04:12`、路径、评分、正则、URL / Key / Token。
 
-### Whitespace Philosophy
-- **Dark compression**: Spotify packs content densely — playlist grids, track lists, and navigation are all tightly spaced. The dark background provides visual rest between elements without needing large gaps.
-- **Content density over breathing room**: This is an app, not a marketing site. Every pixel serves the listening experience.
+为什么只有一个显示字族：这是数据密集的工具界面，不是营销页。层级靠**字号 + 字重**
+拉开，不靠第二款字体；真正的第二把声音是等宽体。
 
-### Border Radius Scale
-- Minimal (2px): Badges, explicit tags
-- Subtle (4px): Inputs, small elements
-- Standard (6px): Album art containers, cards
-- Comfortable (8px): Sections, dialogs
-- Medium (10px–20px): Panels, overlay elements
-- Large (100px): Large pill buttons
-- Pill (500px): Primary buttons, search input
-- Full Pill (9999px): Navigation pills, search
-- Circle (50%): Play buttons, avatars, icons
+| 字号 | 用途 |
+| --- | --- |
+| 12px | 时间戳、字段标签、页脚 |
+| 14px | **界面默认**（`body`）、导航、卡片标题 |
+| 16px | 页头说明、面板正文 |
+| 18px | 面板标题、字标 |
+| 24px | 区块标题 |
+| 32px | 详情页标题 |
+| `clamp(27px, 3.6vw, 38px)` | 页面主标题（`.page-head h1`） |
+| `clamp(20px, 2.2vw, 24px)` | 货架区段标题（`.sec-head h2`） |
 
-## 6. Depth & Elevation
+**行高.** 大标题 1.1；卡片标题 1.32；界面正文 1.5；说明段落 1.85（中文长句要更松）。
 
-| Level | Treatment | Use |
-|-------|-----------|-----|
-| Base (Level 0) | `#121212` background | Deepest layer, page background |
-| Surface (Level 1) | `#181818` or `#1f1f1f` | Cards, sidebar, containers |
-| Elevated (Level 2) | `rgba(0,0,0,0.3) 0px 8px 8px` | Dropdown menus, hover cards |
-| Dialog (Level 3) | `rgba(0,0,0,0.5) 0px 8px 24px` | Modals, overlays, menus |
-| Inset (Border) | `rgb(18,18,18) 0px 1px 0px, rgb(124,124,124) 0px 0px 0px 1px inset` | Input borders |
+**字距.** 字标 `+0.025em`（注意：设计稿写的 `-0.025em` 是给 44px 大标题的，20px 字标套用会挤成一团，
+代码里已按实际观感调成正字距）。mono 小标签 `0.18em`，全大写小节链接 `0.1em`。
 
-**Shadow Philosophy**: Spotify uses notably heavy shadows for a dark-themed app. The 0.5 opacity shadow at 24px blur creates a dramatic "floating in darkness" effect for dialogs and menus, while the 0.3 opacity at 8px blur provides a more subtle card lift. The unique inset border-shadow combination on inputs creates a recessed, tactile quality.
+**字重.** 只有四档：`400` 正文 / `600` 强调 / `700` 按钮与卡片标题 / `800` 标题与字标。
+**不要 500、不要 300。**
 
-## 7. Do's and Don'ts
+数字统一 `font-variant-numeric: tabular-nums`，让进度与秒数不跳动。
 
-### Do
-- Use near-black backgrounds (`#121212`–`#1f1f1f`) — depth through shade variation
-- Apply Spotify Green (`#1ed760`) only for play controls, active states, and primary CTAs
-- Use pill shape (500px–9999px) for all buttons — circular (50%) for play controls
-- Apply uppercase + wide letter-spacing (1.4px–2px) on button labels
-- Keep typography compact (10px–24px range) — this is an app, not a magazine
-- Use heavy shadows (`0.3–0.5 opacity`) for elevated elements on dark backgrounds
-- Let album art provide color — the UI itself is achromatic
+---
 
-### Don't
-- Don't use Spotify Green decoratively or on backgrounds — it's functional only
-- Don't use light backgrounds for primary surfaces — the dark immersion is core
-- Don't skip the pill/circle geometry on buttons — square buttons break the identity
-- Don't use thin/subtle shadows — on dark backgrounds, shadows need to be heavy to be visible
-- Don't add additional brand colors — green + achromatic grays is the complete palette
-- Don't use relaxed line-heights — Spotify's typography is compact and dense
-- Don't expose raw gray borders — use shadow-based or inset borders instead
+## 6. 组件
 
-## 8. Responsive Behavior
+### 导航
 
-### Breakpoints
-| Name | Width | Key Changes |
-|------|-------|-------------|
-| Mobile Small | <425px | Compact mobile layout |
-| Mobile | 425–576px | Standard mobile |
-| Tablet | 576–768px | 2-column grid |
-| Tablet Large | 768–896px | Expanded layout |
-| Desktop Small | 896–1024px | Sidebar visible |
-| Desktop | 1024–1280px | Full desktop layout |
-| Large Desktop | >1280px | Expanded grid |
+| 组件 | 类名 | 要点 |
+| --- | --- | --- |
+| 侧栏导航项 | `.nav-item` | 36–40px 高、14px/700；`is-active` 用 `--bg-raised` + 图标染 `--accent` |
+| 底部标签栏 | `.nav-item`（≤860px 变形） | ≥44px 触控目标；激活态文字染 `--accent`，**不变灰** |
+| 徽章 | `.nav-badge` | mono 10px，warn 底 8% 透明，最小 18px |
+| 品牌区 | `.brand` / `.brand-mark` / `.brand-copy` | 标识底用设计稿 symbol 的**渐变**（`--navy-tint → --navy-deep`，135°），不是平涂 navy；字标双色 + 副题见 §9 |
+| 页脚收尾卡 | `.sidebar-footer` | 抬升卡（`--bg-raised` + `--border-soft` + `--radius-lg`），上半活体状态、下半元信息 |
+| 巡检状态行 | `.sidebar-status` | 呼吸绿点（`--success`，`breathe` 2.6s，**全站唯一常驻动画**）+ 「巡检运行中」+ 右对齐 `下次 HH:MM`。数据来自巡检设置（`lib/patrol-status.ts` 纯逻辑）；**只读演示站不显示**（那里巡检并不真跑，给绿灯等于编造状态） |
+| 页脚元信息 | `.sidebar-meta` | 发丝线上方；仓库链接在左、`v<版本> · <commit 前 7 位>` 在右（`margin-left:auto`）。commit 来自 `NEXT_PUBLIC_APP_COMMIT`（`next.config.ts` 构建期注入，与 Dockerfile 盖进 `BUILD_COMMIT` 的同一个 `GIT_SHA`）；取不到就只显示版本号。**不要**写回「自托管」一类每份部署都一样的话 —— 那个位置要放可核实的事实 |
 
-### Collapsing Strategy
-- Sidebar: full → collapsed → hidden
-- Album grid: 5 columns → 3 → 2 → 1
-- Now-playing bar: maintained at all sizes
-- Search: pill input maintained, width adjusts
-- Navigation: sidebar → bottom bar on mobile
+### 操作
 
-## 9. Agent Prompt Guide
+| 组件 | 类名 | 要点 |
+| --- | --- | --- |
+| 主按钮 | `.primary-button` | `--accent` 底 + `--accent-on` 字；hover 走 `--accent-hover`（**前后景一起换**） |
+| 次按钮 | `.ghost-button` / `.secondary-button` | 透明底 + 描边；hover 抬背景并把文字提亮 |
+| 危险操作 | `.ghost-button.danger` / `.icon-act.danger` | **红色只在 hover 出现** —— 常驻红色等于全程催促 |
+| 行内小按钮 | `.icon-act` | 30px 描边胶囊 |
 
-### Quick Color Reference
-- Background: Near Black (`#121212`)
-- Surface: Dark Card (`#181818`)
-- Text: White (`#ffffff`)
-- Secondary text: Silver (`#b3b3b3`)
-- Accent: Spotify Green (`#1ed760`)
-- Border: `#4d4d4d`
-- Error: Negative Red (`#f3727f`)
+### 输入与选择
 
-### Example Component Prompts
-- "Create a dark card: #181818 background, 8px radius. Title at 16px SpotifyMixUI weight 700, white text. Subtitle at 14px weight 400, #b3b3b3. Shadow rgba(0,0,0,0.3) 0px 8px 8px on hover."
-- "Design a pill button: #1f1f1f background, white text, 9999px radius, 8px 16px padding. 14px SpotifyMixUI weight 700, uppercase, letter-spacing 1.4px."
-- "Build a circular play button: Spotify Green (#1ed760) background, #000000 icon, 50% radius, 12px padding."
-- "Create search input: #1f1f1f background, white text, 500px radius, 12px 48px padding. Inset border: rgb(124,124,124) 0px 0px 0px 1px inset."
-- "Design navigation sidebar: #121212 background. Active items: 14px weight 700, white. Inactive: 14px weight 400, #b3b3b3."
+| 组件 | 类名 | 要点 |
+| --- | --- | --- |
+| 输入框 | `.settings-shell .input` | 40px / `--radius-md` / `--bg-card` 底；`:focus` 描边转 `--accent` |
+| 等宽输入 | `.settings-shell .input-mono` | 技术字段（URL / Key / Token / 正则）必用 |
+| 字段 | `.settings-shell .field` | label 12.5px/700 + `.hint` 11.5px `--text-faint` |
+| 字段行 | `.settings-shell .field-row` | 多字段并排，`flex:1` + `min-width:200px` |
+| 表单尾 | `.settings-shell .form-foot` | 按钮组统一收口 |
+| 分段控件 | `.settings-shell .seg` + `SegmentedControl` | 见下 |
 
-### Iteration Guide
-1. Start with #121212 — everything lives in near-black darkness
-2. Spotify Green for functional highlights only (play, active, CTA)
-3. Pill everything — 500px for large, 9999px for small, 50% for circular
-4. Uppercase + wide tracking on buttons — the systematic label voice
-5. Heavy shadows (0.3–0.5 opacity) for elevation — light shadows are invisible on dark
-6. Album art provides all the color — the UI stays achromatic
+**分段控件的设计要点**（`.settings-shell .seg`）：激活档用 `--bg-card-alt`（= 设计稿
+`--surface-3`）的**中性抬色**，刻意**不用** `--accent` —— 它和同屏的主操作是竞争关系，
+让分段控件也染强调色会让"哪个是主操作"失去焦点。语义上用
+`role="radiogroup"` + `role="radio"` + `aria-checked`，配 roving tabindex 与方向键。
+
+### 状态与证据（本产品的签名组件）
+
+| 组件 | 类名 | 要点 |
+| --- | --- | --- |
+| 状态胶囊 | `.hub-badge` / `.feed-status-pill` / `.act-pill` | 底一律是语义色 `color-mix(…, transparent 84%)` |
+| 任务卡 | `.act-row` | 收起 `--bg-surface`；展开 `.is-open` 抬到 `--bg-raised` |
+| 进度条 | `.act-bar` / `.act-bar-fill` | 5–6px；填充 `linear-gradient(90deg, --accent-press, --cyan)`，**必须有填充** |
+| 证据链 | `.act-round` / `.act-step` | 见下方"嵌套明度" |
+| AI 标记 | `.act-step-ai` | mono 9.5px/800 + `--cyan` 字 + 青色 14% 底。**只在真正调 LLM 的三处出现** |
+| 评分标签 | `.act-ev-grade` | mono 描边胶囊；`.act-ev-a` = success 色 / `.act-ev-c` = warn 色 |
+
+**嵌套明度（证据链）—— 容易踩的坑.** 展开卡与它内部的轮次条必须**拉开两级**，否则看起来像一块糊在一起的颜色：
+
+| 层 | 值 |
+| --- | --- |
+| `.feed-card`（收起） | `--bg-surface` `#181c22` |
+| `.feed-card.is-open` | `--bg-raised` `#1e232b` |
+| `.act-round`（内嵌条） | `--bg-base` `#111419` ← 比展开卡**暗两级** |
+
+只暗一级（`--bg-surface`）实测差异太小、肉眼看不出分界。证据链**容器本身不设底色**，
+层级交给里面的 `.act-round`；容器也上色会和它抢层级。
+
+### 媒体内容
+
+| 组件 | 类名 | 要点 |
+| --- | --- | --- |
+| 首页货架 | `.trending .shelf` | 横向滚动 + `scroll-snap-type: x proximity`；卡宽 168px（≤860px 用 136px） |
+| 货架卡 | `.trending .card` + `.art` | 海报 `aspect-ratio: 2/3`；hover 卡底抬 `--bg-raised` 且海报 `scale(1.045)` |
+| 通知卡 | `.feed-card` | 有海报时两列 grid；海报固定 2:3，**不随卡片高度拉伸** |
+| 盘卡 | `.drive-card` | 网格 `minmax(300px, 1fr)`；左侧 navy 文字方牌 |
+| 文字方牌 | `.drive-card-icon` / `.brand-tile-mark` | **共用同一条规则**（只有尺寸不同），保证两处是同一个体系 |
+
+### 类名作用域（约定）
+
+`.card` / `.section` / `.sec-head` 这类名字**太通用**，全局定义迟早被无关元素命中。
+所以它们一律**收窄在父级下**（`.trending .card`）；设置页同理，全部挂在 `.settings-shell` 下
+（`.settings-shell .panel`）—— 因为 `.panel` / `.panel-title` 是 `login`、`foreign-work`
+也在用的共享类。**加新样式前先想清楚作用域。**
+
+---
+
+## 7. 布局与断点
+
+```
+≤ 860px                                          > 860px
+┌───────────────┐                                ┌────────┬──────────────────────┐
+│ appbar 顶栏    │  sticky                        │        │                      │
+├───────────────┤                                │ 侧栏   │        主区           │
+│               │                                │ 248px  │  max 1360px          │
+│    主区        │                                │ sticky │  padding 40 / gutter │
+├───────────────┤                                │        │                      │
+│ tabbar 底部栏  │  fixed                         │        │                      │
+└───────────────┘                                └────────┴──────────────────────┘
+```
+
+- 桌面：`grid-template-columns: 248px minmax(0, 1fr)`，侧栏 `position: sticky`。
+- ≤860px：侧栏收起，顶栏（毛玻璃 + 发丝底边）替代导航，底部固定标签栏承担主导航，
+  触控目标 ≥ 44px。**移动端不横向滚动 —— 横向滚动只允许出现在"货架"这一种组件里。**
+- ⚠️ **不要用裸 `1fr`**，用 `minmax(0, 1fr)`。裸 `1fr` = `minmax(auto, 1fr)`，会被宽子元素
+  （搜索框、候选卡）撑破视口。
+- 主区 `max-width: 1360px`，超出后居中留白，不做通栏拉伸。
+
+**设置页面板不设宽度上限** —— 早先用 inline `maxWidth: 720/960` 卡住，宽屏下输入框被拉长；
+现在的对策是让面板吃满宽度，再用 `.field-row` 把字段并排（这正是 `.field-row` 存在的理由）。
+
+移动端重排范例（通知卡，≤620px）：用 `display: contents` 把 `.feed-card-body` 的子元素
+提升为卡片的网格项，从而做到"标题行整宽 + 海报与元数据并排 + 步骤条整宽"，
+纯 CSS 完成、不动 DOM 结构。
+
+---
+
+## 8. 动效
+
+| token / 动画 | 值 | 用途 |
+| --- | --- | --- |
+| 颜色 / 描边 / 位移 | `150ms cubic-bezier(0.2, 0, 0, 1)` | 快速反馈 |
+| 卡片底 / 海报缩放 | `240ms` 同曲线 | 稍慢，避免抖动 |
+| `reveal` | `260ms` | 证据链展开：`translateY(-4px) → 0` + 淡入，**不做回弹** |
+| `breathe` | `2.6s` 循环 | 侧栏运行中绿点（唯一常驻动画） |
+| `spin` | `0.7s / 1.1s` | 加载指示、正在运行的证据步骤 |
+
+### 交互态契约
+
+每个可交互元素必须**成对**定义前景 / 背景，且状态变化后对比度**不得低于默认态**：
+
+| 状态 | 做法 |
+| --- | --- |
+| hover（卡片 / 行） | 背景抬到下一级明度，文字从 `--text-muted` **提亮**到 `--text` |
+| hover（实心主操作） | `--accent` → `--accent-hover`，前景**同步**保持 `--accent-on` |
+| focus-visible | 全站唯一焦点环 `0 0 0 3px rgba(76,155,232,.5)` |
+| is-active（导航 / 分段 / 筛选） | 明确不透明底 + 提亮文字；**绝不用"文字变灰"表达选中** |
+| is-open（折叠） | 内容出现 + `reveal`；chevron 旋转 90°（行）/ 180°（季） |
+| disabled | **唯一**允许降低对比度的状态 |
+
+> chevron 的正确做法是**始终渲染同一个图标**，靠 CSS `.is-open` 旋转。
+> 换成"两个图标对调"就做不出过渡动画了。
+
+---
+
+## 9. 品牌
+
+**标识.** 扁平机器人 —— navy 圆角底 + 云白头部 + 信号青双目 + 巡弋蓝播放键 + 巡弋天线。
+来源是设计包的品牌资产（**文件名仍是交付时的 `mediarover-*`** —— 设计包是外部交付物，
+未跟着改名；仓库内引用时别以为路径写错了），图标已内联进 `components/app-sidebar.tsx`。
+
+**字标.** `Media`（前景色）+ `Robot`（信号青，深底上）。两段在 JSX 里是**分开的字符串**
+（`Media<span className="brand-copy-accent">Robot</span>`）—— 搜品牌名时注意这一点，
+连续字符串 grep 抓不到拆开的那部分。
+
+**字标副题.** `.brand-copy-sub` = `your personal media agent` —— 即设计稿横排 lockup
+的**官方全文**（`YOUR PERSONAL MEDIA AGENT`），只按书写习惯改成**全小写**。10px +
+`--text-faint` 照设计稿；**字体族跟项目正文字体栈走**（设计稿那里是等宽）：副题是
+**读的**，不属于 §3「等宽承担可核对信息」那类，侧栏这一格只有 140px，10px 等宽会
+显出一股机器感。小写则与 20px 粗字标形成体重差，比全大写安静，也省宽度（同字号下
+约省 20px）。这是「英文只出现在字标副题」这条规则的**实际落点** —— 之前这条规则写在
+文档里，但界面并没有副题。
+
+> **副题要比字标宽（这条是设计要求，不是巧合）.** 20px 的 `MediaRobot` 实测 121px，
+> 副题若与之等宽或更窄，两行会看着像一个方块的两条边；让副题伸出一点（现 135.8px，
+> 长出 14.8px），视觉上才分层 —— 副题是标题的**底座**，而不是第二个标题。
+> 这正是文案取 25 字符官方全文而非 20 字符版的原因。
+
+> ⚠️ 副题**长度受侧栏宽度硬约束**，实测预算（10px / w500）：`.brand` 内容宽 200 −
+> 标志 48 − gap 12 = **文本可用 140px**。`your personal media agent` 在 system-ui
+> （最差情况，Inter/Arial 都更窄）下的字距—宽度对照：
+> `0.06em` → 145.8px（**溢出 5.8px**）、`0.04em` → 140.8px（溢出）、
+> `0.03em` → 138.3px（余 1.7px）、**`0.02em` → 135.8px（余 4.2px，采用）**。
+> 即：补回 `your` 恢复了官方全文，但字距必须从 0.06em 降到 0.02em 才塞得下 ——
+> 字数上去了，字距就得下来，24+ 字符本来也不需要那么大字距。
+> 改文案或字体前先量这份预算。
+
+
+**盘卡标识.** 设置页的网盘标识用**文字方牌**（`115` / `夸` / `鸭` / `翼` / `123`），
+不用品牌 logo 图片。数据源：`packages/workflow/src/storage-brands.ts` 的 `STORAGE_BRANDS[].mark`。
+
+> ⚠️ 客户端组件**不能** import `@mediarobot/workflow` 的 barrel（会把 `node:sqlite`
+> 拽进浏览器 chunk，编译直接失败），所以「添加网盘」的品牌表在
+> `apps/web/lib/brand-tiles.ts` 本地维护，并由 `brand-tiles.test.ts` 把 `mark`
+> 钉死在与注册表逐字一致上。
+
+**数据契约（改名时别顺手改）.** 在用户云盘里创建的媒体库**根目录名**默认是
+`MediaRover`（`account-credentials.ts` 的 `rootName` 默认值，可用
+`MEDIA_TRACK_LIBRARY_ROOT_DIR` 覆盖）。**不要**跟着品牌名改成 `MediaRobot`：
+老用户的文件已在 `MediaRover/`，改了会把他们的文件拆到两个目录。
+
+同样属于运行时/数据契约、改名时**不动**的：`MEDIA_TRACK_*` 环境变量前缀、
+`mediary-scout` 仓库与打包产物名、115 请求的 User-Agent。
+
+---
+
+## 10. 用词（这是品牌的一部分，不要同义替换）
+
+| 说 | 不说 |
+| --- | --- |
+| 获取 | 下载 |
+| 归位 | 移动文件 |
+| 秒传转存 | 上传 |
+| 回读校验 | 校验一下 |
+| 候选 / 机械评分 | 推荐 / 智能打分 |
+| 缺集 · 覆盖 | 不完整 |
+| **巡弋** | 爬取 |
+| 仲裁（仅 AI 三处） | AI 帮你搞定 |
+
+**排版语气.** 界面文案全中文，句末**不加句号**（短标签、按钮、导航项）；说明段落用完整句子并加句号。
+英文只出现在三处：字标副题、证据里的工具名与代号、token / 字段名。
+
+**数字给具体值**：`已确认 6 / 8 集`、`机械评分 92`、`写入 24.6 GB`。
+**永远不要编一个漂亮数字** —— 拿不到就写"待确认"。
+
+> 注：「巡弋」是 "Rover" 的中文载体（巡弋蓝）。品牌英文名已改为 MediaRobot 后，
+> **中文动词体系保留「巡弋」不变** —— 机器人形象与"巡弋"并不冲突。
+> 但**状态行**改口「巡检运行中」：那个位置说的是**功能**（每日定时巡检），
+> 不是品牌修辞，得和设置页同名 —— 同一个东西在两个页面叫两个名字才是真的怪。
+
+---
+
+## 11. 反模式
+
+1. **不要复制 Spotify.** 绿色主色、满屏胶囊、圆形悬停播放键属于另一家的产品语言。
+   MediaRobot 的巡弋蓝是青蓝系，主操作是**矩形圆角**按钮，胶囊只留给搜索框与状态标签。
+2. **不要 emoji 当功能图标.** 分享链接用线性图标，不用 🔗。
+3. **不要彩色背景与大渐变.** 除品牌封面与海报本身，背景永远是石墨色系。
+4. **不要"左侧色条 + 圆角卡"的提示卡.** 需要强调就用明度层级或状态胶囊。
+5. **不要把 hover 做成"文字变灰".** hover 必须提亮文字或抬升背景。
+6. **不要给图表画空框.** 进度条必须有填充，统计必须有数值。
+7. **不要编造指标.** 没有数据就写"待确认"。
+8. **不要在同一屏放两个主操作.**
+9. **不要用 `max-height` 做折叠动画.** 用 `grid-template-rows: 0fr → 1fr`。
+10. **不要在未回读校验前显示"成功".** 顺序是：转存中 → 回读校验 → 已归位。
+11. **不要把 AI 标记当装饰.** `.act-step-ai` 只出现在真正调用 LLM 的三处。
+12. **不要用 `white-space: nowrap` 硬塞文字.**
+13. **不要在深色界面里混排浅色组件.** 浅色必须整页切换。
+14. **不要写裸 hex 做派生色.** 一律 `color-mix(in oklab, …)`。
+
+---
+
+## 12. 已知技术债
+
+| 项 | 说明 |
+| --- | --- |
+| `--radius-card` 同名不同值 | 设计稿 13px / 代码 8px。改名会波及 40+ 处调用点，一直没动。**新增样式时留意别被名字误导** |
+| `--accent-press` vs `--accent-active` | 同一个东西两个名字（代码 / 设计稿），未统一 |
+| `--warning` vs `--warn` | 同上 |
+| `--negative` / `--danger` 并存 | 已加 `--danger: var(--negative)` 别名兜底 |
+| 曾经静默失效的 token | `--radius-md` / `--danger` / `--fg-2` 都曾"被引用但未定义"，圆角塌成 0、红色信号条从不显示。**加 `var()` 前先在 `:root` 搜一遍** |
+| `--radius-art` 未落地 | 海报圆角直接用 `--radius-md`（8px），设计稿是 9px |
+| 主按钮形状只在设置页生效 | 设计稿要求全站矩形圆角，目前 `.settings-shell .primary-button` 生效，搜索页「搜索」仍是胶囊 —— 待全站收口 |
+| 热门货架缺「全部」链接 | 设计稿 `.sec-head .more` 有，但 App 没有「热门全部」列表页，加了就是死链 |
+| 设计交付包不入库 | `.design/` 已 gitignore，是本地参照物。本文档是它的落地版本；设计稿若有更新，需要人工同步到这里 |
+
+---
+
+## 13. 改设计时的检查清单
+
+1. 改色 / 圆角 → 先动 `:root` 的 token，不要在组件里写裸值。
+2. 加 `var()` → 确认该 token 真的在 `:root` 定义（否则静默回退）。
+3. 加通用类名 → 收窄作用域（`.trending .card` / `.settings-shell .panel`）。
+4. 改 hover / active → 保证前景与背景**成对**，且对比度不低于默认态。
+5. 改移动端 → 检查 `minmax(0, 1fr)`、触控目标 ≥ 44px、无横向溢出。
+6. 动品牌名 → 只改展示层；**不要**碰云盘根目录名、`MEDIA_TRACK_*`、仓库名（见 §9）。
+7. 跑 `npx tsc --noEmit && npm run lint && npm test`。

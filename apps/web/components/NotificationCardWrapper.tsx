@@ -15,7 +15,7 @@ import {
   TriangleAlert,
   XCircle,
 } from "lucide-react";
-import type { NotificationEvent, NotificationReportStatus } from "@mediarover/workflow";
+import type { NotificationEvent, NotificationReportStatus } from "@mediarobot/workflow";
 import { collapseToRanges } from "../lib/episode-ranges";
 import type { ActivityStepView } from "../lib/activity-view";
 import { StepList, ExpandChevron } from "./activity-feed";
@@ -139,7 +139,10 @@ function NotificationCard({
   const posterUrl = posterPath ? `${TMDB_FEED_POSTER}${posterPath}` : null;
 
   return (
-    <article className={`feed-card${posterUrl ? " has-poster" : ""}`} data-created-at={notification.createdAt}>
+    <article
+      className={`feed-card${posterUrl ? " has-poster" : ""}${open ? " is-open" : ""}`}
+      data-created-at={notification.createdAt}
+    >
       {posterUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img className="feed-poster" src={posterUrl} alt="" loading="lazy" />
