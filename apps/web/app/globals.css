@@ -2470,34 +2470,40 @@ p {
 
 /* 整页交接：**不做淡入淡出**，旧页直接让位给新页。
 
-   ⚠️ 这里曾经给 `old(root)` 写过一段精心调的淡出（420ms + 对称缓动 + `z-index: 2`
-   当遮罩），理由是想让"整页交接"看起来是有意的。**但那条淡出会被海报吃到**：
-   只要海报**没进自己的命名分组**（骨架那一跳里它常常进不去 —— 那张交接海报是
-   hydration 后由客户端换上的），它就会落在 root 快照里，被这条淡出一起带着淡。
+   ⚠️⚠️ 关键：**必须用 `!important`。** 这条规则的普通声明压不住它：
 
-   ⚠️⚠️ **注意改的是 `group` 而不是 `old` / `new`。** 逐帧实测（真实页面里读伪元素）
-   抓到的唯一异常是：
+   实测 A/B（同一条 热路由 导航：列表页 → 详情页，**不涉及骨架屏**）
 
-     ::view-transition-group(root)  opacity: 1 → 0 → 1
+   | 写法 | `::view-transition-group(root)` 的 opacity |
+   | --- | --- |
+   | 只写 `opacity: 1`（普通声明） | `["1","0"]` —— **中途掉到 0** |
+   | 写 `opacity: 1 !important` | `["1"]` —— 恒为 1 ✅ |
 
-   而 `old(root)` / `new(root)` / 海报自己的 `group|old|new` 全程都是
-   `opacity: 1` + `mix-blend-mode: normal` + `animation: none`。
-   也就是说：**root 的交叉淡入是在 `group` 这一层做的**，只压 `old`/`new` 没用。
-   （前几轮我先后改过海报自己的规则、父边界、`old(root)`、`new(root)` —— 全都没打中，
-   因为动的是 `group`。教训：**先确认"动的是哪一层伪元素"，再改规则**。）
+   而且同时读到的 `animation-name` 是 `none` —— 说明动它的不是普通 CSS 动画，而是
+   优先级更高的东西（UA 样式 / WAAPI），所以普通声明会被静默覆盖。这也是为什么
+   前几轮我把 `old(root)`、`new(root)`、`(*)` 都改遍了却没效果：**动的是
+   `group(root)`，而且只有 `!important` 压得住**。
 
-   现在的取舍很明确：**整个 VT 里不留任何透明度动画**，观感完全交给
+   root 的 `group` 一旦半透明，整页（包括海报）都会跟着淡 —— 因为海报如果没进自己的
+   命名分组，就落在 root 快照里。用户看到的就是"海报有透明度变化"，而且**和骨架屏
+   无关**：热路由（无骨架）一样会中招。
+
+   现在整个 VT 不留任何透明度动画，观感全部交给
      · 海报的共享元素形变（`::view-transition-group(*)` 的位移/缩放）
      · 揭幕的位移（`.slide-down` / `.slide-up`）
-   代价是旧页不再淡出、直接消失。这是用户明确要的（"透明效果不好，保留位移就行"）。 */
+   代价是旧页不再淡出、直接消失。这是用户明确要的（"透明效果不好，保留位移就行"）。
+
+   ⚠️ 刻意只写 `(root)` 不写 `(*)`：`::view-transition-group(*)` 承载着海报的共享元素
+   形变，压掉它会把形变一起弄没。 */
 ::view-transition-group(root) {
-  animation: none;
-  opacity: 1;
+  animation: none !important;
+  opacity: 1 !important;
 }
 
 ::view-transition-old(root),
 ::view-transition-new(root) {
-  animation: none;
+  animation: none !important;
+  opacity: 1 !important;
 }
 
 /* ---------- Suspense reveal（骨架 → 内容）----------
