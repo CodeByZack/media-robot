@@ -347,11 +347,28 @@ Chrome 默认对 `old(root)`/`new(root)` 用**叠加混合**（实测 keyframes 
 挂类名，CSS 里以 `::view-transition-old(.mr-shared)` 关掉它 —— 用 class 是因为元素名
 带 `tmdbId`、运行时生成，静态选择器选不到。
 
-#### ⚠️ 后退没有过渡（已知限制，不要"修"）
+#### ⚠️ 后退的过渡：同路由有，跨路由没有（别只测一种场景就下结论）
 
-实测 `router.back()` / `history.back()` **完全不触发** `startViewTransition`（次数 0），
-正向 push 是 1。根因在 Next 的 `onPopState` 走 `ACTION_RESTORE`，React 不为它发起过渡
-（源码留了 TODO）。两条自救路径都不划算：
+实测 3 轮重复**完全一致**：
+
+| 场景 | 触发 |
+| --- | --- |
+| 跨路由**前进** `/library` → `/show/[id]` | ✅ |
+| 跨路由**后退** `/show/[id]` → `/library` | ❌ 0 次 |
+| 同路由**前进** `/library` → `/library?type=tv` | ✅ |
+| 同路由**后退**（只回退 query） | ✅ |
+
+机制：同路由回退只改 `searchParams`，路由段身份不变、commit 很小，能落进 Next
+`onPopState` 的 `startTransition`（`dispatchTraverseAction`）窗口 → 触发过渡；
+跨路由回退要换整个路由段，落不进那个窗口。
+
+> ❗️本文早期版本写的是「`back()` **完全不触发** `startViewTransition`（0 次）」——
+> **那是错的**，只在跨路由场景测过就推广到了所有后退。教训：按
+> （前进/后退 × 同路由/跨路由）四象限逐个测，别用单一场景推断「完全不支持」。
+> Next 官方指南其实说对了（「back navigations… the shared element morph **still
+> applies**」）。
+
+跨路由这一条两条自救路径都不划算：
 
 - 自己包 `startViewTransition(() => router.back())`：抓不到新帧（`ready` 都不解析），
   还会因 DOM 更新超时抛 `TimeoutError`。已试过，回滚了。

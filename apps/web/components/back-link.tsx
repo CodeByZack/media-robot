@@ -19,9 +19,8 @@ export function BackLink({
 
   // 用 router.back() 而不是 push(fallbackHref)：后退**保留上一页的完整状态**
   // （媒体库的 type/filter、搜索页的 ?q=），这些信息不在详情页的 URL 里，push 会丢。
-  // 代价是后退没有 View Transition —— 实测 popstate 这条路径 React 不会发起过渡
-  // （Next 的 onPopState 里还留着 TODO），自己包 startViewTransition 也抓不到新帧
-  // （实测 ready 都不解析）。功能优先，所以这里保持 back()。
+  // 代价是**跨路由**后退没有 View Transition（同路由后退有，见下方注释）。功能优先，
+  // 所以这里保持 back()。
   const goBack = () => {
     if (window.history.length > 1) {
       router.back();
