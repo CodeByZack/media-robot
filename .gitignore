@@ -23,6 +23,9 @@ coverage/
 .DS_Store
 .media-track-credentials-backup.json
 
+# 设计参考包(阶段 2/3 用,本地参照物,不进公共仓库)
+.design/
+
 # personal dev tooling (keep launch.json as contributor example)
 AGENTS.md
 .claude/settings.json
@@ -62,3 +65,6 @@ deploy/fpk/dist/
 MOVIE_FAST_PATH_TODO.md
 FASTPATH_ALIAS_LOG_TODO.md
 FASTPATH_ALIAS_RESEARCH_TODO.md
+# SQLite WAL/SHM 旁文件(运行时状态,随 *.db 一起不进仓库)
+*.db-wal
+*.db-shm
