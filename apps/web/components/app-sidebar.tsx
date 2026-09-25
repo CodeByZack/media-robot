@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { Activity, Bell, Library, Settings } from "lucide-react";
-import { globalNavHref } from "@mediarobot/workflow";
 import { SearchNavLink } from "./search-memory";
 import { ActivityNavBadge } from "./activity-nav-badge";
 import { NotificationsNavBadge } from "./notifications-nav-badge";
@@ -20,18 +19,8 @@ const APP_COMMIT_SHORT = APP_COMMIT.slice(0, 7);
 
 export function AppSidebar({
   active,
-  searchQuery = "",
-  basePath = "/",
-  activeStorageId,
 }: {
   active: "search" | "library" | "notifications" | "activity" | "settings" | "none";
-  searchQuery?: string;
-  /** Tree model: the active workspace path ("/w/<id>" or "/") so the search/library
-   *  tabs keep you in the workspace you're viewing. */
-  basePath?: string;
-  /** The active non-primary drive id (undefined = primary). Global links
-   *  (通知/活动/设置) carry it as `?w` so leaving a workspace keeps the drive. */
-  activeStorageId?: string | undefined;
 }) {
   return (
     <aside className="sidebar">
@@ -85,12 +74,12 @@ export function AppSidebar({
       <nav aria-label="主导航">
         <ul className="nav-list">
           <li>
-            <SearchNavLink active={active === "search"} knownQuery={searchQuery} basePath={basePath} />
+            <SearchNavLink active={active === "search"} />
           </li>
           <li>
             <Link
               className={`nav-item ${active === "library" ? "is-active" : ""}`}
-              href={`${basePath}?tab=library`}
+              href="/library"
             >
               <Library size={16} aria-hidden />
               媒体库
@@ -99,33 +88,35 @@ export function AppSidebar({
           <li>
             <Link
               className={`nav-item ${active === "notifications" ? "is-active" : ""}`}
-              href={globalNavHref("/notifications", activeStorageId)}
+              href="/notifications"
             >
               <Bell size={16} aria-hidden />
               通知
-              <NotificationsNavBadge storageId={activeStorageId} />
+              <NotificationsNavBadge />
             </Link>
           </li>
           {/* 活动 + 设置 现在和 搜索/媒体库/通知 同级:同一个 nav 列表,
-              桌面与移动共用一份,不再有"桌面在页脚、移动在导航"的双份实现。 */}
+              桌面与移动共用一份,不再有"桌面在页脚、移动在导航"的双份实现。
+              注意：五个链接现在都是**常量路径** —— 盘进了 cookie，所有盘共用同一套
+              URL，于是旧的 globalNavHref / basePath 机制整个消失了。 */}
           <li>
             <Link
               className={`nav-item ${active === "activity" ? "is-active" : ""}`}
-              href={globalNavHref("/activity", activeStorageId)}
+              href="/activity"
             >
               <Activity size={16} aria-hidden />
               活动
-              <ActivityNavBadge storageId={activeStorageId} />
+              <ActivityNavBadge />
             </Link>
           </li>
           <li>
             <Link
               className={`nav-item ${active === "settings" ? "is-active" : ""}`}
-              href={globalNavHref("/settings", activeStorageId)}
+              href="/settings"
             >
               <Settings size={16} aria-hidden />
               设置
-              <SettingsAttentionBadge storageId={activeStorageId} />
+              <SettingsAttentionBadge />
             </Link>
           </li>
         </ul>

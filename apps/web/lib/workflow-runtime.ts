@@ -57,7 +57,6 @@ import {
   DEFAULT_ACCOUNT_ID,
   pickWorkspaceStorageId,
   resolveQueueStorageChoice,
-  resolveWorkspaceFromParam,
   type WorkflowScope,
   type MediaSearchCandidate,
   type MediaTitle,
@@ -376,22 +375,74 @@ export function getAccountScopedSettings(accountId: string): { getSetting(key: s
 }
 
 /**
- * Tree model: resolve the active workspace scope {accountId, connectedStorageId}
- * for a page/data read. `storageId` is the /w/<storageId> route param (undefined
- * on root routes → the account's primary drive). Throws WorkspaceNotFoundError
- * when the param names a drive the account does not own — the route layer maps
- * that to a 404. With no drives bound yet, connectedStorageId is null (single-user
- * fresh; reads then fall back to account-only, unchanged behavior).
+ * cookie 名：当前正在操作哪块网盘。
+ *
+ * 为什么用 cookie 而不是 URL —— 因为"当前盘"本质是**会话状态**（你正在哪块盘上操作），
+ * 不是**资源标识**（某个具体的盘）。会话状态放 URL 里会带来一串结构性代价：
+ *   - 每个链接都要算"目标盘的 URL 长什么样"（旧实现为此有 globalNavHref /
+ *     switcherTabHref 两套函数 + 59 处 basePath 逐层传递 + ?w 机制 65 处引用）
+ *   - 主盘必须特殊化（裸 `/` vs `/w/<id>`），于是"主盘"这个概念渗进所有比较逻辑
+ *   - 五个页面的 URL 形态被迫分成两类（媒体库 / 设置 ?w=）
+ * 放进 cookie 之后，五个页面对**所有盘都是同一个路径**，上面这些全部消失。
+ *
+ * 代价（已知且接受，本项目是自托管单人使用）：
+ *   - 不能把"某块盘"的链接分享/收藏给别人（对方看到的是他自己的盘）
+ *   - 同一浏览器的两个标签页共享当前盘（不能左屏 115、右屏夸克）
+ *
+ * `httpOnly` 不需要 —— 它不含任何凭证，只是偏好；但**必须**服务端校验归属，
+ * 绝不能因为 cookie 里写了 id 就当它属于当前账号（见 resolveCurrentWorkspace）。
  */
-export async function getActiveWorkspaceScope(storageId?: string): Promise<WorkflowScope> {
+export const DRIVE_COOKIE_NAME = "mr_drive";
+
+/** 读当前盘 cookie。无请求上下文（in-process worker）时返回 undefined —— 与
+ *  getCurrentAccountId 里对 cookies() 的处理保持一致。 */
+async function readDriveCookie(): Promise<string | undefined> {
+  try {
+    const { cookies } = await import("next/headers");
+    return (await cookies()).get(DRIVE_COOKIE_NAME)?.value;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * 当前工作区（cookie 驱动），页面与数据读取的统一入口。
+ *
+ * 归属校验是**必须**的：cookie 是客户端可改的，所以绝不能拿它直接当 scope 用。
+ *   - cookie 里的盘属于本账号 → 用它
+ *   - 无 cookie / 盘不存在 / 盘已解绑 → 回退主盘（最早创建的那块）
+ *   - 一块盘都没有 → connectedStorageId = null（账号级读取；新装实例的兼容路径）
+ *
+ * 注意这里**不回退到 404**：盘没了只是偏好失效，页面本身仍然成立（这也是旧实现里
+ * `?w` 与 `/w/<id>` 行为不同的原因；统一后只保留"回退"这一种，因为 URL 里不再有
+ * 盘、也就无从表达"你请求了一块不存在的盘"）。
+ */
+export async function resolveCurrentWorkspace(): Promise<{
+  accountId: string;
+  /** 用于数据隔离的盘 id；null = 不过滤（无盘账号）。 */
+  connectedStorageId: string | null;
+  /** 该账号已注册品牌的盘（切换器 / 设置页共用），按 createdAt 升序。 */
+  storages: Awaited<ReturnType<ReturnType<typeof getWorkflowRepository>["listConnectedStorages"]>>;
+}> {
   const accountId = await getCurrentAccountId();
-  const storages = await getWorkflowRepository().listConnectedStorages(accountId);
-  const connectedStorageId = pickWorkspaceStorageId(
+  const storages = (await getWorkflowRepository().listConnectedStorages(accountId))
     // Tree model: a workspace is any registered brand's drive (115 or quark), not
     // just 115 — so a quark drive shows up as its own switchable workspace.
-    storages.filter((storage) => isRegisteredStorageProvider(storage.provider)),
-    storageId,
-  );
+    .filter((storage) => isRegisteredStorageProvider(storage.provider));
+  const requested = await readDriveCookie();
+  const owned = requested != null && storages.some((storage) => storage.id === requested);
+  // owned ? requested : undefined → pickWorkspaceStorageId 对 undefined 返回主盘
+  // （或 null，无盘时）。盘不属于本账号时**静默回退**，不抛 —— 见上面的说明。
+  const connectedStorageId = pickWorkspaceStorageId(storages, owned ? requested : undefined);
+  return { accountId, connectedStorageId, storages };
+}
+
+/**
+ * 数据读取用的 scope。盘由 cookie 决定，所以**没有** storageId 参数 —— 旧签名里
+ * 那个来自 /w/<storageId> 路由参数，已随 URL 里的盘一起移除。
+ */
+export async function getActiveWorkspaceScope(): Promise<WorkflowScope> {
+  const { accountId, connectedStorageId } = await resolveCurrentWorkspace();
   return { accountId, connectedStorageId };
 }
 
@@ -407,38 +458,18 @@ export function notificationWindowSince(): string {
  *  mediaKind 区分 movie/tv 命名空间(同一数字 id 可同时是电影和剧集)。 */
 export async function untrackTrackedTitle(
   tmdbId: number,
-  storageId: string | undefined,
   mediaKind: "movie" | "tv",
   seasonNumber?: number,
 ): Promise<{ status: "untracked" | "not_found" | "in_flight"; removedSeasons: number }> {
-  const scope = await getActiveWorkspaceScope(storageId);
+  const scope = await getActiveWorkspaceScope();
   return getWorkflowRepository().untrackTitle(tmdbId, scope, mediaKind, seasonNumber);
-}
-
-/** Resolve a global page's (通知/活动/设置) active workspace from its `?w` param.
- *  Returns the scope to filter content by, the basePath for the sidebar's
- *  library/search links, and the activeStorageId for the sidebar's global links
- *  (undefined = primary → those links stay `?w`-free). A stale `w` falls back to
- *  primary (never 404). */
-export async function resolveGlobalWorkspace(w: string | undefined): Promise<{
-  accountId: string;
-  connectedStorageId: string | null;
-  basePath: string;
-  activeStorageId: string | undefined;
-}> {
-  const accountId = await getCurrentAccountId();
-  const storages = (await getWorkflowRepository().listConnectedStorages(accountId)).filter((storage) =>
-    isRegisteredStorageProvider(storage.provider),
-  );
-  return { accountId, ...resolveWorkspaceFromParam(storages, w) };
 }
 
 /** Count the account's registered drives (115/quark). Used to gate multi-drive
  *  UI like the search isolation note (only meaningful at ≥2 drives). */
 export async function getRegisteredDriveCount(): Promise<number> {
-  const accountId = await getCurrentAccountId();
-  const storages = await getWorkflowRepository().listConnectedStorages(accountId);
-  return storages.filter((storage) => isRegisteredStorageProvider(storage.provider)).length;
+  const { storages } = await resolveCurrentWorkspace();
+  return storages.length;
 }
 
 /**

@@ -11,9 +11,8 @@ const POSTER = "https://image.tmdb.org/t/p/w342";
  *  四块全空则回退到原本的「输入目标名称」占位。
  *
  *  海报点击仍走 `?q=<title>`，落回常规搜索结果流 —— 由用户显式选「获取」，
- *  与设计稿里卡片只是入口的定位一致。
- *  `basePath` 是 `/` 或 `/w/<id>`（不带 query），所以 `?` 永远是正确分隔符。 */
-export async function TrendingRow({ basePath }: { basePath: string }) {
+ *  与设计稿里卡片只是入口的定位一致。 */
+export async function TrendingRow() {
   const shelves = await getTrendingShelves();
   if (shelves.length === 0) {
     return (
@@ -27,7 +26,7 @@ export async function TrendingRow({ basePath }: { basePath: string }) {
   return (
     <div className="trending" aria-label="近期热门">
       {shelves.map((shelf) => (
-        <TrendingShelf key={shelf.kind} shelf={shelf} basePath={basePath} />
+        <TrendingShelf key={shelf.kind} shelf={shelf} />
       ))}
     </div>
   );
@@ -35,10 +34,8 @@ export async function TrendingRow({ basePath }: { basePath: string }) {
 
 function TrendingShelf({
   shelf,
-  basePath,
 }: {
   shelf: { kind: TrendingKind; label: string; note: string; cards: TrendingCard[] };
-  basePath: string;
 }) {
   return (
     <section className="section" aria-labelledby={`sec-${shelf.kind}`}>
@@ -54,7 +51,7 @@ function TrendingShelf({
           <Link
             key={`${card.mediaType}_${card.tmdbId}`}
             className="card"
-            href={`${basePath}?q=${encodeURIComponent(card.title)}`}
+            href={`/?q=${encodeURIComponent(card.title)}`}
           >
             <span className="art">
               {card.posterPath ? (

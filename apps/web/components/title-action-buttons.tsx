@@ -15,7 +15,6 @@ import { useDemoAcquiredTmdbIds } from "../lib/use-demo-session";
 export function RequestSeasonButton({
   tmdbId,
   seasonNumber,
-  storageId,
   titleAcquiring = false,
   demoEntry,
 }: {
@@ -23,7 +22,6 @@ export function RequestSeasonButton({
   seasonNumber: number;
   /** Tree model: the active workspace drive — acquisition lands HERE. REQUIRED
    *  (value may be undefined = primary) so the workspace is always threaded. */
-  storageId: string | undefined;
   /** Server truth: this title already has an acquisition run in flight. */
   titleAcquiring?: boolean;
   /** Demo only: recorded to the session library when the scripted playback ends. */
@@ -75,7 +73,6 @@ export function RequestSeasonButton({
               type: "season",
               tmdbId,
               seasonNumber,
-              storageId,
             });
             if (!r.ok) {
               setResult({ status: "unsupported", message: r.error });
@@ -106,7 +103,6 @@ export function RequestSeasonButton({
 export function RequestRemainingButton({
   tmdbId,
   label,
-  storageId,
   titleAcquiring = false,
   demoEntry,
 }: {
@@ -114,7 +110,6 @@ export function RequestRemainingButton({
   label: string;
   /** Tree model: the active workspace drive — acquisition lands HERE. REQUIRED
    *  (value may be undefined = primary) so the workspace is always threaded. */
-  storageId: string | undefined;
   /** Server truth: this title already has an acquisition run in flight. */
   titleAcquiring?: boolean;
   /** Demo only: recorded to the session library when the scripted playback ends. */
@@ -163,7 +158,6 @@ export function RequestRemainingButton({
             const r = await apiCall<AcquireResult>("/api/acquire", {
               type: "remaining",
               tmdbId,
-              storageId,
             });
             if (!r.ok) {
               setResult({ status: "unsupported", message: r.error });

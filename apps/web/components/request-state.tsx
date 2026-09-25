@@ -42,13 +42,11 @@ export function AcquireResultNotice({
  *  bundle and break the Next build. */
 export function RequestedBadge({
   title,
-  storageId,
 }: {
   title?: string | undefined;
   /** Active drive — scopes the 活动 link with ?w so leaving keeps the drive. */
-  storageId?: string | undefined;
 }) {
-  const href = storageId ? `/activity?w=${encodeURIComponent(storageId)}` : "/activity";
+  const href = "/activity";
   return (
     <Link className="hub-badge tone-green" href={href} title={title ?? "查看获取进度（活动）"}>
       <LoaderCircle size={12} className="spin" aria-hidden />

@@ -24,7 +24,6 @@ export function SeasonRequestMenu({
   seasonNumbers,
   totalSeasonCount,
   allLabel = "获取所有季",
-  storageId,
   demoEntry,
 }: {
   tmdbId: number;
@@ -38,7 +37,6 @@ export function SeasonRequestMenu({
   allLabel?: string;
   /** Tree model: the active workspace drive — acquisition lands HERE. REQUIRED
    *  (value may be undefined = primary) so the workspace is always threaded. */
-  storageId: string | undefined;
   /** Demo only: recorded to the session library when the scripted playback ends. */
   demoEntry?: DemoAcquisitionEntry | undefined;
 }) {
@@ -79,7 +77,6 @@ export function SeasonRequestMenu({
       <AcquireProgressBadge
         tmdbId={tmdbId}
         seasonNumber={requestedSeason === "all" ? null : requestedSeason}
-        storageId={storageId}
         title={result?.message}
       />
     );
@@ -98,8 +95,8 @@ export function SeasonRequestMenu({
       const r = await apiCall<AcquireResult>(
         "/api/acquire",
         selected === "all"
-          ? { type: "remaining", tmdbId, storageId }
-          : { type: "season", tmdbId, seasonNumber: selected, storageId },
+          ? { type: "remaining", tmdbId }
+          : { type: "season", tmdbId, seasonNumber: selected },
       );
       if (!r.ok) {
         setResult({ status: "unsupported", message: r.error });
@@ -137,7 +134,6 @@ export function SeasonRequestMenu({
                 type: "season",
                 tmdbId,
                 seasonNumber: onlySeason,
-                storageId,
               });
               if (!r.ok) {
                 setResult({ status: "unsupported", message: r.error });

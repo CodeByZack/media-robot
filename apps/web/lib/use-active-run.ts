@@ -12,19 +12,17 @@ import { findActiveRun } from "./inline-progress";
 export function useActiveRun(
   tmdbId: number,
   seasonNumber: number | null,
-  storageId: string | undefined,
 ): ActivityActiveRun | null {
   const [run, setRun] = useState<ActivityActiveRun | null>(null);
   useEffect(() => {
     let alive = true;
-    // Reset on key change (tmdbId/season/storage define the lookup) so a reused
-    // instance doesn't briefly show a different card/workspace's stale progress
-    // until the first poll returns.
+    // Reset on key change (tmdbId/season define the lookup) so a reused instance
+    // doesn't briefly show a different card's stale progress until the first poll
+    // returns. 盘不参与 key —— 它由 cookie 决定，切盘会整页重渲染。
     setRun(null);
     const poll = async () => {
       try {
-        const url = storageId ? `/api/activity?w=${encodeURIComponent(storageId)}` : "/api/activity";
-        const res = await fetch(url, { cache: "no-store" });
+        const res = await fetch("/api/activity", { cache: "no-store" });
         if (!res.ok) return;
         const data = (await res.json()) as ActivityView;
         if (alive) setRun(findActiveRun(data.active, tmdbId, seasonNumber));
@@ -38,6 +36,6 @@ export function useActiveRun(
       alive = false;
       clearInterval(id);
     };
-  }, [tmdbId, seasonNumber, storageId]);
+  }, [tmdbId, seasonNumber]);
   return run;
 }

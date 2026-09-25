@@ -164,7 +164,7 @@ async function seriesTargetFor(tmdbId: number): Promise<PreparedSeriesTarget | n
 
 export async function getTitleHubView(tmdbId: number, storageId?: string): Promise<TitleHubView | null> {
   const repository = getWorkflowRepository();
-  const scope = await getActiveWorkspaceScope(storageId);
+  const scope = await getActiveWorkspaceScope();
   await ensureDemoSeeded(repository);
   const trackedStates = (await repository.listTrackedSeasonStates(scope)).filter(
     // tv AND anime are season-shaped detail pages; only movies are excluded.
@@ -263,7 +263,7 @@ export async function getDetailView(
   typeHint?: MediaType,
 ): Promise<DetailView | null> {
   const repository = getWorkflowRepository();
-  const scope = await getActiveWorkspaceScope(storageId);
+  const scope = await getActiveWorkspaceScope();
   await ensureDemoSeeded(repository);
   const now = new Date().toISOString();
 
@@ -336,7 +336,7 @@ export async function queueSeasonTracking(
   seasonNumber: number,
   storageId?: string,
 ): Promise<CandidateTrackingRequestResult> {
-  const scope = await getActiveWorkspaceScope(storageId);
+  const scope = await getActiveWorkspaceScope();
   return queueCandidateTracking(`tmdb_tv_${tmdbId}_s${seasonNumber}`, scope.connectedStorageId);
 }
 
@@ -351,7 +351,7 @@ export async function queueRemainingSeasons(
   storageId?: string,
 ): Promise<CandidateTrackingRequestResult> {
   const repository = getWorkflowRepository();
-  const scope = await getActiveWorkspaceScope(storageId);
+  const scope = await getActiveWorkspaceScope();
   await ensureDemoSeeded(repository);
   const target = await seriesTargetFor(tmdbId);
   if (!target) {
@@ -416,7 +416,7 @@ export interface LibraryTypeCounts {
 /** Poster-wall view of every tracked title. */
 export async function getLibraryWall(storageId?: string): Promise<LibraryWallEntry[]> {
   const repository = getWorkflowRepository();
-  const scope = await getActiveWorkspaceScope(storageId);
+  const scope = await getActiveWorkspaceScope();
   await ensureDemoSeeded(repository);
   const now = new Date().toISOString();
   const states = await repository.listTrackedSeasonStates(scope);
@@ -489,7 +489,7 @@ export interface InProgressTitle {
  */
 export async function getInProgressTitles(storageId?: string): Promise<InProgressTitle[]> {
   const repository = getWorkflowRepository();
-  const scope = await getActiveWorkspaceScope(storageId);
+  const scope = await getActiveWorkspaceScope();
   const active = await repository.listActiveWorkflowRuns(scope);
   const byTmdb = new Map<number, InProgressTitle>();
   for (const snapshot of active) {

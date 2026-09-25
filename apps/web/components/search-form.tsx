@@ -13,10 +13,8 @@ import { useRouter } from "next/navigation";
  * `action`/hidden `tab` are kept so it still works as a plain GET if JS is off.
  */
 export function SearchForm({
-  basePath = "/",
   defaultQuery = "",
 }: {
-  basePath?: string;
   defaultQuery?: string;
 }) {
   const router = useRouter();
@@ -24,15 +22,14 @@ export function SearchForm({
     <form
       className="search-form"
       role="search"
-      action={basePath}
+      action="/"
       onSubmit={(event) => {
         event.preventDefault();
         const value = String(new FormData(event.currentTarget).get("q") ?? "");
-        router.push(`${basePath}?tab=search&q=${encodeURIComponent(value)}`);
+        router.push(`/?q=${encodeURIComponent(value)}`);
       }}
     >
-      <input type="hidden" name="tab" value="search" />
-      <label className="search-box search-box-large">
+            <label className="search-box search-box-large">
         <Search size={18} aria-hidden />
         {/* key forces a remount when the URL query changes (back/forward, or a
             restored remembered query) so the uncontrolled input reflects it,

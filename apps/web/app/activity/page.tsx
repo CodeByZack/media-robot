@@ -1,19 +1,15 @@
 import { Suspense } from "react";
 import { AppSidebar } from "../../components/app-sidebar";
 import { ActivityFeed } from "../../components/activity-feed";
-import { resolveGlobalWorkspace } from "../../lib/workflow-runtime";
+import { resolveCurrentWorkspace } from "../../lib/workflow-runtime";
 
-// `searchParams` (the active drive `?w`) is a dynamic input + a DB read. Reading it
-// inside a Suspense boundary lets the static app shell prerender instead of the
-// whole route blocking on it (cacheComponents "blocking-route"). Mirrors page.tsx.
-export default function ActivityPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ w?: string }>;
-}) {
+// The drive is a cookie/DB read, so the surface lives inside Suspense: the static
+// app shell prerenders instead of the whole route blocking on it (cacheComponents
+// "blocking-route"). Mirrors page.tsx.
+export default function ActivityPage() {
   return (
     <Suspense fallback={<ActivityShell />}>
-      <ActivitySurface searchParams={searchParams} />
+      <ActivitySurface />
     </Suspense>
   );
 }
@@ -27,12 +23,12 @@ function ActivityShell() {
   );
 }
 
-async function ActivitySurface({ searchParams }: { searchParams: Promise<{ w?: string }> }) {
-  const { w } = await searchParams;
-  const workspace = await resolveGlobalWorkspace(w);
+async function ActivitySurface() {
+  // 盘由 cookie 决定（不再从 URL 读），仅用于 gate 多盘 UI。
+  await resolveCurrentWorkspace();
   return (
     <div className="app-shell">
-      <AppSidebar active="activity" basePath={workspace.basePath} activeStorageId={workspace.activeStorageId} />
+      <AppSidebar active="activity" />
       <main className="main product-main">
         <div className="section-heading library-heading">
           <div>
@@ -43,7 +39,7 @@ async function ActivitySurface({ searchParams }: { searchParams: Promise<{ w?: s
         {/* ActivityFeed is a client component in the page's STATIC shell (not inside a
             Suspense'd async server component — those don't hydrate, which froze the
             live poll). It self-fetches /api/activity on mount and polls. */}
-        <ActivityFeed storageId={workspace.activeStorageId} />
+        <ActivityFeed />
       </main>
     </div>
   );

@@ -7,54 +7,47 @@ const drives = [
 ];
 
 describe("switcherItems", () => {
-  it("primary (earliest) routes to '/', others to /w/<id>", () => {
-    const items = switcherItems(drives, "/");
-    expect(items.map((i) => [i.id, i.href])).toEqual([
-      ["csOld", "/"],
-      ["csNew", "/w/csNew"],
-    ]);
+  // 盘不再进 URL（当前盘存在 cookie 里），所以 tab 上**没有 href** —— 五个页面对
+  // 所有盘都是同一个路径，切盘是写 cookie 而不是导航到另一个地址。这正是旧实现里
+  // switcherTabHref 存在的唯一理由，它随这次改动一起消失了。
+  it("不再产出 href（路径与盘无关）", () => {
+    const items = switcherItems(drives, "csOld");
+    expect(items.every((i) => !("href" in i))).toBe(true);
   });
-  it("on '/' the primary is active", () => {
-    expect(switcherItems(drives, "/").find((i) => i.isActive)?.id).toBe("csOld");
+
+  it("传入的当前盘被标为 active", () => {
+    expect(switcherItems(drives, "csNew").find((i) => i.isActive)?.id).toBe("csNew");
+    expect(switcherItems(drives, "csOld").find((i) => i.isActive)?.id).toBe("csOld");
   });
-  it("on /w/<id> that drive is active", () => {
-    expect(switcherItems(drives, "/w/csNew").find((i) => i.isActive)?.id).toBe("csNew");
+
+  it("当前盘为 null（无 cookie / 未拥有）时回退到最早创建的那块", () => {
+    expect(switcherItems(drives, null).find((i) => i.isActive)?.id).toBe("csOld");
   });
-  it("a non-workspace path (/settings) keeps the primary active", () => {
-    expect(switcherItems(drives, "/settings").find((i) => i.isActive)?.id).toBe("csOld");
+
+  it("当前盘不属于本账号时也回退到主盘（不做 404）", () => {
+    expect(switcherItems(drives, "cs_ghost").find((i) => i.isActive)?.id).toBe("csOld");
   });
+
   it("carries provider through to the output item", () => {
     const withProvider = [
       { id: "csOld", label: "主号", provider: "pan115", providerUid: "100000001", createdAt: "2026-06-01T00:00:00.000Z", status: "active" as const },
       { id: "csNew", label: null, provider: "quark", providerUid: "100000002", createdAt: "2026-06-10T00:00:00.000Z", status: "active" as const },
     ];
-    const items = switcherItems(withProvider, "/");
-    expect(items.find((i) => i.id === "csOld")?.provider).toBe("pan115");
-    expect(items.find((i) => i.id === "csNew")?.provider).toBe("quark");
+    const items = switcherItems(withProvider, "csOld");
+    expect(items.map((i) => i.provider)).toEqual(["pan115", "quark"]);
   });
-  it("provider is undefined when the storage omits it (no throw)", () => {
-    const items = switcherItems(drives, "/"); // top-of-file drives have no provider
-    expect(items[0]!.provider).toBeUndefined();
-  });
-  it("unnamed label uses the brand registry label per provider (光鸭 ≠ 115)", () => {
-    const branded = [
-      { id: "g", label: null, provider: "guangya", providerUid: "100000003", createdAt: "2026-06-01T00:00:00.000Z", status: "active" as const },
-      { id: "q", label: null, provider: "quark", providerUid: "100000002", createdAt: "2026-06-10T00:00:00.000Z", status: "active" as const },
-      { id: "p", label: null, provider: "pan115", providerUid: "100000001", createdAt: "2026-06-20T00:00:00.000Z", status: "active" as const },
+
+  it("label 缺省时用品牌名 + uid 尾 4 位", () => {
+    const withProvider = [
+      { id: "csNew", label: null, provider: "quark", providerUid: "AATPyrbqA0JT", createdAt: "2026-06-10T00:00:00.000Z", status: "active" as const },
     ];
-    const items = switcherItems(branded, "/");
-    expect(items.find((i) => i.id === "g")?.label).toContain("光鸭");
-    expect(items.find((i) => i.id === "g")?.label).not.toContain("115");
-    expect(items.find((i) => i.id === "q")?.label).toContain("夸克");
-    expect(items.find((i) => i.id === "p")?.label).toContain("115");
+    expect(switcherItems(withProvider, "csNew")[0]!.label).toBe("夸克网盘 …A0JT");
   });
-  it("label falls back to a uid-tail when unnamed; frozen surfaced", () => {
-    const frozen = [
-      { id: "csOld", label: null, providerUid: "100000001", createdAt: "2026-06-01T00:00:00.000Z", status: "active" as const },
-      { id: "csNew", label: null, providerUid: "100000002", createdAt: "2026-06-10T00:00:00.000Z", status: "frozen" as const },
+
+  it("frozen 状态透传", () => {
+    const mixed = [
+      { id: "csOld", label: "主号", providerUid: "100000001", createdAt: "2026-06-01T00:00:00.000Z", status: "frozen" as const },
     ];
-    const items = switcherItems(frozen, "/");
-    expect(items[0]!.label).toContain("0001");
-    expect(items.find((i) => i.id === "csNew")?.frozen).toBe(true);
+    expect(switcherItems(mixed, "csOld")[0]!.frozen).toBe(true);
   });
 });

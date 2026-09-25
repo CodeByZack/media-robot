@@ -25,7 +25,7 @@ import { useDemoAcquisitions, useDemoInProgress } from "../lib/use-demo-session"
 const POLL_MS = 2600;
 const POSTER = "https://image.tmdb.org/t/p/w185";
 
-export function ActivityFeed({ storageId }: { storageId?: string | undefined }) {
+export function ActivityFeed() {
   // 已完成 is session-scoped by OBSERVATION: the runIds this browser saw active.
   // Robust to notification createdAt timing (a since-filter wrongly dropped runs
   // the user opened the page after — createdAt ≈ run-start, not finish).
@@ -36,7 +36,7 @@ export function ActivityFeed({ storageId }: { storageId?: string | undefined }) 
     let alive = true;
     const poll = async () => {
       try {
-        const url = storageId ? `/api/activity?w=${encodeURIComponent(storageId)}` : "/api/activity";
+        const url = "/api/activity";
         const res = await fetch(url, { cache: "no-store" });
         if (!res.ok) return;
         const data = (await res.json()) as ActivityView;
@@ -54,7 +54,7 @@ export function ActivityFeed({ storageId }: { storageId?: string | undefined }) 
       alive = false;
       clearInterval(id);
     };
-  }, [storageId]);
+  }, []);
 
   const running = view.active.filter((run) => run.status === "running");
   const queued = view.active
@@ -83,7 +83,7 @@ export function ActivityFeed({ storageId }: { storageId?: string | undefined }) 
               <DemoRunningRow item={item} key={item.id} />
             ))}
             {running.map((run) => (
-              <RunningRow run={run} storageId={storageId} key={run.runId} />
+              <RunningRow run={run} key={run.runId} />
             ))}
           </>
         )}
@@ -283,7 +283,7 @@ function StepEvidence({ detail }: { detail: NonNullable<StepEvidenceView> }) {
   );
 }
 
-function RunningRow({ run, storageId }: { run: ActivityActiveRun; storageId?: string | undefined }) {
+function RunningRow({ run }: { run: ActivityActiveRun }) {
   const [open, setOpen] = useState(false);
   const percent = Math.max(3, Math.min(100, run.progress?.percent ?? 3));
   const headline =
@@ -295,7 +295,7 @@ function RunningRow({ run, storageId }: { run: ActivityActiveRun; storageId?: st
       <div className="act-row-toggle" onClick={() => setOpen((value) => !value)}>
         <Link
           className="act-poster-link"
-          href={showHref(run.tmdbId, "library", storageId, run.type)}
+          href={showHref(run.tmdbId, "library", run.type)}
           onClick={(event) => event.stopPropagation()}
         >
           {poster(run.posterPath, run.title, "info")}

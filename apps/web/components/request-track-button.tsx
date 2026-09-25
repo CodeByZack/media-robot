@@ -35,7 +35,6 @@ export function RequestTrackButton({
   actionState = "can_request",
   label = "获取",
   disabled = false,
-  storageId,
   demoEntry,
 }: {
   candidateId?: string;
@@ -46,7 +45,6 @@ export function RequestTrackButton({
   label?: string;
   disabled?: boolean;
   /** Tree model: the active workspace drive — acquisition lands HERE, not the primary. */
-  storageId?: string | undefined;
   /** Demo only: the candidate's display fields, recorded to the session library
    *  when the scripted playback finishes so the visitor sees it "land". */
   demoEntry?: DemoAcquisitionEntry;
@@ -98,9 +96,9 @@ export function RequestTrackButton({
     // actually running (falls back to the static 已请求 pill when queued/finished);
     // without one (legacy callers), keep the static pill.
     return tmdbId != null ? (
-      <AcquireProgressBadge tmdbId={tmdbId} seasonNumber={null} storageId={storageId} title={result?.message} />
+      <AcquireProgressBadge tmdbId={tmdbId} seasonNumber={null} title={result?.message} />
     ) : (
-      <RequestedBadge title={result?.message} storageId={storageId} />
+      <RequestedBadge title={result?.message} />
     );
   }
 
@@ -138,7 +136,6 @@ export function RequestTrackButton({
               type: "track",
               ...(candidateId ? { candidateId } : {}),
               currentState: actionState,
-              ...(storageId ? { storageId } : {}),
             });
             if (!r.ok) {
               setResult({ status: "unsupported", message: r.error });

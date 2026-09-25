@@ -22,7 +22,7 @@ import {
   type TitleHubView,
 } from "../../../lib/title-hub";
 import { seasonBadgeState } from "../../../lib/title-aggregate";
-import { resolveGlobalWorkspace } from "../../../lib/workflow-runtime";
+import { getActiveWorkspaceScope } from "../../../lib/workflow-runtime";
 
 const aggregateBadge = {
   untracked: null,
@@ -53,7 +53,7 @@ export default function ShowPage({
       <Suspense
         fallback={
           <ShowShell active="none">
-            <HubSkeleton backLabel="返回" backHref="/?tab=search" />
+            <HubSkeleton backLabel="返回" backHref="/" />
           </ShowShell>
         }
       >
@@ -65,18 +65,14 @@ export default function ShowPage({
 
 function ShowShell({
   active,
-  basePath = "/",
-  activeStorageId,
   children,
 }: {
   active: "search" | "library" | "none";
-  basePath?: string;
-  activeStorageId?: string | undefined;
   children: ReactNode;
 }) {
   return (
     <>
-      <AppSidebar active={active} basePath={basePath} activeStorageId={activeStorageId} />
+      <AppSidebar active={active} />
       <main className="main product-main product-main-hub">{children}</main>
     </>
   );
@@ -96,13 +92,11 @@ async function ShowContent({
   const params0 = (await searchParams) ?? {};
   const fromParam = params0["from"];
   const from = fromParam === "library" ? "library" : fromParam === "search" ? "search" : null;
-  // The title page is a global route (/show/<id>); it must resolve against the
-  // drive the user came FROM (?w), NOT the primary drive — otherwise a non-primary
-  // title isn't found in the (wrong) scope and falls back to a TMDB lookup of the
-  // same numeric id in the OTHER namespace (movie 278 ≠ tv 278 = unrelated show).
-  const wParam = params0["w"];
-  const w = Array.isArray(wParam) ? wParam[0] : wParam;
-  const workspace = await resolveGlobalWorkspace(w);
+  // The title page resolves against the CURRENT drive (cookie), which is the one the
+  // user is browsing — so a non-primary title is found in the right scope instead of
+  // falling back to a TMDB lookup of the same numeric id in the OTHER namespace
+  // (movie 278 ≠ tv 278 = unrelated show).
+  const workspace = await getActiveWorkspaceScope();
   // `t` (the card's media type) disambiguates TMDB's movie/tv id namespaces for an
   // untracked title — without it a movie id can resolve to an unrelated tv show.
   const tParam = params0["t"];
@@ -115,29 +109,20 @@ async function ShowContent({
     : null;
 
   const backLabel = from === "search" ? "搜索" : from === "library" ? "媒体库" : "返回";
-  const backHref =
-    from === "library" ? `${workspace.basePath}?tab=library` : `${workspace.basePath}?tab=search`;
+  const backHref = from === "library" ? "/library" : "/";
 
   return (
-    <ShowShell
-      active={from ?? "none"}
-      basePath={workspace.basePath}
-      activeStorageId={workspace.activeStorageId}
-    >
+    <ShowShell active={from ?? "none"}>
       {view ? (
         view.kind === "movie" ? (
           <MovieHub
             view={view}
-            storageId={workspace.activeStorageId}
-            basePath={workspace.basePath}
             backLabel={backLabel}
             backHref={backHref}
           />
         ) : (
           <TvHub
             view={view}
-            storageId={workspace.activeStorageId}
-            basePath={workspace.basePath}
             backLabel={backLabel}
             backHref={backHref}
           />
@@ -156,14 +141,10 @@ async function ShowContent({
 
 function TvHub({
   view,
-  storageId,
-  basePath,
   backLabel,
   backHref,
 }: {
   view: TitleHubView;
-  storageId: string | undefined;
-  basePath: string;
   backLabel: string;
   backHref: string;
 }) {
@@ -220,8 +201,7 @@ function TvHub({
             {view.untrackedSeasonNumbers.length > 0 && view.seasons.length > 1 ? (
               <RequestRemainingButton
                 tmdbId={view.tmdbId}
-                storageId={storageId}
-                titleAcquiring={view.acquiring}
+                  titleAcquiring={view.acquiring}
                 label={
                   view.aggregate === "untracked"
                     ? "获取所有季"
@@ -237,7 +217,7 @@ function TvHub({
               />
             ) : null}
             {view.aggregate !== "untracked" ? (
-              <UntrackButton tmdbId={view.tmdbId} storageId={storageId} mediaKind="tv" basePath={basePath} />
+              <UntrackButton tmdbId={view.tmdbId} mediaKind="tv" />
             ) : null}
           </div>
         </div>
@@ -255,8 +235,6 @@ function TvHub({
               key={season.seasonNumber}
               season={season}
               tmdbId={view.tmdbId}
-              storageId={storageId}
-              basePath={basePath}
               acquiring={view.acquiring}
               demoEntry={{
                 tmdbId: view.tmdbId,
@@ -285,19 +263,15 @@ const movieStateMeta = {
 /** A movie's detail page: immersive hero + full synopsis body (no season grid). */
 function MovieHub({
   view,
-  storageId,
-  basePath,
   backLabel,
   backHref,
 }: {
   view: MovieHubView;
-  storageId: string | undefined;
-  basePath: string;
   backLabel: string;
   backHref: string;
 }) {
   const meta = movieStateMeta[view.state];
-  const activityHref = storageId ? `/activity?w=${encodeURIComponent(storageId)}` : "/activity";
+  const activityHref = "/activity";
   const nowIso = new Date().toISOString();
   const unreleased =
     view.state === "untracked" && isMovieUnreleased(view.releaseDate, nowIso);
@@ -345,8 +319,7 @@ function MovieHub({
                     tmdbId={view.tmdbId}
                     actionState={unreleased ? "can_reserve" : "can_request"}
                     label={unreleased ? "预定" : "获取"}
-                    storageId={storageId}
-                  />
+                        />
                 ) : null}
                 {view.state === "acquiring" ? (
                   <Link className="primary-button" href={activityHref}>
@@ -354,7 +327,7 @@ function MovieHub({
                   </Link>
                 ) : null}
                 {view.state !== "untracked" ? (
-                  <UntrackButton tmdbId={view.tmdbId} storageId={storageId} mediaKind="movie" basePath={basePath} />
+                  <UntrackButton tmdbId={view.tmdbId} mediaKind="movie" />
                 ) : null}
               </div>
               {view.state === "missing" ? (
@@ -416,17 +389,11 @@ function HubSkeleton({ backLabel, backHref }: { backLabel: string; backHref: str
 function SeasonRow({
   season,
   tmdbId,
-  storageId,
-  basePath,
   acquiring,
   demoEntry,
 }: {
   season: TitleHubSeason;
   tmdbId: number;
-  /** Tree model: the active workspace drive — acquisition lands HERE. */
-  storageId: string | undefined;
-  /** Library path to return to after a whole-show untrack. */
-  basePath: string;
   acquiring: boolean;
   demoEntry?: DemoAcquisitionEntry | undefined;
 }) {
@@ -470,7 +437,6 @@ function SeasonRow({
         <RequestSeasonButton
           tmdbId={tmdbId}
           seasonNumber={season.seasonNumber}
-          storageId={storageId}
           titleAcquiring={acquiring}
           demoEntry={demoEntry}
         />
@@ -506,10 +472,8 @@ function SeasonRow({
         <div className="season-untrack-row">
           <UntrackButton
             tmdbId={tmdbId}
-            storageId={storageId}
-            mediaKind="tv"
+              mediaKind="tv"
             seasonNumber={season.seasonNumber}
-            basePath={basePath}
             label={`取消第 ${season.seasonNumber} 季追踪`}
           />
         </div>

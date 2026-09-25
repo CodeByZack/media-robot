@@ -11,23 +11,19 @@ import {
   getCurrentAccountId,
   getWorkflowRepository,
   notificationWindowSince,
-  resolveGlobalWorkspace,
+  resolveCurrentWorkspace,
 } from "../../lib/workflow-runtime";
 import { runSteps, type StepRunState } from "../../lib/activity-view";
 import { NotificationCardWrapper } from "../../components/NotificationCardWrapper";
 import { RoutineCardWrapper } from "../../components/RoutineCardWrapper";
 
-// `searchParams` (the active drive `?w`) is a dynamic input + a DB read; reading it
-// inside a Suspense boundary lets the static app shell prerender instead of the
-// whole route blocking on it (cacheComponents "blocking-route"). Mirrors page.tsx.
-export default function NotificationsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ w?: string }>;
-}) {
+// The drive is a cookie/DB read, so the surface lives inside Suspense: the static
+// app shell prerenders instead of the whole route blocking on it (cacheComponents
+// "blocking-route"). Mirrors page.tsx.
+export default function NotificationsPage() {
   return (
     <Suspense fallback={<NotificationsShell />}>
-      <NotificationsSurface searchParams={searchParams} />
+      <NotificationsSurface />
     </Suspense>
   );
 }
@@ -41,12 +37,11 @@ function NotificationsShell() {
   );
 }
 
-async function NotificationsSurface({ searchParams }: { searchParams: Promise<{ w?: string }> }) {
-  const { w } = await searchParams;
-  const workspace = await resolveGlobalWorkspace(w);
+async function NotificationsSurface() {
+  const { connectedStorageId } = await resolveCurrentWorkspace();
   return (
     <div className="app-shell">
-      <AppSidebar active="notifications" basePath={workspace.basePath} activeStorageId={workspace.activeStorageId} />
+      <AppSidebar active="notifications" />
       <main className="main product-main">
         <NotificationsSeenMarker />
         <div className="section-heading library-heading">
@@ -57,7 +52,7 @@ async function NotificationsSurface({ searchParams }: { searchParams: Promise<{ 
         </div>
         <DemoSessionNotifications />
         <Suspense fallback={<FeedSkeleton />}>
-          <NotificationFeed connectedStorageId={workspace.connectedStorageId} />
+          <NotificationFeed connectedStorageId={connectedStorageId} />
         </Suspense>
       </main>
     </div>

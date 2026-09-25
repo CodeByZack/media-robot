@@ -1,7 +1,6 @@
 import {
   getStorageBrand,
   isRegisteredStorageProvider,
-  resolveWorkspaceFromParam,
   type WorkflowRepository,
 } from "@mediarobot/workflow";
 import { isDemoMode } from "./demo-mode";
@@ -20,6 +19,7 @@ import {
 import {
   getAccountScopedSettings,
   getCurrentAccountId,
+  resolveCurrentWorkspace,
   getLlmConfig,
   getWorkflowRepository,
   PANSOU_BASE_URL_SETTING_KEY,
@@ -69,20 +69,14 @@ const MAX_DISMISSALS = 100;
  *  Resolves account + drives once; optional `w` preserves workspace on deep-links.
  *  `origin` (public request origin) is baked into the update prompt. */
 export async function loadSettingsAttentionSummary(options?: {
-  w?: string | null;
   origin?: string;
 }): Promise<SettingsAttentionSummary> {
   if (isDemoMode()) {
     return { count: 0, severity: null, items: [] };
   }
 
-  const accountId = await getCurrentAccountId();
+  const { accountId, connectedStorageId, storages: drives } = await resolveCurrentWorkspace();
   const repository = getWorkflowRepository();
-  const drives = await repository.listConnectedStorages(accountId);
-  const workspace = resolveWorkspaceFromParam(
-    drives.filter((drive) => isRegisteredStorageProvider(drive.provider)),
-    options?.w ?? undefined,
-  );
 
   const [llm, isOwner] = await Promise.all([
     getLlmConfig(getAccountScopedSettings(accountId)),
@@ -127,7 +121,7 @@ export async function loadSettingsAttentionSummary(options?: {
     searchSource: { custom: customSearchSource, reachable: searchSourceReachable },
     update,
     origin: options?.origin ?? DEFAULT_LOCAL_ORIGIN,
-    ...(workspace.activeStorageId ? { activeStorageId: workspace.activeStorageId } : {}),
+    ...(connectedStorageId ? { activeStorageId: connectedStorageId } : {}),
   });
 
   // The unauthenticated sentinel must never grow account_settings rows.

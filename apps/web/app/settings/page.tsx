@@ -45,25 +45,17 @@ import {
   PROWLARR_BASE_URL_SETTING_KEY,
   PROWLARR_API_KEY_SETTING_KEY,
   PANSOU_BASE_URL_SETTING_KEY,
-  resolveGlobalWorkspace,
 } from "../../lib/workflow-runtime";
 import { brandSupportsProwlarr } from "@mediarobot/workflow";
 import { providerLabel, providerMark } from "../../lib/provider-display";
 import { isDemoMode } from "../../lib/demo-mode";
 
-export default function SettingsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ w?: string }>;
-}) {
+export default function SettingsPage() {
   return (
     <div className="app-shell">
-      {/* Only the sidebar depends on the active drive (`?w`); wrap just it in
-          Suspense so the static shell + per-section streaming stay intact and the
-          route still prerenders (cacheComponents). Fallback = primary sidebar. */}
-      <Suspense fallback={<AppSidebar active="settings" />}>
-        <SettingsSidebar searchParams={searchParams} />
-      </Suspense>
+      {/* 盘现在由 cookie 决定，侧栏不再依赖 URL → 无需为它单独开 Suspense 洞，
+          整个壳可以一起产出。 */}
+      <AppSidebar active="settings" />
       <main className="main product-main">
         {/* 设计稿的页头:mono 全大写 eyebrow + 主标题 + 一句说明 */}
         <section className="page-head">
@@ -85,7 +77,7 @@ export default function SettingsPage({
         ) : (
           <>
             <Suspense fallback={null}>
-              <SettingsAttentionSection searchParams={searchParams} />
+              <SettingsAttentionSection />
             </Suspense>
             <Suspense fallback={<div className="skeleton skeleton-heading" />}>
             {/* .settings-shell 是设计稿的外壳(tab 导航 + 面板区)。设置页专属的
@@ -153,23 +145,12 @@ export default function SettingsPage({
   );
 }
 
-async function SettingsSidebar({ searchParams }: { searchParams: Promise<{ w?: string }> }) {
-  const { w } = await searchParams;
-  const workspace = await resolveGlobalWorkspace(w);
-  return <AppSidebar active="settings" basePath={workspace.basePath} activeStorageId={workspace.activeStorageId} />;
-}
-
-async function SettingsAttentionSection({
-  searchParams,
-}: {
-  searchParams: Promise<{ w?: string }>;
-}) {
+async function SettingsAttentionSection() {
   // Request-time only: account drives + LLM config + optional update probe.
-  // Loader resolves account/drives once (including optional ?w deep-link context).
+  // Loader resolves account/drives (盘由 cookie 决定，不再走 ?w deep-link).
   await connection();
-  const { w } = await searchParams;
   const origin = resolveRequestOrigin(await headers());
-  const summary = await loadSettingsAttentionSummary({ ...(w ? { w } : {}), origin });
+  const summary = await loadSettingsAttentionSummary({ origin });
   // AFTER the summary load: anything first sighted during THIS render gets
   // createdAt <= the seen_at written here → never badges the page it was shown on.
   await markSettingsAttentionSeen();

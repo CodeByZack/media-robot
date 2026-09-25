@@ -97,7 +97,6 @@ export function resolveQueueStorageChoice(
 
 export interface WorkspaceSwitcherItem {
   id: string;
-  href: string;
   label: string;
   isActive: boolean;
   frozen: boolean;
@@ -115,10 +114,13 @@ function providerLabel(provider: string | undefined): string {
 }
 
 /**
- * Build the workspace switcher tabs (pure, testable). The earliest-created drive
- * is primary and routes to "/"; the rest route to /w/<id>. The active tab is the
- * one matching the current pathname (/w/<id>), else the primary (root and any
- * non-workspace page like /settings). Label falls back to a uid tail.
+ * Build the workspace switcher tabs (pure, testable).
+ *
+ * 盘不再进 URL（当前盘存在 cookie 里）——所以五个页面对**所有盘都是同一个路径**。
+ * 这直接干掉了旧实现里最难的部分：以前每个 tab 要算「你在哪个功能区 + 目标盘 → 目标
+ * URL」，现在切盘根本不产生 URL 差异，`href` 字段因此整个消失。
+ *
+ * active 由调用方从当前盘 id 传入（那是 cookie 解析出来的，不在 pathname 里）。
  * The caller renders nothing when fewer than 2 drives exist.
  */
 export function switcherItems(
@@ -130,30 +132,27 @@ export function switcherItems(
     createdAt: string;
     status: "active" | "frozen";
   }>,
-  pathname: string,
+  activeStorageId: string | null,
 ): WorkspaceSwitcherItem[] {
   const sorted = [...storages].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-  const activeWorkspaceId = (() => {
-    const match = /^\/w\/([^/]+)/.exec(pathname);
-    return match ? match[1]! : null;
-  })();
-  return sorted.map((storage, index) => {
-    const isPrimary = index === 0;
-    const href = isPrimary ? "/" : `/w/${storage.id}`;
-    const isActive = activeWorkspaceId
-      ? storage.id === activeWorkspaceId
-      : isPrimary; // root / non-workspace page → primary is active
-    return {
-      id: storage.id,
-      href,
-      label:
-        storage.label?.trim() ||
-        `${providerLabel(storage.provider)} …${storage.providerUid.slice(-4)}`,
-      isActive,
-      frozen: storage.status === "frozen",
-      provider: storage.provider,
-    };
-  });
+  // 当前盘缺省（无 cookie / 未拥有 → 主盘）时视为第一块盘。
+  // 多一道 exists 判断：调用方传进来的 id 理论上已被 resolveCurrentWorkspace 校验过，
+  // 但本函数是纯函数且对外导出 —— 一个不存在的 id 若照单全收，会产出"没有任何一项
+  // active"的列表（侧栏看起来像当前盘丢了）。这里兜到主盘，宁可显示主盘高亮。
+  const requested = activeStorageId ?? null;
+  const activeId =
+    requested !== null && sorted.some((storage) => storage.id === requested)
+      ? requested
+      : (sorted[0]?.id ?? null);
+  return sorted.map((storage) => ({
+    id: storage.id,
+    label:
+      storage.label?.trim() ??
+      `${providerLabel(storage.provider)} …${storage.providerUid.slice(-4)}`,
+    isActive: storage.id === activeId,
+    frozen: storage.status === "frozen",
+    provider: storage.provider,
+  }));
 }
 
 /** True when a stored row belongs to the scope: account must match; storage only
@@ -172,104 +171,15 @@ export function scopeMatches(
   return true;
 }
 
-/** Build a global-page link (通知/活动/设置) that carries the active drive as a
- *  `?w` query param. Primary drive is represented by `activeStorageId === undefined`
- *  → bare base (mirrors how the primary library is "/" not "/w/<id>"). */
-export function globalNavHref(base: string, activeStorageId: string | undefined): string {
-  return activeStorageId ? `${base}?w=${encodeURIComponent(activeStorageId)}` : base;
-}
-
-/** Resolve a global page's active workspace from its `?w` param + the account's
- *  drives. A stale/unknown `w` gracefully falls back to primary (NOT a 404 —
- *  unlike the /w/<id> route). The primary drive is canonicalized to a bare path
- *  with `activeStorageId: undefined` so its global links stay `?w`-free. */
-export function resolveWorkspaceFromParam(
-  storages: ReadonlyArray<{ id: string; createdAt: string }>,
-  w: string | undefined,
-): { connectedStorageId: string | null; basePath: string; activeStorageId: string | undefined } {
-  const primaryId = pickWorkspaceStorageId(storages, undefined); // never throws (undefined param)
-  const owned = w != null && storages.some((storage) => storage.id === w);
-  const resolved = owned ? w! : primaryId;
-  const isPrimary = resolved == null || resolved === primaryId;
-  return {
-    connectedStorageId: resolved,
-    basePath: isPrimary ? "/" : `/w/${resolved}`,
-    activeStorageId: isPrimary ? undefined : resolved!,
-  };
-}
-
-/** Which top-level section a path is in — drives switcher "keep same section". */
-export type WorkspaceSection =
-  | "search"
-  | "library"
-  | "notifications"
-  | "activity"
-  | "settings"
-  | "other";
-
-/** Classify the current location into a section. Content routes ("/" or "/w/<id>")
- *  are search by default, library when ?tab=library. Unknown routes → "other". */
-export function workspaceSection(pathname: string, tabParam: string | null): WorkspaceSection {
-  if (pathname.startsWith("/notifications")) return "notifications";
-  if (pathname.startsWith("/activity")) return "activity";
-  if (pathname.startsWith("/settings")) return "settings";
-  if (pathname === "/" || /^\/w\/[^/]+\/?$/.test(pathname)) {
-    return tabParam === "library" ? "library" : "search";
-  }
-  return "other";
-}
-
-/** Where a drive tab should go to KEEP the current section (not always search).
- *  Content sections route to the target drive's content path (primary → "/", else
- *  "/w/<id>"); global sections carry the drive as `?w` (primary omits it). The
- *  search section's `&q=` is injected client-side from per-drive memory, so this
- *  returns the q-less base. */
-export function switcherTabHref(
-  section: WorkspaceSection,
-  targetDriveId: string,
-  primaryDriveId: string,
-): string {
-  const isPrimary = targetDriveId === primaryDriveId;
-  const basePath = isPrimary ? "/" : `/w/${targetDriveId}`;
-  const activeId = isPrimary ? undefined : targetDriveId;
-  switch (section) {
-    case "library":
-      return `${basePath}?tab=library`;
-    case "search":
-      return `${basePath}?tab=search`;
-    case "notifications":
-      return globalNavHref("/notifications", activeId);
-    case "activity":
-      return globalNavHref("/activity", activeId);
-    case "settings":
-      return globalNavHref("/settings", activeId);
-    default:
-      return basePath;
-  }
-}
-
-/** sessionStorage key for the last search query, scoped per drive by its basePath
- *  ("/" = primary, "/w/<id>" = others) so each drive remembers its own search. */
-export function lastQueryKey(basePath: string): string {
-  return `media-track.lastQuery.${basePath}`;
-}
-
-/** Link to a title's detail page, carrying the originating surface (`from`) AND the
- *  active drive (`?w`). The drive is REQUIRED for correctness, not just nav: the
- *  detail page resolves the title against this drive's tracked state, and TMDB's
- *  movie/TV id namespaces collide (movie 278 ≠ tv 278) — without the drive a
- *  non-primary title falls back to the primary scope and renders an unrelated
- *  show. Primary (activeStorageId undefined) omits `?w`, matching the rest. */
+/** Link to a title's detail page, carrying the originating surface (`from`).
+ *  盘不再进 URL：当前盘由 cookie 决定，详情页与服务端读的是同一个来源，所以不需要
+ *  （也无法）用 `?w` 传递。 */
 export function showHref(
   tmdbId: number,
   from: "search" | "library",
-  activeStorageId: string | undefined,
   type?: MediaType,
 ): string {
   let href = `/show/${tmdbId}?from=${from}`;
-  if (activeStorageId) {
-    href += `&w=${encodeURIComponent(activeStorageId)}`;
-  }
   // `t` disambiguates TMDB's separate movie/tv id namespaces for an UNTRACKED
   // title (the card knows the type; the detail page can't guess it). Tracked
   // titles resolve by DB type and ignore this.

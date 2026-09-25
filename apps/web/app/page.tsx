@@ -35,33 +35,25 @@ const MEDIA_TYPE_LABELS: Record<MediaType, string> = {
   variety: "综艺",
 };
 
-export default function Page({
+/**
+ * 搜索（/）。
+ *
+ * 媒体库已拆成独立路由 /library —— 两者是不同页面（找东西 vs 看我有什么），
+ * 不再用 `?tab=` 在同一个 page 里切换。盘进了 cookie，所以 URL 里也不再需要 `?w`。
+ *
+ * `?q=` 是查询参数（看什么），与路径段的分工一致：路径段放身份，query 放修饰。
+ */
+export default function SearchPage({
   searchParams,
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  return <HomeView searchParams={searchParams} />;
-}
-
-/**
- * Shared home surface for both the root route (storageId undefined → the
- * account's primary drive) and the /w/<storageId> workspace route (a specific
- * drive). The library + search awareness are scoped to that workspace.
- */
-export function HomeView({
-  searchParams,
-  storageId,
-}: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>> | undefined;
-  storageId?: string | undefined;
-}) {
   // searchParams is a dynamic input. Reading it inside a Suspense boundary lets
   // the static app shell prerender instead of the whole route blocking on it —
-  // this is what silences the cacheComponents "blocking-route" warning. The await
-  // resolves from the request URL (no I/O), so the fallback is effectively instant.
+  // this is what silences the cacheComponents "blocking-route" warning.
   return (
     <Suspense fallback={<HomeShell />}>
-      <HomeSurface searchParams={searchParams} storageId={storageId} />
+      <HomeSurface searchParams={searchParams} />
     </Suspense>
   );
 }
@@ -77,96 +69,60 @@ function HomeShell() {
 
 async function HomeSurface({
   searchParams,
-  storageId,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>> | undefined;
-  storageId?: string | undefined;
 }) {
   const params = (await searchParams) ?? {};
   const query = stringParam(params.q);
-  const activeTab = stringParam(params.tab) === "library" ? "library" : "search";
-  // `?type` is validated against the known shelves: an unrecognized value falls back
-  // to the full library. The old three-if filter chain matched nothing for an
-  // unrecognized type and leaked every title into that one shelf.
-  const typeParam = stringParam(params.type);
-  const mediaType: MediaType | "all" =
-    typeParam === "movie" || typeParam === "tv" || typeParam === "anime" || typeParam === "variety"
-      ? typeParam
-      : "all";
-  const filter = stringParam(params.filter) || "all";
-  // Tree model: keep searches inside the ACTIVE workspace so an acquisition lands
-  // on the drive you're viewing — not silently on the primary drive. Root route
-  // (no storageId) posts to "/" as before.
-  const basePath = storageId ? `/w/${storageId}` : "/";
   const driveCount = await getRegisteredDriveCount();
 
   return (
     <div className="app-shell">
-      <AppSidebar active={activeTab} searchQuery={query} basePath={basePath} activeStorageId={storageId} />
+      <AppSidebar active="search" />
 
       <main className="main product-main">
-        {activeTab === "search" ? (
-          <section className="search-surface">
-            <RememberQuery query={query} basePath={basePath} />
-            {/* 搜索区头部 = 标题 + 表单 +（多盘时）网盘隔离提示。
-                提示必须留在 .search-head 里、紧贴 hero —— **距离即归属**：它讲的是
-                搜索/获取的行为，就该读作搜索区的一部分。此前它是散在 hero 之后的一个
-                裸 <p>（还带 marginTop:-4 的负边距硬塞），离下方货架只有 8px、离 hero
-                有 24px，于是眼睛把它读成「热门剧集」的说明文字 —— 位置错了，而不是
-                文案错了。 */}
-            <div className="search-head">
-              <div className="search-hero">
-                <div>
-                  <h1>搜索</h1>
-                  <p>找到目标后发起获取，后台会处理资源判断、转存和验证。</p>
-                </div>
-                <SearchForm basePath={basePath} defaultQuery={query} />
+        <section className="search-surface">
+          <RememberQuery query={query} />
+          {/* 搜索区头部 = 标题 + 表单 +（多盘时）网盘隔离提示。
+              提示必须留在 .search-head 里、紧贴 hero —— **距离即归属**：它讲的是
+              搜索/获取的行为，就该读作搜索区的一部分。此前它是散在 hero 之后的一个
+              裸 <p>（还带 marginTop:-4 的负边距硬塞），离下方货架只有 8px、离 hero
+              有 24px，于是眼睛把它读成「热门剧集」的说明文字 —— 位置错了，而不是
+              文案错了。 */}
+          <div className="search-head">
+            <div className="search-hero">
+              <div>
+                <h1>搜索</h1>
+                <p>找到目标后发起获取，后台会处理资源判断、转存和验证。</p>
               </div>
-              {driveCount >= 2 ? (
-                <p className="search-scope-note">
-                  <Info size={13} aria-hidden />
-                  搜索与获取按网盘隔离 —— 请先切到目标网盘再操作
-                </p>
-              ) : null}
+              <SearchForm defaultQuery={query} />
             </div>
-            <Suspense key={`search-${query}`} fallback={<SearchResultsSkeleton />}>
-              <SearchResults
-                query={query}
-                storageId={storageId}
-                basePath={basePath}
-              />
-            </Suspense>
-          </section>
-        ) : (
-          <>
-            <DemoSessionLibrary />
-            <Suspense fallback={<LibrarySurfaceSkeleton />}>
-              <LibrarySurface mediaType={mediaType} filter={filter} storageId={storageId} />
-            </Suspense>
-          </>
-        )}
+            {driveCount >= 2 ? (
+              <p className="search-scope-note">
+                <Info size={13} aria-hidden />
+                搜索与获取按网盘隔离 —— 请先切到目标网盘再操作
+              </p>
+            ) : null}
+          </div>
+          <Suspense key={`search-${query}`} fallback={<SearchResultsSkeleton />}>
+            <SearchResults query={query} />
+          </Suspense>
+        </section>
       </main>
     </div>
   );
 }
 
-async function SearchResults({
-  query,
-  storageId,
-  basePath,
-}: {
-  query: string;
-  storageId?: string | undefined;
-  basePath: string;
-}) {
-  const searchView = await getSearchView(query, storageId);
+
+async function SearchResults({ query }: { query: string }) {
+  const searchView = await getSearchView(query);
   // Library awareness on results: a tracked title shows WHICH seasons are
   // obtained and routes to the same title page as the library — search must
   // anticipate re-searching something already obtained. Scoped to the active
   // workspace (drive), so "已获取" reflects THIS drive.
   const repository = getWorkflowRepository();
   await ensureDemoSeeded(repository);
-  const scope = await getActiveWorkspaceScope(storageId);
+  const scope = await getActiveWorkspaceScope();
   const trackedByTmdbId = new Map<number, TrackedSeasonState[]>();
   for (const state of await repository.listTrackedSeasonStates(scope)) {
     // Season-awareness covers anything tracked with seasons — TV AND anime
@@ -185,14 +141,14 @@ async function SearchResults({
   // flight, mount the poller so the card flips 已请求 → 已获取 the moment the run
   // finishes, with no manual refresh. (Previously only the library mounted it,
   // so a result acquired from search stayed stuck on 已请求.)
-  const inProgress = await getInProgressTitles(storageId);
+  const inProgress = await getInProgressTitles();
   const inProgressIds = new Set(inProgress.map((title) => title.tmdbId));
 
   return (
     <>
       {inProgress.length > 0 ? <AcquiringPoller /> : null}
       {searchView.state === "empty" ? (
-        <TrendingRow basePath={basePath} />
+        <TrendingRow />
       ) : searchView.state === "provider_error" ? (
         // TMDB access failed — either no key configured or network unreachable.
         // Show actionable guidance instead of crashing the page.
@@ -239,8 +195,7 @@ async function SearchResults({
                   trackedSeasonNumbers={(trackedByTmdbId.get(candidate.tmdbId) ?? []).map(
                     (state) => state.season.seasonNumber,
                   )}
-                  storageId={storageId}
-                  key={`${candidate.mediaType}_${candidate.tmdbId}`}
+                                    key={`${candidate.mediaType}_${candidate.tmdbId}`}
                 />
               ))}
             </div>
@@ -261,6 +216,7 @@ async function SearchResults({
  * Concrete library awareness for a result card: not just "tracked", but
  * WHICH seasons are obtained / airing / missing.
  */
+
 function trackedSummaryLabel(states: TrackedSeasonState[], totalSeasonCount: number): string | null {
   if (states.length === 0) {
     return null;
@@ -296,6 +252,7 @@ function trackedSummaryLabel(states: TrackedSeasonState[], totalSeasonCount: num
   return parts.join(" · ") || "已追踪";
 }
 
+
 function CandidateCard({
   candidate,
   acquiring,
@@ -320,7 +277,7 @@ function CandidateCard({
   );
   return (
     <article className="candidate-card">
-      <Link className="candidate-poster" href={showHref(candidate.tmdbId, "search", storageId, candidate.mediaType)} aria-hidden tabIndex={-1}>
+      <Link className="candidate-poster" href={showHref(candidate.tmdbId, "search", candidate.mediaType)} aria-hidden tabIndex={-1}>
         {candidate.posterPath ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={`https://image.tmdb.org/t/p/w342${candidate.posterPath}`} alt="" loading="lazy" />
@@ -332,7 +289,7 @@ function CandidateCard({
         <div className="candidate-title-row">
           <div>
             <h3>
-              <Link href={showHref(candidate.tmdbId, "search", storageId, candidate.mediaType)}>{candidate.title}</Link>
+              <Link href={showHref(candidate.tmdbId, "search", candidate.mediaType)}>{candidate.title}</Link>
             </h3>
             <p>
               {candidate.year} · {isTv ? "剧集" : "电影"}
@@ -349,8 +306,7 @@ function CandidateCard({
               <AcquireProgressBadge
                 tmdbId={candidate.tmdbId}
                 seasonNumber={null}
-                storageId={storageId}
-                title="后台正在获取——点查看进度（活动）"
+                                title="后台正在获取——点查看进度（活动）"
               />
             ) : null}
             {!acquiring && isTv && untrackedSeasons.length > 0 ? (
@@ -361,8 +317,7 @@ function CandidateCard({
                 allLabel={
                   trackedLabel !== null ? `获取剩余 ${untrackedSeasons.length} 季` : "获取所有季"
                 }
-                storageId={storageId}
-                demoEntry={{
+                                demoEntry={{
                   tmdbId: candidate.tmdbId,
                   title: candidate.title,
                   year: candidate.year,
@@ -375,7 +330,7 @@ function CandidateCard({
                 explicit 查看详情 when the show is FULLY tracked (no 获取 action
                 left) — never crammed next to a 获取 button. */}
             {!acquiring && isTv && trackedLabel !== null && untrackedSeasons.length === 0 ? (
-              <Link className="primary-button" href={showHref(candidate.tmdbId, "search", storageId, candidate.mediaType)}>
+              <Link className="primary-button" href={showHref(candidate.tmdbId, "search", candidate.mediaType)}>
                 查看详情
               </Link>
             ) : null}
@@ -386,8 +341,7 @@ function CandidateCard({
                 actionState={candidate.action.state}
                 disabled={candidate.action.disabled}
                 label={candidate.action.label}
-                storageId={storageId}
-                demoEntry={{
+                                demoEntry={{
                   tmdbId: candidate.tmdbId,
                   title: candidate.title,
                   year: candidate.year,
@@ -414,263 +368,6 @@ function CandidateCard({
   );
 }
 
-async function LibrarySurface({ mediaType, filter, storageId }: { mediaType: MediaType | "all"; filter: string; storageId?: string | undefined }) {
-  const [rawWall, inProgress] = await Promise.all([getLibraryWall(storageId), getInProgressTitles(storageId)]);
-  const inProgressIds = new Set(inProgress.map((title) => title.tmdbId));
-  // A title still being fetched shows as a 获取中 placeholder, not (yet) a card.
-  const wall = rawWall.filter((entry) => !inProgressIds.has(entry.tmdbId));
-
-  if (wall.length === 0 && inProgress.length === 0) {
-    return (
-      <section className="library-surface">
-        <div className="quiet-state">
-          <Library size={24} aria-hidden />
-          <strong>媒体库还是空的</strong>
-          <span>去搜索页发起第一次获取吧。</span>
-        </div>
-      </section>
-    );
-  }
-
-  // Homepage: every type as a horizontal row, with in-progress titles shown
-  // inline (as 获取中 cards) alongside the landed ones — plus the dedicated
-  // 获取中 row at the very top.
-  if (mediaType === "all") {
-    const byType = (type: MediaType) => ({
-      inProgressTitles: inProgress.filter((title) => title.type === type),
-      wallEntries: wall.filter((entry) => entry.type === type),
-    });
-    return (
-      <section className="library-surface">
-        <div className="section-heading library-heading">
-          <div>
-            <h1>我的媒体库</h1>
-          </div>
-        </div>
-
-        {inProgress.length > 0 ? <AcquiringPoller /> : null}
-        <InProgressRow titles={inProgress} />
-
-        <CategoryRow label="电影" type="movie" {...byType("movie")} storageId={storageId} />
-        <CategoryRow label="电视剧" type="tv" {...byType("tv")} storageId={storageId} />
-        <CategoryRow label="动漫" type="anime" {...byType("anime")} storageId={storageId} />
-        <CategoryRow label="综艺" type="variety" {...byType("variety")} storageId={storageId} />
-      </section>
-    );
-  }
-
-  // Category detail page
-  const filteredWall = wall.filter((entry) => {
-    // Type filter. mediaType is validated above and covers every MediaType, so one
-    // equality check is exhaustive (see MEDIA_TYPE_LABELS).
-    if (entry.type !== mediaType) return false;
-    // State filter
-    if (filter === "complete") return entry.state === "complete";
-    if (filter === "tracking") return entry.state === "tracking";
-    if (filter === "partial") return entry.state === "partial";
-    return true;
-  });
-
-  const typeLabel = MEDIA_TYPE_LABELS[mediaType];
-  const trackingCount = wall
-    .filter((entry) => entry.type === mediaType)
-    .filter((entry) => entry.state === "tracking" || entry.state === "partial").length;
-
-  return (
-    <section className="library-surface">
-      <div className="section-heading library-heading">
-        <div>
-          <h1>
-            <Link href="/?tab=library" style={{ marginRight: 12, opacity: 0.6 }}>
-              ‹
-            </Link>
-            {typeLabel}
-          </h1>
-          <p>{trackingCount > 0 && `${trackingCount} 部正在追踪`}</p>
-        </div>
-      </div>
-
-      <div style={{ marginBottom: 16, display: "flex", gap: 8 }}>
-        <Link
-          className={`filter-pill ${filter === "all" ? "is-active" : ""}`}
-          href={`/?tab=library&type=${mediaType}&filter=all`}
-        >
-          全部
-        </Link>
-        <Link
-          className={`filter-pill ${filter === "complete" ? "is-active" : ""}`}
-          href={`/?tab=library&type=${mediaType}&filter=complete`}
-        >
-          已完结
-        </Link>
-        <Link
-          className={`filter-pill ${filter === "tracking" ? "is-active" : ""}`}
-          href={`/?tab=library&type=${mediaType}&filter=tracking`}
-        >
-          追更中
-        </Link>
-        <Link
-          className={`filter-pill ${filter === "partial" ? "is-active" : ""}`}
-          href={`/?tab=library&type=${mediaType}&filter=partial`}
-        >
-          有缺集
-        </Link>
-      </div>
-
-      {inProgress.length > 0 ? <AcquiringPoller /> : null}
-      <InProgressRow titles={inProgress.filter((title) => title.type === mediaType)} />
-
-      <div className="poster-wall">
-        {filteredWall.map((entry) => (
-          <PosterCard entry={entry} activeStorageId={storageId} key={entry.tmdbId} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function CategoryRow({
-  label,
-  type,
-  inProgressTitles,
-  wallEntries,
-  storageId,
-}: {
-  label: string;
-  type: string;
-  inProgressTitles: InProgressTitle[];
-  wallEntries: LibraryWallEntry[];
-  storageId?: string | undefined;
-}) {
-  const count = inProgressTitles.length + wallEntries.length;
-  if (count === 0) {
-    return null;
-  }
-  return (
-    <div className="category-section">
-      <Link className="category-header" href={`/?tab=library&type=${type}&filter=all`}>
-        <h2>
-          {label} {count}
-        </h2>
-        <span className="category-arrow">›</span>
-      </Link>
-      <div className="poster-row">
-        {inProgressTitles.map((title) => (
-          <InProgressCard title={title} key={`ip_${title.tmdbId}`} />
-        ))}
-        {wallEntries.map((entry) => (
-          <PosterCard entry={entry} activeStorageId={storageId} key={entry.tmdbId} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function InProgressRow({ titles }: { titles: InProgressTitle[] }) {
-  if (titles.length === 0) {
-    return null;
-  }
-  return (
-    <div className="category-section">
-      <div className="category-header is-static">
-        <h2>获取中 {titles.length}</h2>
-      </div>
-      <div className="poster-row">
-        {titles.map((title) => (
-          <InProgressCard title={title} key={title.tmdbId} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function InProgressCard({ title }: { title: InProgressTitle }) {
-  return (
-    <div className="wall-card is-loading" aria-disabled title="获取中，完成后可进入">
-      <span className="wall-poster">
-        {title.posterPath ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={`https://image.tmdb.org/t/p/w342${title.posterPath}`} alt="" loading="lazy" />
-        ) : (
-          <span className="poster-fallback">{title.title.slice(0, 4)}</span>
-        )}
-        <span className="wall-loading-overlay">
-          <LoaderCircle size={20} className="spin" aria-hidden />
-          <span>获取中</span>
-        </span>
-      </span>
-      <span className="wall-copy">
-        <strong>{title.title}</strong>
-        <span>{title.year} · 正在获取</span>
-      </span>
-    </div>
-  );
-}
-
-function PosterCard({ entry, activeStorageId }: { entry: LibraryWallEntry; activeStorageId?: string | undefined }) {
-  // Completeness and "still airing" are orthogonal: a 缺集 title whose latest
-  // season is still releasing shows BOTH ⚠️有缺集 and 追更中 (斗破苍穹), so the
-  // blue/indigo "在更" signal isn't swallowed by the warning (parity with 达顿牧场).
-  const badges =
-    entry.state === "reserved"
-      ? [{ tone: "blue", icon: CalendarClock, label: "预定（未上映）" }]
-      : entry.state === "complete"
-        ? [{ tone: "green", icon: CheckCircle2, label: "已全部入库" }]
-        : entry.state === "tracking"
-          ? [{ tone: "indigo", icon: Clock3, label: "追更中" }]
-          : [
-              { tone: "amber", icon: TriangleAlert, label: "有缺集" },
-              ...(entry.airing ? [{ tone: "indigo", icon: Clock3, label: "追更中" }] : []),
-            ];
-
-  return (
-    <Link className="wall-card" href={showHref(entry.tmdbId, "library", activeStorageId, entry.type)}>
-      <span className="wall-poster">
-        {entry.posterPath ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={`https://image.tmdb.org/t/p/w342${entry.posterPath}`} alt="" loading="lazy" />
-        ) : (
-          <span className="poster-fallback">{entry.title.slice(0, 4)}</span>
-        )}
-        <span className="wall-states">
-          {badges.map((badge) => {
-            const BadgeIcon = badge.icon;
-            return (
-              <span className={`wall-state tone-${badge.tone}`} title={badge.label} key={badge.label}>
-                <BadgeIcon size={13} aria-hidden />
-              </span>
-            );
-          })}
-        </span>
-      </span>
-      <span className="wall-copy">
-        <strong>{entry.title}</strong>
-        <span>
-          {/* A movie has no seasons/episodes; reserved ones name the release date.
-              Series show 已获取/已播/共 (e.g. 6/6/9) so 6/6 of a 9-ep season no
-              longer reads as "100% complete". */}
-          {entry.type === "movie"
-            ? entry.state === "reserved"
-              ? `预定 · ${formatReleaseDate(entry.releaseDate)}上映`
-              : entry.year
-            : `${entry.year} · ${entry.seasonCount} 季 · ${entry.obtainedEpisodes}/${entry.totalAiredEpisodes}/${entry.totalEpisodes} 集`}
-        </span>
-      </span>
-    </Link>
-  );
-}
-
-/** "2026-12-16" → "12月16日"; falls back to the year when only a year is known. */
-function formatReleaseDate(releaseDate: string | null): string {
-  if (!releaseDate) {
-    return "";
-  }
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(releaseDate);
-  if (!match) {
-    return releaseDate;
-  }
-  return `${Number(match[2])}月${Number(match[3])}日`;
-}
 
 function SearchResultsSkeleton() {
   return (
@@ -681,20 +378,8 @@ function SearchResultsSkeleton() {
   );
 }
 
-function LibrarySurfaceSkeleton() {
-  return (
-    <section className="library-surface">
-      <div className="skeleton skeleton-heading" />
-      <div className="poster-wall">
-        <div className="skeleton skeleton-poster" />
-        <div className="skeleton skeleton-poster" />
-        <div className="skeleton skeleton-poster" />
-        <div className="skeleton skeleton-poster" />
-      </div>
-    </section>
-  );
-}
 
 function stringParam(value: string | string[] | undefined): string {
   return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
 }
+

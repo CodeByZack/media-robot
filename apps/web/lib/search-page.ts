@@ -26,7 +26,7 @@ export async function getSearchView(query: string, storageId?: string): Promise<
   await ensureDemoSeeded(repository);
   // Tree model: scope a movie's 已获取/获取 state to the active drive — obtained on
   // one drive must stay acquirable on another's workspace.
-  const scope = await getActiveWorkspaceScope(storageId);
+  const scope = await getActiveWorkspaceScope();
   return getSearchPageView({
     query,
     provider: await getMediaSearchProvider(),
