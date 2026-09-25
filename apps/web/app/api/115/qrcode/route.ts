@@ -1,6 +1,6 @@
 import { isDemoMode } from "../../../../lib/demo-mode";
 import { NextResponse } from "next/server";
-import { Pan115QrLoginClient } from "@mediarover/workflow";
+import { Pan115QrLoginClient } from "@mediarobot/workflow";
 
 export async function POST(): Promise<NextResponse> {
   if (isDemoMode()) return NextResponse.json({ error: "演示站只读" }, { status: 403 });

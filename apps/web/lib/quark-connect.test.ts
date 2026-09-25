@@ -29,8 +29,8 @@ const boot = async (opts: { failProvision?: boolean } = {}) => {
   process.env.MEDIA_TRACK_SQLITE_PATH = ":memory:";
   quarkClientConstructions = 0;
   vi.resetModules();
-  vi.doMock("@mediarover/workflow", async () => {
-    const actual = await vi.importActual<typeof import("@mediarover/workflow")>("@mediarover/workflow");
+  vi.doMock("@mediarobot/workflow", async () => {
+    const actual = await vi.importActual<typeof import("@mediarobot/workflow")>("@mediarobot/workflow");
     return {
       ...actual,
       QuarkCookieClient: FakeQuarkCookieClient,
@@ -47,7 +47,7 @@ const boot = async (opts: { failProvision?: boolean } = {}) => {
 };
 
 afterEach(() => {
-  vi.doUnmock("@mediarover/workflow");
+  vi.doUnmock("@mediarobot/workflow");
   delete process.env.MEDIA_TRACK_SQLITE_PATH;
   vi.resetModules();
 });

@@ -22,7 +22,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const PROVIDER_UID = "guangya-sub-0001";
 
-/** Stub for @mediarover/workflow's GuangYaClient — no network. connectGuangYa
+/** Stub for @mediarobot/workflow's GuangYaClient — no network. connectGuangYa
  *  constructs it with the token blob and calls validateToken() for the sub. */
 class FakeGuangYaClient {
   constructor(readonly options: unknown) {}
@@ -36,8 +36,8 @@ class FakeGuangYaClient {
 const boot = async () => {
   process.env.MEDIA_TRACK_SQLITE_PATH = ":memory:";
   vi.resetModules();
-  vi.doMock("@mediarover/workflow", async () => {
-    const actual = await vi.importActual<typeof import("@mediarover/workflow")>("@mediarover/workflow");
+  vi.doMock("@mediarobot/workflow", async () => {
+    const actual = await vi.importActual<typeof import("@mediarobot/workflow")>("@mediarobot/workflow");
     return {
       ...actual,
       GuangYaClient: FakeGuangYaClient,
@@ -52,7 +52,7 @@ const boot = async () => {
 };
 
 afterEach(() => {
-  vi.doUnmock("@mediarover/workflow");
+  vi.doUnmock("@mediarobot/workflow");
   delete process.env.MEDIA_TRACK_SQLITE_PATH;
   vi.resetModules();
 });

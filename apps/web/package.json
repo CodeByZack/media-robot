@@ -1,9 +1,9 @@
 {
-  "name": "@mediarover/web",
+  "name": "@mediarobot/web",
   "private": true,
   "type": "module",
   "dependencies": {
-    "@mediarover/workflow": "*",
+    "@mediarobot/workflow": "*",
     "@vercel/analytics": "^2.0.1",
     "undici": "^7.28.0"
   }

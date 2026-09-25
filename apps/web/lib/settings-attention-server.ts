@@ -3,7 +3,7 @@ import {
   isRegisteredStorageProvider,
   resolveWorkspaceFromParam,
   type WorkflowRepository,
-} from "@mediarover/workflow";
+} from "@mediarobot/workflow";
 import { isDemoMode } from "./demo-mode";
 import { loadDeploymentUpdateState } from "./deployment-update-server";
 import { DEFAULT_LOCAL_ORIGIN } from "./request-origin";

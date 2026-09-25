@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { QuarkQrLoginClient } from "@mediarover/workflow";
+import { QuarkQrLoginClient } from "@mediarobot/workflow";
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const token = request.nextUrl.searchParams.get("token") ?? "";

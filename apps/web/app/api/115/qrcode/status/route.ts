@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { Pan115QrLoginClient } from "@mediarover/workflow";
+import { Pan115QrLoginClient } from "@mediarobot/workflow";
 
 // One long-poll round per request: the upstream endpoint holds the
 // connection until the status changes or ~30s passes; the browser just

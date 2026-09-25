@@ -7,8 +7,8 @@ import { ChevronDown, ChevronRight, LoaderCircle, RotateCcw, Save } from "lucide
 import { apiCall } from "../lib/api";
 import type { RuleSaveResult, RuleResetResult } from "../lib/api-types";
 // 子路径导入:ruleset/prompt-templates 零 node 依赖,可安全进客户端 chunk(barrel 含 sqlite→node:module,Turbopack 会炸)。
-import { PROMPT_TEMPLATES } from "@mediarover/workflow/prompt-templates";
-import { ARBITRATION_KINDS, validatePromptBody, type ArbitrationKind } from "@mediarover/workflow/ruleset";
+import { PROMPT_TEMPLATES } from "@mediarobot/workflow/prompt-templates";
+import { ARBITRATION_KINDS, validatePromptBody, type ArbitrationKind } from "@mediarobot/workflow/ruleset";
 
 /** 只读展示段(head / tail)的统一样式。 */
 const READONLY_PRE_STYLE: CSSProperties = {

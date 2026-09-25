@@ -10,7 +10,7 @@ import type { AcquireResult } from "../lib/api-types";
 // type-only barrel import, dragging pg into THIS client bundle → "pg in Client
 // Component Browser" build failures. The /search-view subpath pulls only pg-free
 // leaf modules (domain, workflow-scope), so the type can never carry pg in.
-import type { SearchActionState } from "@mediarover/workflow/search-view";
+import type { SearchActionState } from "@mediarobot/workflow/search-view";
 import { RequestedBadge } from "./request-state";
 import { AcquireProgressBadge } from "./acquire-progress-badge";
 import { isDemoModeClient } from "../lib/demo-mode";

@@ -1,6 +1,6 @@
-# Deploy MediaRover
+# Deploy MediaRobot
 
-MediaRover 有两种部署方式:
+MediaRobot 有两种部署方式:
 
 | | 飞牛 fnOS 原生应用 (fpk) | Docker Compose (服务器) |
 |---|---|---|

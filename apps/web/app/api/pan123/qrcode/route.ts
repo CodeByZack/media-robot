@@ -1,6 +1,6 @@
 import { isDemoMode } from "../../../../lib/demo-mode";
 import { NextResponse } from "next/server";
-import { Pan123QrLoginClient } from "@mediarover/workflow";
+import { Pan123QrLoginClient } from "@mediarobot/workflow";
 
 // 123网盘 QR generate. Unlike 天翼 there is NO stateful cookie jar to round-trip:
 // the session is just { uniID, qrcodeContent } — /status only needs the uniID

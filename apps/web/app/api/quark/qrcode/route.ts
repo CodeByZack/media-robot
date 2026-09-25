@@ -1,6 +1,6 @@
 import { isDemoMode } from "../../../../lib/demo-mode";
 import { NextResponse } from "next/server";
-import { QuarkQrLoginClient } from "@mediarover/workflow";
+import { QuarkQrLoginClient } from "@mediarobot/workflow";
 
 export async function POST(): Promise<NextResponse> {
   if (isDemoMode()) return NextResponse.json({ error: "演示站只读" }, { status: 403 });

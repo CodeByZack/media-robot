@@ -71,7 +71,7 @@ import {
   type TrackedSeasonStatusView,
   type VerifiedFile,
   type WorkflowRepository,
-} from "@mediarover/workflow";
+} from "@mediarobot/workflow";
 import {
   buildPanSouProviderChain,
   resolveUserPanSouBaseUrl,
@@ -667,7 +667,7 @@ export async function runStartupMigrations(): Promise<void> {
     });
     if (result.migrated) {
       console.log(
-        `[mediarover] migrated legacy 115 cookie → ${DEFAULT_ACCOUNT_ID} connected_storage (uid ${result.providerUid})`,
+        `[mediarobot] migrated legacy 115 cookie → ${DEFAULT_ACCOUNT_ID} connected_storage (uid ${result.providerUid})`,
       );
     }
     // Tree model: pin legacy tracked rows (null connected_storage_id) to each
@@ -675,10 +675,10 @@ export async function runStartupMigrations(): Promise<void> {
     // has its drive. Idempotent — already-pinned rows are untouched.
     const filled = await getWorkflowRepository().backfillConnectedStorageId();
     if (filled > 0) {
-      console.log(`[mediarover] backfilled connected_storage_id on ${filled} legacy row(s)`);
+      console.log(`[mediarobot] backfilled connected_storage_id on ${filled} legacy row(s)`);
     }
   } catch (error) {
-    console.error(`[mediarover] startup migration failed: ${String(error)}`);
+    console.error(`[mediarobot] startup migration failed: ${String(error)}`);
   }
 }
 
@@ -1613,7 +1613,7 @@ function makeTokenPersister(
       const drive = (await repository.listConnectedStorages(accountId)).find((s) => s.id === storageId);
       if (!drive) {
         console.warn(
-          `[mediarover] ${provider} token refresh: drive ${storageId} (account ${accountId}) vanished, skip persist`,
+          `[mediarobot] ${provider} token refresh: drive ${storageId} (account ${accountId}) vanished, skip persist`,
         );
         return;
       }
@@ -1621,7 +1621,7 @@ function makeTokenPersister(
       // keys — a buggy/partial refresh would otherwise silently disconnect the
       // drive (extractStorageCredential → null: no freeze, no error, just gone).
       if (!extractStorageCredential(drive.provider, blob).credential) {
-        console.warn(`[mediarover] ${provider} token refresh: incomplete blob for ${storageId}, skip persist`);
+        console.warn(`[mediarobot] ${provider} token refresh: incomplete blob for ${storageId}, skip persist`);
         return;
       }
       const prevMeta = (drive.payload as { meta?: unknown } | null)?.meta;
@@ -1644,7 +1644,7 @@ function makeTokenPersister(
         createdAt: drive.createdAt,
       });
     } catch (error) {
-      console.error(`[mediarover] token refresh persist failed for ${storageId}: ${String(error)}`);
+      console.error(`[mediarobot] token refresh persist failed for ${storageId}: ${String(error)}`);
     }
   };
 }
@@ -1698,9 +1698,9 @@ async function getAccountStorageCredentials(
           varietyCid,
           createdAt: drive.createdAt,
         });
-        console.log(`[mediarover] auto-provisioned ${drive.provider} dirs for ${drive.id} (root=${rootCid})`);
+        console.log(`[mediarobot] auto-provisioned ${drive.provider} dirs for ${drive.id} (root=${rootCid})`);
       } catch (error) {
-        console.error(`[mediarover] auto-provision failed for ${drive.id}: ${String(error)}`);
+        console.error(`[mediarobot] auto-provision failed for ${drive.id}: ${String(error)}`);
       }
     }
     return {
@@ -1716,7 +1716,7 @@ async function getAccountStorageCredentials(
       varietyCid,
     };
   } catch (error) {
-    console.error(`[mediarover] failed to load storage credentials for ${accountId}: ${String(error)}`);
+    console.error(`[mediarobot] failed to load storage credentials for ${accountId}: ${String(error)}`);
     return null;
   }
 }
@@ -1761,9 +1761,9 @@ async function freezeConnectedStorage(storageId: string, reason: string): Promis
       reason,
       new Date().toISOString(),
     );
-    console.warn(`[mediarover] froze connected_storage ${storageId}: ${reason}`);
+    console.warn(`[mediarobot] froze connected_storage ${storageId}: ${reason}`);
   } catch (error) {
-    console.error(`[mediarover] failed to freeze ${storageId}: ${String(error)}`);
+    console.error(`[mediarobot] failed to freeze ${storageId}: ${String(error)}`);
   }
 }
 
@@ -1814,7 +1814,7 @@ async function probeStorageConnection(
   // testConnection (an existing drive). Omitted at first-connect (no row yet).
   onCredentialRefresh?: ((creds: unknown) => Promise<void>) | undefined,
 ): Promise<void> {
-  const { Pan115CookieClient, Pan123Client, QuarkCookieClient, TianyiClient } = await import("@mediarover/workflow");
+  const { Pan115CookieClient, Pan123Client, QuarkCookieClient, TianyiClient } = await import("@mediarobot/workflow");
   if (provider === "guangya") {
     const blob = (credential ?? {}) as { accessToken?: string; refreshToken?: string; deviceId?: string };
     // Token-auth: validateToken() does account/v1/user/me + refresh-retry on 401;
@@ -2386,7 +2386,7 @@ async function bindTokenConnectedStorage(input: {
   try {
     cids = await provisionDriveCategoryDirs(provider, "", credentialBlob);
   } catch (error) {
-    console.error(`[mediarover] ${provider} directory provision failed (will store without CIDs): ${String(error)}`);
+    console.error(`[mediarobot] ${provider} directory provision failed (will store without CIDs): ${String(error)}`);
   }
   const idSuffix = providerUid.replace(/[^A-Za-z0-9]/g, "").slice(0, 48);
   await repository.upsertConnectedStorage({
@@ -2488,7 +2488,7 @@ async function bindPan115ConnectedStorage(input: {
         varietyCid: provisioned.varietyCid,
       };
     } catch (error) {
-      console.error(`[mediarover] 115 directory provision failed (will use root fallback): ${String(error)}`);
+      console.error(`[mediarobot] 115 directory provision failed (will use root fallback): ${String(error)}`);
     }
   }
   await repository.upsertConnectedStorage({
@@ -2511,7 +2511,7 @@ export async function completePan115QrLogin(input: {
   session: { uid: string; time: number; sign: string; qrcodeContent: string };
   app?: string;
 }): Promise<{ userName: string; app: string }> {
-  const { Pan115QrLoginClient, PAN115_QR_LOGIN_APPS } = await import("@mediarover/workflow");
+  const { Pan115QrLoginClient, PAN115_QR_LOGIN_APPS } = await import("@mediarobot/workflow");
   const app = (PAN115_QR_LOGIN_APPS as readonly string[]).includes(input.app ?? "")
     ? (input.app as (typeof PAN115_QR_LOGIN_APPS)[number])
     : "alipaymini";
@@ -2630,7 +2630,7 @@ export async function connectQuarkCookie(rawCookie: string): Promise<{ providerU
       },
     });
   } catch (error) {
-    console.error(`[mediarover] 夸克 directory provision failed (will store without CIDs): ${String(error)}`);
+    console.error(`[mediarobot] 夸克 directory provision failed (will store without CIDs): ${String(error)}`);
   }
   const idSuffix = providerUid.replace(/[^A-Za-z0-9]/g, "").slice(0, 48);
   await repository.upsertConnectedStorage({
@@ -2656,7 +2656,7 @@ export async function connectQuarkCookie(rawCookie: string): Promise<{ providerU
  * 有效性由用户真机扫码确认;兑换失败时设置页折叠的 cookie 粘贴是回退。
  */
 export async function completeQuarkQrLogin(serviceTicket: string): Promise<{ providerUid: string }> {
-  const { QuarkQrLoginClient } = await import("@mediarover/workflow");
+  const { QuarkQrLoginClient } = await import("@mediarobot/workflow");
   const { cookie } = await new QuarkQrLoginClient().exchangeCookie(serviceTicket);
   return connectQuarkCookie(cookie);
 }
@@ -2747,7 +2747,7 @@ export async function completeTianyiQrLogin(
   session: TianyiQrSession,
   redirectUrl: string,
 ): Promise<{ providerUid: string }> {
-  const { TianyiQrLoginClient } = await import("@mediarover/workflow");
+  const { TianyiQrLoginClient } = await import("@mediarobot/workflow");
   // Wrap ONLY the exchange: a raw transport error (TIANYI_QR_HTTP_FAILED / timeout)
   // becomes an actionable branded message. bind() stays OUTSIDE the try so its
   // StorageOwnedByOtherAccountError propagates uncaught (the T8 route 409s on it).
@@ -2769,7 +2769,7 @@ export async function connectTianyiSson(sson: string): Promise<{ providerUid: st
   if (!trimmed) {
     throw new Error("请粘贴天翼 SSON cookie。");
   }
-  const { TianyiQrLoginClient } = await import("@mediarover/workflow");
+  const { TianyiQrLoginClient } = await import("@mediarobot/workflow");
   // Wrap ONLY the SSON login so a raw transport/timeout error surfaces as an
   // actionable branded message. bind() stays OUTSIDE the try so its
   // StorageOwnedByOtherAccountError propagates uncaught (T8 route 409s on it).

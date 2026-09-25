@@ -1,4 +1,4 @@
-import type { MediaSearchCandidate, MediaSearchProvider } from "@mediarover/workflow";
+import type { MediaSearchCandidate, MediaSearchProvider } from "@mediarobot/workflow";
 
 export const demoMediaSearchProvider: MediaSearchProvider = {
   async searchMedia(input: { query: string }): Promise<MediaSearchCandidate[]> {

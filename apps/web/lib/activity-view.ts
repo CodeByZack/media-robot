@@ -6,7 +6,7 @@ import {
   type WorkflowRepository,
   type WorkflowRunProgress,
   type WorkflowScope,
-} from "@mediarover/workflow";
+} from "@mediarobot/workflow";
 import { distinctSeasons, seasonLabelText } from "./activity-season-label";
 
 // Re-export the pure season-label helpers so existing server-side imports from

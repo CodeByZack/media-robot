@@ -306,8 +306,8 @@ describe("runScheduledType3（per-slot 认领 + 合并补跑）", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date(`${beijingISO}:00.000+08:00`));
     vi.resetModules();
-    vi.doMock("@mediarover/workflow", async () => {
-      const actual = await vi.importActual<typeof import("@mediarover/workflow")>("@mediarover/workflow");
+    vi.doMock("@mediarobot/workflow", async () => {
+      const actual = await vi.importActual<typeof import("@mediarobot/workflow")>("@mediarobot/workflow");
       return { ...actual, runScheduledType3Monitoring: monitor };
     });
     rt = await import("./workflow-runtime");
@@ -320,7 +320,7 @@ describe("runScheduledType3（per-slot 认领 + 合并补跑）", () => {
 
   afterEach(() => {
     vi.useRealTimers();
-    vi.doUnmock("@mediarover/workflow");
+    vi.doUnmock("@mediarobot/workflow");
     delete process.env.MEDIA_TRACK_SQLITE_PATH;
     vi.resetModules();
   });

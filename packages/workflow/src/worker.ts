@@ -56,7 +56,7 @@ async function maybeFreezeOnBrandAuthError(input: {
     await onAuthErrorFreeze(connectedStorageId, reason);
   } catch (freezeError) {
     console.error(
-      `[mediarover] onAuthErrorFreeze failed for ${connectedStorageId}: ${String(freezeError)}`,
+      `[mediarobot] onAuthErrorFreeze failed for ${connectedStorageId}: ${String(freezeError)}`,
     );
   }
 }

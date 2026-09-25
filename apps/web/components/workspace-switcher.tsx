@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
-import { lastQueryKey, switcherTabHref, workspaceSection } from "@mediarover/workflow/scope";
+import { lastQueryKey, switcherTabHref, workspaceSection } from "@mediarobot/workflow/scope";
 
 export interface WorkspaceTab {
   id: string;

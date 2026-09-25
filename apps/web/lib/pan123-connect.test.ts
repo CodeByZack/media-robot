@@ -31,7 +31,7 @@ const DEAD_TOKEN = `${b64url({ alg: "HS256", typ: "JWT" })}.${b64url({ id: 42424
  *  token). Reset in boot(). */
 let pan123ClientConstructions = 0;
 
-/** Stub for @mediarover/workflow's Pan123Client — no network. The probe arm
+/** Stub for @mediarobot/workflow's Pan123Client — no network. The probe arm
  *  calls listFiles("0"); a token whose signature segment is "DEAD" simulates a
  *  revoked/expired token (the real client throws Pan123AuthError on code 401). */
 class FakePan123Client {
@@ -58,8 +58,8 @@ const boot = async (opts: { failProvision?: boolean } = {}) => {
   process.env.MEDIA_TRACK_SQLITE_PATH = ":memory:";
   pan123ClientConstructions = 0;
   vi.resetModules();
-  vi.doMock("@mediarover/workflow", async () => {
-    const actual = await vi.importActual<typeof import("@mediarover/workflow")>("@mediarover/workflow");
+  vi.doMock("@mediarobot/workflow", async () => {
+    const actual = await vi.importActual<typeof import("@mediarobot/workflow")>("@mediarobot/workflow");
     return {
       ...actual,
       Pan123Client: FakePan123Client,
@@ -76,13 +76,13 @@ const boot = async (opts: { failProvision?: boolean } = {}) => {
 };
 
 afterEach(() => {
-  vi.doUnmock("@mediarover/workflow");
+  vi.doUnmock("@mediarobot/workflow");
   delete process.env.MEDIA_TRACK_SQLITE_PATH;
   vi.resetModules();
 });
 
 describe("connectPan123Token (bind)", () => {
-  // The FIRST boot() cold-imports the whole @mediarover/workflow dist graph via
+  // The FIRST boot() cold-imports the whole @mediarobot/workflow dist graph via
   // vi.importActual — measured ~5.5s on a cold cache, just past vitest's 5s
   // default. Logic is fast once the module graph is warm; give the cold boot
   // headroom so the suite is stable on slower machines.

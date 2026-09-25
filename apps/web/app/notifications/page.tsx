@@ -1,8 +1,8 @@
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { Bell } from "lucide-react";
-import type { NotificationEvent, NotificationReportStatus, WorkflowScope } from "@mediarover/workflow";
-import { landedSize } from "@mediarover/workflow";
+import type { NotificationEvent, NotificationReportStatus, WorkflowScope } from "@mediarobot/workflow";
+import { landedSize } from "@mediarobot/workflow";
 import { NotificationsSeenMarker } from "../../components/notifications-seen-marker";
 import { DemoSessionNotifications } from "../../components/demo-session-notifications";
 import { AppSidebar } from "../../components/app-sidebar";

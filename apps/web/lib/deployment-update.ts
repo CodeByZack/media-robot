@@ -70,7 +70,7 @@ export async function getDeploymentUpdateState(input: {
 }
 
 /** Instruction copied to the owner's LOCAL coding agent (the agent runs on the
- *  user's laptop; MediaRover is deployed on a DIFFERENT machine). The prompt
+ *  user's laptop; MediaRobot is deployed on a DIFFERENT machine). The prompt
  *  therefore never assumes repo/container access: the agent must SSH over, and
  *  every step is either verified or a hard stop — the deploy script's own
  *  self-check (BUILD_COMMIT == HEAD + DB-backed /api/health) is the gate. The
@@ -82,9 +82,9 @@ export function buildContainerUpgradePrompt(input: {
   origin: string;
 }): string {
   return [
-    `你在我的笔记本上，MediaRover 部署在另一台机器（我通过 ${input.origin} 访问它）。`,
+    `你在我的笔记本上，MediaRobot 部署在另一台机器（我通过 ${input.origin} 访问它）。`,
     `1. 从 ${input.origin} 推出部署机的 SSH 目标（主机名/IP，端口与用户不确定就问我），先 ssh 上去；连不上就停下问我，绝不猜地址乱试。`,
-    "2. 在部署机上 `docker ps` 找到 MediaRover 的 web 容器。",
+    "2. 在部署机上 `docker ps` 找到 MediaRobot 的 web 容器。",
     '3. `docker inspect <容器> --format \'{{index .Config.Labels "com.docker.compose.project.working_dir"}}\'` 拿到仓库目录并 cd 进去。',
     `4. \`git rev-parse --short HEAD\` 必须等于 ${input.currentShort}（当前运行版本）；不等就停下报告，不要继续。`,
     `5. \`git pull --ff-only\` 更新到 ${input.latestShort}，然后执行 \`./scripts/deploy.sh\`。`,

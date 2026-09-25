@@ -19,7 +19,7 @@ import {
   PROWLARR_API_KEY_SETTING_KEY,
   runScheduledType3,
 } from "../../../../lib/workflow-runtime";
-import { normalizeLlmBaseUrl, sanitizeLlmApiKey } from "@mediarover/workflow";
+import { normalizeLlmBaseUrl, sanitizeLlmApiKey } from "@mediarobot/workflow";
 import { probePanSou, validatePanSouBaseUrlFormat } from "../../../../lib/pansou-probe";
 
 export async function POST(request: NextRequest) {

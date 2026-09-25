@@ -1,5 +1,5 @@
 <svg width="600" height="96" viewBox="0 0 600 96" role="img" xmlns="http://www.w3.org/2000/svg">
-  <title>MediaRover</title>
+  <title>MediaRobot</title>
   <desc>Agent-driven media library for your cloud drives.</desc>
   <rect x="0" y="0" width="600" height="96" rx="12" fill="#0E1116"/>
   <g transform="translate(28,20) scale(2.3333)">
@@ -14,6 +14,6 @@
       <path d="m16.62 12-5.74 9.94"/>
     </g>
   </g>
-  <text x="106" y="44" fill="#F5F7FA" font-family="-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="27" font-weight="600">MediaRover</text>
+  <text x="106" y="44" fill="#F5F7FA" font-family="-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="27" font-weight="600">MediaRobot</text>
   <text x="107" y="70" fill="#9BA3AE" font-family="-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="13.5">Agent-driven media library for your cloud drives</text>
 </svg>

@@ -1,5 +1,5 @@
-import { MEDIA_TYPES } from "@mediarover/workflow/media-types";
-import type { MediaType } from "@mediarover/workflow";
+import { MEDIA_TYPES } from "@mediarobot/workflow/media-types";
+import type { MediaType } from "@mediarobot/workflow";
 import type { ActivityCompletedItem } from "./activity-view";
 import { playbackStateAt, DEMO_PLAYBACK_TOTAL_MS } from "./demo-playback-timeline";
 

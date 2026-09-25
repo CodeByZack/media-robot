@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/hero.svg" alt="MediaRover" width="600">
+  <img src="docs/images/hero.svg" alt="MediaRobot" width="600">
 </p>
 
 <p align="center">
@@ -25,11 +25,11 @@
 
 ---
 
-你说要某部电影 / 剧 / 番,MediaRover 跨资源索引源(PanSou / Prowlarr)搜索,把最合适的**转存进你自己的 115 / 夸克 / 光鸭 / 123 / 天翼 网盘**,转存后回读验证、按 TMDB 规范命名归位,并持续追踪还缺什么集。确定性代码拥有每一步的执行与校验,LLM 只在真正需要判断的节点做**有界的单次仲裁**——一次干净的获取通常只花 2 次 AI 调用,顺利时更少。
+你说要某部电影 / 剧 / 番,MediaRobot 跨资源索引源(PanSou / Prowlarr)搜索,把最合适的**转存进你自己的 115 / 夸克 / 光鸭 / 123 / 天翼 网盘**,转存后回读验证、按 TMDB 规范命名归位,并持续追踪还缺什么集。确定性代码拥有每一步的执行与校验,LLM 只在真正需要判断的节点做**有界的单次仲裁**——一次干净的获取通常只花 2 次 AI 调用,顺利时更少。
 
-![MediaRover — 搜片 → 点获取 → 自动搜索、转存、验证落进你的网盘](docs/images/demo.gif)
+![MediaRobot — 搜片 → 点获取 → 自动搜索、转存、验证落进你的网盘](docs/images/demo.gif)
 
-> **免责声明。** MediaRover 是**开源、自部署**软件,**不提供、也永远不会提供托管服务** —— 你自己跑实例、自带网盘 / LLM / 元数据凭证。它做的就是你本可以在自己网盘里手动完成的那些文件操作。项目定位详见 [docs/distribution-and-legal-positioning.md](docs/distribution-and-legal-positioning.md)。
+> **免责声明。** MediaRobot 是**开源、自部署**软件,**不提供、也永远不会提供托管服务** —— 你自己跑实例、自带网盘 / LLM / 元数据凭证。它做的就是你本可以在自己网盘里手动完成的那些文件操作。项目定位详见 [docs/distribution-and-legal-positioning.md](docs/distribution-and-legal-positioning.md)。
 
 ## 目录
 
@@ -45,7 +45,7 @@
 
 ## 它是什么
 
-大多数「媒体自动化」要么搜得好但不知道你到底缺哪集,要么会搬文件却从不验证落了什么。MediaRover 把获取当成一个**状态问题**,凭证据行动:
+大多数「媒体自动化」要么搜得好但不知道你到底缺哪集,要么会搬文件却从不验证落了什么。MediaRobot 把获取当成一个**状态问题**,凭证据行动:
 
 - **多盘、品牌可扩展** —— 现支持夸克、115、光鸭(GuangYaPan)、123、天翼五块盘,每块盘都是一等工作区(树模型:一个账号、多块盘)。接入新品牌是个收敛的插件活。
 - **确定性优先的获取** —— 候选资源先过机械评分(A/B/C/D:标题/别名匹配含简繁折叠、季与集数规则、中字标记、死链记忆与同名异作排除)。唯一 A 级候选直接盲转;LLM 只在选片、诊断、集数映射三个升级点被**单次**咨询,解析失败保守降级。
@@ -160,7 +160,7 @@ flowchart LR
 想让 AI agent 带你走?把下面这段丢给它——它会问对问题、然后替你部署:
 
 ````markdown
-你要部署 MediaRover,一个自部署的媒体获取应用。按仓库 docs/deploy.md 来。按顺序问用户,然后执行。
+你要部署 MediaRobot,一个自部署的媒体获取应用。按仓库 docs/deploy.md 来。按顺序问用户,然后执行。
 
 ## 必问(没答案别开始)
 1. **部署到哪?** 飞牛 fnOS NAS(原生 .fpk,看 deploy/fpk/README.md),还是任何能跑 Docker 的机器(NAS / 软路由 / 闲置 PC / VPS)?我怎么操作它——SSH,还是本机终端?
@@ -198,4 +198,4 @@ flowchart LR
 - [cloud189-auto-save](https://github.com/1307super/cloud189-auto-save) / [cloudpan189-api](https://github.com/tickstep/cloudpan189-api) —— 天翼云盘 API 参考
 - [TMDB](https://www.themoviedb.org/) —— 元数据(本产品未获 TMDB 认证或背书)
 
-与 115、夸克、光鸭云盘、123网盘、天翼云盘、TMDB 及任何索引器均无隶属关系。MediaRover 是围绕这些组件构建的、克制的独立工作流。
+与 115、夸克、光鸭云盘、123网盘、天翼云盘、TMDB 及任何索引器均无隶属关系。MediaRobot 是围绕这些组件构建的、克制的独立工作流。

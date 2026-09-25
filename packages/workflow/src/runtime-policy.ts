@@ -24,7 +24,7 @@ export function warnDeprecatedEnvVars(env: WorkflowRuntimeEnv): void {
     if (val === undefined || val === "") continue;
     _deprecatedWarned.add(key);
     console.warn(
-      `[mediarover] DEPRECATED env var: ${key} — 请迁移到 ${info.replacement}（${info.note}）。当前仍有效但未来版本将移除。`,
+      `[mediarobot] DEPRECATED env var: ${key} — 请迁移到 ${info.replacement}（${info.note}）。当前仍有效但未来版本将移除。`,
     );
   }
 }
