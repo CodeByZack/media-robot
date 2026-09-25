@@ -2389,6 +2389,48 @@ p {
   }
 }
 
+/* ---------- View Transition：海报共享元素形变 ----------
+
+   媒体库/搜索卡片点开 → 详情页大图，"同一张海报"从卡片位置长到大图位置，而不是
+   小图消失、大图突兀出现。
+
+   ⚠️ 四个必须知道的事实（否则会以为"没生效"而到处乱试）：
+   1. **带 name 的元素本身不会动**。View Transition 是浏览器截图新旧两帧、对
+      `::view-transition-group(name)` 做动画 —— 时长/缓动要写在这些**伪元素**上，
+      写在 `.hub-poster` 上没有任何作用。
+   2. **伪元素名是运行时按 name 生成的**（`::view-transition-group(poster-movie-1108427)`），
+      所以**不能用静态选择器列出具体名字**（`poster-movie-*` 匹配不到，实测静默不生效）。
+      对"所有海报"统一设置只能靠 `:root` 上的钩子（下一步的 `--vt-poster` 变量）。
+   3. **导航不会自动播**。必须由 React 的 transition 驱动（Next 已按其方式接线），
+      普通同步跳转不会触发。
+   4. **名字撞了就静默不发生**（不报错）。名字拼法统一在 lib/poster-transition.ts ——
+      带上 mediaType，因为 TMDB 的 movie/tv 是两套 id 命名空间（同号不同片）。
+
+   时长用 CSS 变量从 `:root` 下发：伪元素是运行时生成的，没法逐个选择；变量会沿着
+   伪元素的继承链取到值。 */
+:root {
+  --vt-poster-duration: 420ms;
+  --vt-poster-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* 对所有海报共享元素生效（伪元素没有稳定的可选中类型，只能用通配 + 名字前缀做最佳努力；
+   真正兜底的是下面的 root 时长对齐——它保证整页淡出与海报形变**同时结束**，
+   不会出现"页面已经淡完了，海报还在飞"的割裂感）。 */
+::view-transition-group(*) {
+  animation-duration: var(--vt-poster-duration);
+  animation-timing-function: var(--vt-poster-ease);
+}
+
+/* Next 的 root 过渡默认是 250ms 交叉淡出，与海报形变时长不一致会让整页先淡完、
+   海报还在飞 → 观感是"画面闪一下"。这里把两侧都对齐到同一时长。
+   注意 `::view-transition-old/new(root)` 必须显式写出来：`group(*)` 只改组时长，
+   不覆盖 old/new 自身的动画时长。 */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--vt-poster-duration);
+  animation-timing-function: var(--vt-poster-ease);
+}
+
 .hub-poster {
   width: 180px;
   min-width: 180px;

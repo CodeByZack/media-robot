@@ -3,6 +3,8 @@ import { CalendarClock, CheckCircle2, Clock3, Library, LoaderCircle, TriangleAle
 import { AcquiringPoller } from "../../../components/acquiring-poller";
 import { DemoSessionLibrary } from "../../../components/demo-session-library";
 import Link from "next/link";
+import { PosterTransition } from "../../../components/poster-transition";
+import { posterTransitionName } from "../../../lib/poster-transition";
 import { showHref } from "@mediarobot/workflow";
 import type { MediaType } from "@mediarobot/workflow";
 /** Shelf label for every media type. A Record (not a ternary chain), so adding a
@@ -283,7 +285,11 @@ function PosterCard({ entry }: { entry: LibraryWallEntry; activeStorageId?: stri
 
   return (
     <Link className="wall-card" href={showHref(entry.tmdbId, "library", entry.type)}>
-      <span className="wall-poster">
+      {/* 共享元素：点开时这张海报会形变到详情页大图（名字由 lib/poster-transition
+          统一拼法，两侧必须一致；mediaType 参与命名是因为 TMDB 的 movie/tv 是两套
+          id 命名空间，同号不同片）。 */}
+      <PosterTransition name={posterTransitionName({ tmdbId: entry.tmdbId, mediaType: entry.type })}>
+        <span className="wall-poster">
         {entry.posterPath ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={`https://image.tmdb.org/t/p/w342${entry.posterPath}`} alt="" loading="lazy" />
@@ -300,7 +306,8 @@ function PosterCard({ entry }: { entry: LibraryWallEntry; activeStorageId?: stri
             );
           })}
         </span>
-      </span>
+        </span>
+      </PosterTransition>
       <span className="wall-copy">
         <strong>{entry.title}</strong>
         <span>

@@ -5,6 +5,8 @@ import { TriangleAlert } from "lucide-react";
 import { isMovieUnreleased } from "@mediarobot/workflow";
 import { AcquiringPoller } from "../../../../components/acquiring-poller";
 import { AcquisitionLockProvider } from "../../../../components/acquisition-lock";
+import { PosterTransition } from "../../../../components/poster-transition";
+import { posterTransitionName } from "../../../../lib/poster-transition";
 import { BackLink } from "../../../../components/back-link";
 import { MovieSynopsis } from "../../../../components/movie-synopsis";
 import { RequestTrackButton } from "../../../../components/request-track-button";
@@ -143,7 +145,10 @@ function TvHub({
         ) : null}
         <BackLink label={backLabel} fallbackHref={backHref} />
       <header className="hub-header">
-        <div className="hub-poster">
+        {/* 共享元素：从媒体库/搜索卡片形变过来（名字由 lib/poster-transition 拼，
+            两侧一致才配上对）。 */}
+        <PosterTransition name={posterTransitionName({ tmdbId: view.tmdbId, mediaType: view.kind })}>
+          <div className="hub-poster">
           {view.posterPath ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -153,7 +158,8 @@ function TvHub({
           ) : (
             <span className="poster-fallback">{view.title.slice(0, 4)}</span>
           )}
-        </div>
+          </div>
+        </PosterTransition>
         <div className="hub-title-block">
           {/* 缺集 and 在更 are orthogonal: a partial title whose latest season is
               still releasing shows 追更中 alongside 部分入库 (斗破苍穹) — side by
@@ -277,14 +283,18 @@ function MovieHub({
           ) : null}
           <BackLink label={backLabel} fallbackHref={backHref} />
           <header className="hub-header">
-            <div className="hub-poster">
+            {/* 共享元素：从媒体库/搜索卡片形变过来（名字由 lib/poster-transition 拼，
+                两侧一致才配上对）。 */}
+            <PosterTransition name={posterTransitionName({ tmdbId: view.tmdbId, mediaType: view.kind })}>
+              <div className="hub-poster">
               {view.posterPath ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={`https://image.tmdb.org/t/p/w342${view.posterPath}`} alt={`${view.title} 海报`} />
               ) : (
                 <span className="poster-fallback">{view.title.slice(0, 4)}</span>
               )}
-            </div>
+              </div>
+            </PosterTransition>
             <div className="hub-title-block">
               <span className={`hub-badge tone-${meta.tone}`}>{meta.label}</span>
               <h1>
