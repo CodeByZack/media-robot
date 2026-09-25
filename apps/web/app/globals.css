@@ -2471,31 +2471,30 @@ p {
 
    ⚠️ 这里曾经给 `old(root)` 写过一段精心调的淡出（420ms + 对称缓动 + `z-index: 2`
    当遮罩），理由是想让"整页交接"看起来是有意的。**但那条淡出会被海报吃到**：
-
-   实测（在真实页面里逐帧读伪元素）——
-
-   | 对象 | 结果 |
-   | --- | --- |
-   | 海报自己的 `old/new`（`.morph`） | `opacity: 1`、`animation: none` ✅ 实心 |
-   | `::view-transition-old(root)` | `vt-root-out`，`opacity` 1 → 0 ⚠️ 唯一在动透明度的地方 |
-
    只要海报**没进自己的命名分组**（骨架那一跳里它常常进不去 —— 那张交接海报是
    hydration 后由客户端换上的），它就会落在 root 快照里，被这条淡出一起带着淡。
-   用户当场看到的就是"海报从完全透明开始"。
 
-   所以现在的取舍很明确：**整个 VT 里不留任何透明度动画**，观感完全交给
-     · 海报的共享元素形变（`::view-transition-group(*)`）
+   ⚠️⚠️ **注意改的是 `group` 而不是 `old` / `new`。** 逐帧实测（真实页面里读伪元素）
+   抓到的唯一异常是：
+
+     ::view-transition-group(root)  opacity: 1 → 0 → 1
+
+   而 `old(root)` / `new(root)` / 海报自己的 `group|old|new` 全程都是
+   `opacity: 1` + `mix-blend-mode: normal` + `animation: none`。
+   也就是说：**root 的交叉淡入是在 `group` 这一层做的**，只压 `old`/`new` 没用。
+   （前几轮我先后改过海报自己的规则、父边界、`old(root)`、`new(root)` —— 全都没打中，
+   因为动的是 `group`。教训：**先确认"动的是哪一层伪元素"，再改规则**。）
+
+   现在的取舍很明确：**整个 VT 里不留任何透明度动画**，观感完全交给
+     · 海报的共享元素形变（`::view-transition-group(*)` 的位移/缩放）
      · 揭幕的位移（`.slide-down` / `.slide-up`）
-   代价是旧页不再淡出、直接消失。这是用户明确要的（"透明效果不好，保留位移就行"）。
-
-   排查顺序的教训（值得记）：**先确认"动的是谁的伪元素"再改规则**。前几轮一直在改
-   海报自己的规则（名字、类名、级联顺序、`default`），全都没用，因为动的是它所在的
-   root / 父边界那条。 */
-::view-transition-old(root) {
+   代价是旧页不再淡出、直接消失。这是用户明确要的（"透明效果不好，保留位移就行"）。 */
+::view-transition-group(root) {
   animation: none;
+  opacity: 1;
 }
 
-/* 新页同样不做动画：它是被旧页"揭示"出来的那一层。 */
+::view-transition-old(root),
 ::view-transition-new(root) {
   animation: none;
 }
