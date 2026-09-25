@@ -250,6 +250,35 @@ MediaRobot 是一个**自托管**的个人媒体获取 Agent。它替你**巡弋
 提升为卡片的网格项，从而做到"标题行整宽 + 海报与元数据并排 + 步骤条整宽"，
 纯 CSS 完成、不动 DOM 结构。
 
+### 7.1 外壳（`app/(shell)/`）
+
+侧栏 + `<main>` 由 **`app/(shell)/layout.tsx`** 提供，不再由各页面各自渲染。
+需要外壳的页面（搜索 / 媒体库 / 通知 / 活动 / 设置 / 详情 / 外来作品）都放在这个
+**路由组**里；`login` 留在组外（它是独立全屏页，不该套侧栏）。路由组不影响 URL：
+`(shell)/library` 仍是 `/library`。
+
+为什么必须在外壳里（两条都是实测出来的，不是理论）：
+
+| 问题 | 症状 |
+| --- | --- |
+| 侧栏随页面重挂 | 一次导航发 **9 个请求**（本该 1 个 RSC）；3 个徽章的 `useEffect` 重挂各重发一次 |
+| 盘切换器在 Suspense 里、fallback 为 null | 它塌陷时下方导航整列**上移 42px**，数据回来又弹回（导航时可见的双跳）|
+
+App Router 的 layout **在导航间不重新渲染**，所以侧栏放这里，两个问题一起消失
+（请求数降到 2：1 个 RSC + 1 个定时轮询）。
+
+> ⚠️ **外壳 layout 里不能出现读 pathname / searchParams 的客户端组件。**
+> 试过用一个客户端 `<ShellMain>` 按 pathname 选 `main` 的类名，结果在
+> `/show/[tmdbId]`（外壳组里唯一的动态段路由）报 blocking-route：动态段的 pathname
+> 在构建期未知 → layout 的静态壳无法预渲染，而**包住 `children` 的客户端组件又让页面
+> 自己的 Suspense 失效**。需要"随路由变的样式"请改用 CSS 从内容推导 ——
+> 例如详情页去掉 `main` 的顶部内边距用的是 `.main:has(.title-hub-immersive)`，
+> 它跟着"页面画了什么"走，比按路径硬编码还稳。
+
+高亮由客户端推导（`components/sidebar-nav.tsx` + `lib/sidebar-active.ts` 纯函数），
+因为 layout 拿不到 pathname。详情页的高亮来自 `?from=search|library`（与旧实现同一来源，
+不是丢了信息）。`<main>` 的类名固定，不再随路由变。
+
 ---
 
 ## 8. 动效

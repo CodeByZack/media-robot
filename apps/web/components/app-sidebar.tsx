@@ -1,11 +1,7 @@
 import { Suspense } from "react";
-import Link from "next/link";
-import { Activity, Bell, Library, Settings } from "lucide-react";
-import { SearchNavLink } from "./search-memory";
-import { ActivityNavBadge } from "./activity-nav-badge";
-import { NotificationsNavBadge } from "./notifications-nav-badge";
-import { SettingsAttentionBadge } from "./settings-attention-badge";
+import { Activity, Bell, Library, Search, Settings } from "lucide-react";
 import { GitHubMark } from "./github-mark";
+import { SidebarNav } from "./sidebar-nav";
 import { PatrolStatusLine } from "./patrol-status-line";
 import { WorkspaceSwitcherLoader } from "./workspace-switcher-loader";
 
@@ -17,11 +13,15 @@ const APP_COMMIT = process.env.NEXT_PUBLIC_APP_COMMIT?.trim() ?? "";
 /** 页脚只放前 7 位（git 的惯例短哈希）；完整值挂在 title 上，需要核实能悬停看到。 */
 const APP_COMMIT_SHORT = APP_COMMIT.slice(0, 7);
 
-export function AppSidebar({
-  active,
-}: {
-  active: "search" | "library" | "notifications" | "activity" | "settings" | "none";
-}) {
+/**
+ * 侧栏（外壳）。**服务端组件** —— 里面有两个 async 服务端组件
+ * （WorkspaceSwitcherLoader / PatrolStatusLine）要读数据库，客户端组件无法承载。
+ *
+ * 因此**不收 `active` prop**：高亮由客户端组件 <SidebarNav> 自己从 pathname 推导
+ * （layout 拿不到 pathname，而这里是 layout 的一部分）。这也是侧栏能移进 layout
+ * 的关键 —— 它不再依赖任何"当前页面"的信息。
+ */
+export function AppSidebar() {
   return (
     <aside className="sidebar">
       <div className="brand">
@@ -71,56 +71,12 @@ export function AppSidebar({
         <WorkspaceSwitcherLoader />
       </Suspense>
 
-      <nav aria-label="主导航">
-        <ul className="nav-list">
-          <li>
-            <SearchNavLink active={active === "search"} />
-          </li>
-          <li>
-            <Link
-              className={`nav-item ${active === "library" ? "is-active" : ""}`}
-              href="/library"
-            >
-              <Library size={16} aria-hidden />
-              媒体库
-            </Link>
-          </li>
-          <li>
-            <Link
-              className={`nav-item ${active === "notifications" ? "is-active" : ""}`}
-              href="/notifications"
-            >
-              <Bell size={16} aria-hidden />
-              通知
-              <NotificationsNavBadge />
-            </Link>
-          </li>
-          {/* 活动 + 设置 现在和 搜索/媒体库/通知 同级:同一个 nav 列表,
-              桌面与移动共用一份,不再有"桌面在页脚、移动在导航"的双份实现。
-              注意：五个链接现在都是**常量路径** —— 盘进了 cookie，所有盘共用同一套
-              URL，于是旧的 globalNavHref / basePath 机制整个消失了。 */}
-          <li>
-            <Link
-              className={`nav-item ${active === "activity" ? "is-active" : ""}`}
-              href="/activity"
-            >
-              <Activity size={16} aria-hidden />
-              活动
-              <ActivityNavBadge />
-            </Link>
-          </li>
-          <li>
-            <Link
-              className={`nav-item ${active === "settings" ? "is-active" : ""}`}
-              href="/settings"
-            >
-              <Settings size={16} aria-hidden />
-              设置
-              <SettingsAttentionBadge />
-            </Link>
-          </li>
-        </ul>
-      </nav>
+      {/* 高亮靠客户端推导 → 必须包 Suspense（useSearchParams 在静态壳里的要求）。
+          fallback 渲染同样的导航但不高亮任何一项：避免侧栏在 hydration 前"少一块"
+          导致的高度跳动（这正是导航时抖动 42px 的老问题来源）。 */}
+      <Suspense fallback={<SidebarNavShell />}>
+        <SidebarNav />
+      </Suspense>
 
       {/* 页脚 = 侧栏底部的「收尾卡片」：上半是活体状态（巡检呼吸点），
           下半是元信息（仓库 + 版本）。此前是两行散落的文字，看着单调。
@@ -156,5 +112,30 @@ export function AppSidebar({
         </div>
       </div>
     </aside>
+  );
+}
+
+/** SidebarNav 的静态兜底：同样的结构、同样的高度，只是不高亮、不挂徽章。 */
+function SidebarNavShell() {
+  const items = [
+    { href: "/", label: "搜索", Icon: Search },
+    { href: "/library", label: "媒体库", Icon: Library },
+    { href: "/notifications", label: "通知", Icon: Bell },
+    { href: "/activity", label: "活动", Icon: Activity },
+    { href: "/settings", label: "设置", Icon: Settings },
+  ];
+  return (
+    <nav aria-label="主导航" aria-busy="true">
+      <ul className="nav-list">
+        {items.map(({ href, label, Icon }) => (
+          <li key={href}>
+            <span className="nav-item">
+              <Icon size={16} aria-hidden />
+              {label}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </nav>
   );
 }

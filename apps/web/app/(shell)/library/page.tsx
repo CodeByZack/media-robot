@@ -1,8 +1,7 @@
 import { Suspense } from "react";
 import { CalendarClock, CheckCircle2, Clock3, Library, LoaderCircle, TriangleAlert } from "lucide-react";
-import { AppSidebar } from "../../components/app-sidebar";
-import { AcquiringPoller } from "../../components/acquiring-poller";
-import { DemoSessionLibrary } from "../../components/demo-session-library";
+import { AcquiringPoller } from "../../../components/acquiring-poller";
+import { DemoSessionLibrary } from "../../../components/demo-session-library";
 import Link from "next/link";
 import { showHref } from "@mediarobot/workflow";
 import type { MediaType } from "@mediarobot/workflow";
@@ -20,7 +19,7 @@ import {
   getLibraryWall,
   type InProgressTitle,
   type LibraryWallEntry,
-} from "../../lib/title-hub";
+} from "../../../lib/title-hub";
 
 function stringParam(value: string | string[] | undefined): string {
   return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
@@ -44,14 +43,11 @@ export default function LibraryPage({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   return (
-    <div className="app-shell">
-      <AppSidebar active="library" />
-      <main className="main product-main">
-        <Suspense fallback={<LibrarySurfaceSkeleton />}>
+    <>
+      <Suspense fallback={<LibrarySurfaceSkeleton />}>
           <LibraryParams searchParams={searchParams} />
         </Suspense>
-      </main>
-    </div>
+    </>
   );
 }
 

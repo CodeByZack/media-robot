@@ -2,9 +2,8 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { ArrowLeft, Film, TriangleAlert } from "lucide-react";
-import { AppSidebar } from "../../../components/app-sidebar";
-import { ForeignWorkImportForm } from "../../../components/foreign-work-import-form";
-import { getForeignWorkReview } from "../../../lib/workflow-runtime";
+import { ForeignWorkImportForm } from "../../../../components/foreign-work-import-form";
+import { getForeignWorkReview } from "../../../../lib/workflow-runtime";
 
 export default function ForeignWorkPage({
   params,
@@ -12,10 +11,8 @@ export default function ForeignWorkPage({
   params: Promise<{ workflowRunId: string }>;
 }) {
   return (
-    <div className="app-shell">
-      <AppSidebar active="notifications" />
-      <main className="main product-main">
-        <Link
+    <>
+      <Link
           className="nav-item"
           href="/notifications"
           style={{ display: "inline-flex", marginBottom: 16 }}
@@ -26,8 +23,7 @@ export default function ForeignWorkPage({
         <Suspense fallback={<div className="skeleton skeleton-heading" />}>
           <ForeignWorkReview params={params} />
         </Suspense>
-      </main>
-    </div>
+    </>
   );
 }
 

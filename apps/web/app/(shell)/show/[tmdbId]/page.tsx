@@ -3,26 +3,25 @@ import { connection } from "next/server";
 import { Suspense, type ReactNode } from "react";
 import { TriangleAlert } from "lucide-react";
 import { isMovieUnreleased } from "@mediarobot/workflow";
-import { AcquiringPoller } from "../../../components/acquiring-poller";
-import { AcquisitionLockProvider } from "../../../components/acquisition-lock";
-import { AppSidebar } from "../../../components/app-sidebar";
-import { BackLink } from "../../../components/back-link";
-import { MovieSynopsis } from "../../../components/movie-synopsis";
-import { RequestTrackButton } from "../../../components/request-track-button";
+import { AcquiringPoller } from "../../../../components/acquiring-poller";
+import { AcquisitionLockProvider } from "../../../../components/acquisition-lock";
+import { BackLink } from "../../../../components/back-link";
+import { MovieSynopsis } from "../../../../components/movie-synopsis";
+import { RequestTrackButton } from "../../../../components/request-track-button";
 import {
   RequestRemainingButton,
   RequestSeasonButton,
-} from "../../../components/title-action-buttons";
-import { UntrackButton } from "../../../components/untrack-button";
-import type { DemoAcquisitionEntry } from "../../../lib/demo-session";
+} from "../../../../components/title-action-buttons";
+import { UntrackButton } from "../../../../components/untrack-button";
+import type { DemoAcquisitionEntry } from "../../../../lib/demo-session";
 import {
   getDetailView,
   type MovieHubView,
   type TitleHubSeason,
   type TitleHubView,
-} from "../../../lib/title-hub";
-import { seasonBadgeState } from "../../../lib/title-aggregate";
-import { getActiveWorkspaceScope } from "../../../lib/workflow-runtime";
+} from "../../../../lib/title-hub";
+import { seasonBadgeState } from "../../../../lib/title-aggregate";
+import { getActiveWorkspaceScope } from "../../../../lib/workflow-runtime";
 
 const aggregateBadge = {
   untracked: null,
@@ -47,34 +46,14 @@ export default function ShowPage({
 }) {
   // Everything here is dynamic (searchParams + params + DB), so the whole shell
   // streams inside one Suspense — cacheComponents forbids reading uncached data
-  // outside a boundary. The fallback mirrors the shell (sidebar + hub skeleton).
+  // outside a boundary. The fallback mirrors the hub骨架（侧栏与 <main> 已由
+  // (shell)/layout.tsx 提供，这里只需骨架）。
   return (
-    <div className="app-shell">
-      <Suspense
-        fallback={
-          <ShowShell active="none">
-            <HubSkeleton backLabel="返回" backHref="/" />
-          </ShowShell>
-        }
-      >
-        <ShowContent params={params} searchParams={searchParams} />
-      </Suspense>
-    </div>
-  );
-}
-
-function ShowShell({
-  active,
-  children,
-}: {
-  active: "search" | "library" | "none";
-  children: ReactNode;
-}) {
-  return (
-    <>
-      <AppSidebar active={active} />
-      <main className="main product-main product-main-hub">{children}</main>
-    </>
+    <Suspense
+      fallback={<HubSkeleton backLabel="返回" backHref="/" />}
+    >
+      <ShowContent params={params} searchParams={searchParams} />
+    </Suspense>
   );
 }
 
@@ -112,7 +91,7 @@ async function ShowContent({
   const backHref = from === "library" ? "/library" : "/";
 
   return (
-    <ShowShell active={from ?? "none"}>
+    <>
       {view ? (
         view.kind === "movie" ? (
           <MovieHub
@@ -135,7 +114,7 @@ async function ShowContent({
           <span>回到搜索页重新查找。</span>
         </div>
       )}
-    </ShowShell>
+    </>
   );
 }
 

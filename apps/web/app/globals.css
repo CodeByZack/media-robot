@@ -2242,7 +2242,12 @@ p {
 
 /* Immersive hub: only the HERO band (back + poster) is full-bleed.
    Synopsis / seasons stay on plain page background — backdrop must NOT cover them. */
-.product-main-hub {
+/* 详情页的整幅 hero 要贴住内容区上沿 → 去掉 main 的顶部内边距。
+   **用 :has() 从内容推导，而不是按路径名判断**：后者需要 layout 读 pathname，而
+   layout 读 pathname 会在动态段路由（/show/[tmdbId]）上让静态壳无法预渲染
+   （实测会报 blocking-route）。从内容推导还更稳 —— 它跟着"页面画了什么"走，
+   不会因为新增一条路由而忘记加类。 */
+.main:has(.title-hub-immersive) {
   padding-top: 0;
 }
 

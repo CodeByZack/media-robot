@@ -1,29 +1,28 @@
-import { driveConnectionBadge } from "../../lib/settings-badge";
-import { maskProviderUid } from "../../lib/mask-provider-uid";
+import { driveConnectionBadge } from "../../../lib/settings-badge";
+import { maskProviderUid } from "../../../lib/mask-provider-uid";
 import { connection } from "next/server";
 import { headers } from "next/headers";
 import { Suspense } from "react";
 import { Bot, Cable, CalendarClock, Clapperboard, Gauge, Languages, MessageSquare, Radio, ScrollText, ShieldCheck, Subtitles, TriangleAlert } from "lucide-react";
-import { AppSidebar } from "../../components/app-sidebar";
-import { AddDriveBrandTabs } from "../../components/add-drive-brand-tabs";
-import { TestConnectionButton } from "../../components/test-connection-button";
-import { UnbindStorageButton } from "../../components/unbind-storage-button";
-import { PreferredLanguageForm } from "../../components/preferred-language-form";
-import { QualityPreferenceForm } from "../../components/quality-preference-form";
-import { RulePatternsForm } from "../../components/rule-patterns-form";
-import { PromptOverridesForm } from "../../components/prompt-overrides-form";
-import { RuleTestBench } from "../../components/rule-test-bench";
-import { LlmConfigForm } from "../../components/llm-config-form";
-import { TmdbApiKeyForm } from "../../components/tmdb-api-key-form";
-import { AssrtTokenForm } from "../../components/assrt-token-form";
-import { ProwlarrConfigForm } from "../../components/prowlarr-config-form";
-import { PanSouConfigForm } from "../../components/pansou-config-form";
-import { DailySweepForm } from "../../components/daily-sweep-form";
-import { PatrolNowButton } from "../../components/patrol-now-button";
-import { SettingsTabs } from "../../components/settings-tabs";
-import { SettingsActionInbox } from "../../components/settings-action-inbox";
-import { loadSettingsAttentionSummary, markSettingsAttentionSeen } from "../../lib/settings-attention-server";
-import { resolveRequestOrigin } from "../../lib/request-origin";
+import { AddDriveBrandTabs } from "../../../components/add-drive-brand-tabs";
+import { TestConnectionButton } from "../../../components/test-connection-button";
+import { UnbindStorageButton } from "../../../components/unbind-storage-button";
+import { PreferredLanguageForm } from "../../../components/preferred-language-form";
+import { QualityPreferenceForm } from "../../../components/quality-preference-form";
+import { RulePatternsForm } from "../../../components/rule-patterns-form";
+import { PromptOverridesForm } from "../../../components/prompt-overrides-form";
+import { RuleTestBench } from "../../../components/rule-test-bench";
+import { LlmConfigForm } from "../../../components/llm-config-form";
+import { TmdbApiKeyForm } from "../../../components/tmdb-api-key-form";
+import { AssrtTokenForm } from "../../../components/assrt-token-form";
+import { ProwlarrConfigForm } from "../../../components/prowlarr-config-form";
+import { PanSouConfigForm } from "../../../components/pansou-config-form";
+import { DailySweepForm } from "../../../components/daily-sweep-form";
+import { PatrolNowButton } from "../../../components/patrol-now-button";
+import { SettingsTabs } from "../../../components/settings-tabs";
+import { SettingsActionInbox } from "../../../components/settings-action-inbox";
+import { loadSettingsAttentionSummary, markSettingsAttentionSeen } from "../../../lib/settings-attention-server";
+import { resolveRequestOrigin } from "../../../lib/request-origin";
 import {
   getAccountConnectedStorages,
   getAccountScopedSettings,
@@ -45,22 +44,18 @@ import {
   PROWLARR_BASE_URL_SETTING_KEY,
   PROWLARR_API_KEY_SETTING_KEY,
   PANSOU_BASE_URL_SETTING_KEY,
-} from "../../lib/workflow-runtime";
+} from "../../../lib/workflow-runtime";
 import { brandSupportsProwlarr } from "@mediarobot/workflow";
-import { providerLabel, providerMark } from "../../lib/provider-display";
-import { isDemoMode } from "../../lib/demo-mode";
+import { providerLabel, providerMark } from "../../../lib/provider-display";
+import { isDemoMode } from "../../../lib/demo-mode";
 
 export default function SettingsPage() {
   return (
-    <div className="app-shell">
-      {/* 盘现在由 cookie 决定，侧栏不再依赖 URL → 无需为它单独开 Suspense 洞，
-          整个壳可以一起产出。 */}
-      <AppSidebar active="settings" />
-      <main className="main product-main">
-        {/* 设计稿的页头:mono 全大写 eyebrow + 主标题 + 一句说明 */}
-        <section className="page-head">
-          <p className="eyebrow">SETTINGS</p>
-          <h1>设置</h1>
+    <>
+      {/* 设计稿的页头:mono 全大写 eyebrow + 主标题 + 一句说明 */}
+      <section className="page-head">
+        <p className="eyebrow">SETTINGS</p>
+        <h1>设置</h1>
           <p>网盘连接与系统配置</p>
         </section>
         {isDemoMode() ? (
@@ -140,8 +135,7 @@ export default function SettingsPage() {
             </Suspense>
           </>
         )}
-      </main>
-    </div>
+    </>
   );
 }
 

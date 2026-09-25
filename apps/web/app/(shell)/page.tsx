@@ -1,28 +1,27 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { CalendarClock, CheckCircle2, Clock3, Info, Library, LoaderCircle, TriangleAlert } from "lucide-react";
-import { AcquiringPoller } from "../components/acquiring-poller";
-import { AppSidebar } from "../components/app-sidebar";
-import { RequestTrackButton } from "../components/request-track-button";
-import { AcquireProgressBadge } from "../components/acquire-progress-badge";
-import { DemoSessionLibrary } from "../components/demo-session-library";
-import { RememberQuery } from "../components/search-memory";
-import { SearchForm } from "../components/search-form";
-import { SeasonRequestMenu } from "../components/season-request-menu";
-import { TrendingRow } from "../components/trending-row";
-import { getSearchView } from "../lib/search-page";
+import { AcquiringPoller } from "../../components/acquiring-poller";
+import { RequestTrackButton } from "../../components/request-track-button";
+import { AcquireProgressBadge } from "../../components/acquire-progress-badge";
+import { DemoSessionLibrary } from "../../components/demo-session-library";
+import { RememberQuery } from "../../components/search-memory";
+import { SearchForm } from "../../components/search-form";
+import { SeasonRequestMenu } from "../../components/season-request-menu";
+import { TrendingRow } from "../../components/trending-row";
+import { getSearchView } from "../../lib/search-page";
 import {
   getInProgressTitles,
   getLibraryWall,
   type InProgressTitle,
   type LibraryWallEntry,
-} from "../lib/title-hub";
+} from "../../lib/title-hub";
 import {
   ensureDemoSeeded,
   getActiveWorkspaceScope,
   getRegisteredDriveCount,
   getWorkflowRepository,
-} from "../lib/workflow-runtime";
+} from "../../lib/workflow-runtime";
 import { showHref } from "@mediarobot/workflow";
 import type { MediaType, SearchCandidateCard, TrackedSeasonState } from "@mediarobot/workflow";
 
@@ -51,19 +50,13 @@ export default function SearchPage({
   // searchParams is a dynamic input. Reading it inside a Suspense boundary lets
   // the static app shell prerender instead of the whole route blocking on it —
   // this is what silences the cacheComponents "blocking-route" warning.
+  //
+  // fallback 是 null：外壳（侧栏 + <main>）现在由 (shell)/layout.tsx 提供且**不会**
+  // 随导航卸载，所以这里只需等待参数解析，不需要再画一份外壳副本。
   return (
-    <Suspense fallback={<HomeShell />}>
+    <Suspense fallback={null}>
       <HomeSurface searchParams={searchParams} />
     </Suspense>
-  );
-}
-
-function HomeShell() {
-  return (
-    <div className="app-shell">
-      <AppSidebar active="search" />
-      <main className="main product-main" aria-busy="true" />
-    </div>
   );
 }
 
@@ -77,39 +70,33 @@ async function HomeSurface({
   const driveCount = await getRegisteredDriveCount();
 
   return (
-    <div className="app-shell">
-      <AppSidebar active="search" />
-
-      <main className="main product-main">
-        <section className="search-surface">
-          <RememberQuery query={query} />
-          {/* 搜索区头部 = 标题 + 表单 +（多盘时）网盘隔离提示。
-              提示必须留在 .search-head 里、紧贴 hero —— **距离即归属**：它讲的是
-              搜索/获取的行为，就该读作搜索区的一部分。此前它是散在 hero 之后的一个
-              裸 <p>（还带 marginTop:-4 的负边距硬塞），离下方货架只有 8px、离 hero
-              有 24px，于是眼睛把它读成「热门剧集」的说明文字 —— 位置错了，而不是
-              文案错了。 */}
-          <div className="search-head">
-            <div className="search-hero">
-              <div>
-                <h1>搜索</h1>
-                <p>找到目标后发起获取，后台会处理资源判断、转存和验证。</p>
-              </div>
-              <SearchForm defaultQuery={query} />
-            </div>
-            {driveCount >= 2 ? (
-              <p className="search-scope-note">
-                <Info size={13} aria-hidden />
-                搜索与获取按网盘隔离 —— 请先切到目标网盘再操作
-              </p>
-            ) : null}
+    <section className="search-surface">
+      <RememberQuery query={query} />
+      {/* 搜索区头部 = 标题 + 表单 +（多盘时）网盘隔离提示。
+          提示必须留在 .search-head 里、紧贴 hero —— **距离即归属**：它讲的是
+          搜索/获取的行为，就该读作搜索区的一部分。此前它是散在 hero 之后的一个
+          裸 <p>（还带 marginTop:-4 的负边距硬塞），离下方货架只有 8px、离 hero
+          有 24px，于是眼睛把它读成「热门剧集」的说明文字 —— 位置错了，而不是
+          文案错了。 */}
+      <div className="search-head">
+        <div className="search-hero">
+          <div>
+            <h1>搜索</h1>
+            <p>找到目标后发起获取，后台会处理资源判断、转存和验证。</p>
           </div>
-          <Suspense key={`search-${query}`} fallback={<SearchResultsSkeleton />}>
-            <SearchResults query={query} />
-          </Suspense>
-        </section>
-      </main>
-    </div>
+          <SearchForm defaultQuery={query} />
+        </div>
+        {driveCount >= 2 ? (
+          <p className="search-scope-note">
+            <Info size={13} aria-hidden />
+            搜索与获取按网盘隔离 —— 请先切到目标网盘再操作
+          </p>
+        ) : null}
+      </div>
+      <Suspense key={`search-${query}`} fallback={<SearchResultsSkeleton />}>
+        <SearchResults query={query} />
+      </Suspense>
+    </section>
   );
 }
 

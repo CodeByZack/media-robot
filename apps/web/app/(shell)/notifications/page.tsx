@@ -3,47 +3,35 @@ import { Suspense } from "react";
 import { Bell } from "lucide-react";
 import type { NotificationEvent, NotificationReportStatus, WorkflowScope } from "@mediarobot/workflow";
 import { landedSize } from "@mediarobot/workflow";
-import { NotificationsSeenMarker } from "../../components/notifications-seen-marker";
-import { DemoSessionNotifications } from "../../components/demo-session-notifications";
-import { AppSidebar } from "../../components/app-sidebar";
+import { NotificationsSeenMarker } from "../../../components/notifications-seen-marker";
+import { DemoSessionNotifications } from "../../../components/demo-session-notifications";
 import {
   ensureDemoSeeded,
   getCurrentAccountId,
   getWorkflowRepository,
   notificationWindowSince,
   resolveCurrentWorkspace,
-} from "../../lib/workflow-runtime";
-import { runSteps, type StepRunState } from "../../lib/activity-view";
-import { NotificationCardWrapper } from "../../components/NotificationCardWrapper";
-import { RoutineCardWrapper } from "../../components/RoutineCardWrapper";
+} from "../../../lib/workflow-runtime";
+import { runSteps, type StepRunState } from "../../../lib/activity-view";
+import { NotificationCardWrapper } from "../../../components/NotificationCardWrapper";
+import { RoutineCardWrapper } from "../../../components/RoutineCardWrapper";
 
 // The drive is a cookie/DB read, so the surface lives inside Suspense: the static
 // app shell prerenders instead of the whole route blocking on it (cacheComponents
 // "blocking-route"). Mirrors page.tsx.
 export default function NotificationsPage() {
   return (
-    <Suspense fallback={<NotificationsShell />}>
+    <Suspense fallback={null}>
       <NotificationsSurface />
     </Suspense>
-  );
-}
-
-function NotificationsShell() {
-  return (
-    <div className="app-shell">
-      <AppSidebar active="notifications" />
-      <main className="main product-main" aria-busy="true" />
-    </div>
   );
 }
 
 async function NotificationsSurface() {
   const { connectedStorageId } = await resolveCurrentWorkspace();
   return (
-    <div className="app-shell">
-      <AppSidebar active="notifications" />
-      <main className="main product-main">
-        <NotificationsSeenMarker />
+    <>
+      <NotificationsSeenMarker />
         <div className="section-heading library-heading">
           <div>
             <h1>通知</h1>
@@ -54,8 +42,7 @@ async function NotificationsSurface() {
         <Suspense fallback={<FeedSkeleton />}>
           <NotificationFeed connectedStorageId={connectedStorageId} />
         </Suspense>
-      </main>
-    </div>
+    </>
   );
 }
 
