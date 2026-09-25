@@ -40,14 +40,22 @@ export function PosterTransition({
     // 退化成普通渲染：动画没了，内容照常。装饰性功能不该有"失败也把页面搞崩"的能力。
     return <>{children}</>;
   }
-  // `share="morph"` / `default="none"` 是 React 官方文档给共享元素形变的写法：
-  //   · `share` 只在**两侧同名配对**时生效，并给伪元素挂上 `.morph` 类 → CSS 可选中
-  //     （元素名带 tmdbId、运行时生成，静态选择器选不到，只能靠 class）。
-  //   · `default="none"` 关掉"本元素在其他任何过渡里也跟着淡入淡出"的默认行为。
-  // ⚠️ 官方文档明确警告：**配了 `default="none"` 就必须同时给 `share`** —— 只给
-  // `default="none"` 会让配对静默失去形变（不报错）。所以这两个 prop 是一对。
+  // 为什么是"挂一个 class"而不是直接选名字：伪元素名是运行时拼出来的（带 tmdbId），
+  // 静态选择器选不到，只能靠 class 去命中。
+  // `share` 与 `default` **都指向 `morph`**，让海报在任何触发方式下都是实心的：
+  //   · `share`：两侧同名配对成功时生效（导航：卡片 → 详情）。
+  //   · `default`：覆盖剩下的 enter / exit / update（揭幕等）。
+  // ⚠️ 为什么 `default` 不用 `"none"`：`none` 确实关掉了"跟着本元素边界淡入淡出"，
+  // 但它**不改变伪元素本身吃浏览器默认动画的事实** —— 于是凡是**没配上对**的过渡，
+  // 海报就退回浏览器的**默认交叉淡入**：两张半透明帧叠加 → 先发白/变亮再合成。
+  // 用户实测原话就是「会变透明/变亮再回来」。
+  // 揭幕（骨架 → 内容）里配对能不能成立本来就不稳定，所以不能只指望 `share` 一条路。
+  // 两条都指到 `.morph` 后，CSS 里那一条 `animation: none; opacity: 1` 就把它彻底钉死；
+  // 位置/尺寸的形变照旧交给 `::view-transition-group` 去做 —— 那才是该动的东西。
+  // ⚠️ 官方文档警告：`default="none"` 必须与 `share` 成对，否则配对会静默失去形变。
+  // 之前用的就是 `default="none"`，正是"只在配对成功时才实心"的来源。
   return (
-    <ViewTransition name={name} share="morph" default="none">
+    <ViewTransition name={name} share="morph" default="morph">
       {children}
     </ViewTransition>
   );
