@@ -1,5 +1,6 @@
 import { Suspense, type ReactNode } from "react";
 import { AppSidebar } from "../../components/app-sidebar";
+import { DetailOriginMemory } from "../../components/detail-origin-memory";
 
 /**
  * 后台外壳（侧栏 + 主区）。
@@ -24,6 +25,9 @@ import { AppSidebar } from "../../components/app-sidebar";
 export default function ShellLayout({ children }: { children: ReactNode }) {
   return (
     <div className="app-shell">
+      {/* 只挂一个全局 click 监听、渲染 null（见组件注释：不碰渲染期路由状态，
+          所以不违反上面那条「不能读 pathname」的限制）。 */}
+      <DetailOriginMemory />
       <Suspense fallback={null}>
         <AppSidebar />
       </Suspense>

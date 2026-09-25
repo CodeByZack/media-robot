@@ -347,9 +347,9 @@ Chrome 默认对 `old(root)`/`new(root)` 用**叠加混合**（实测 keyframes 
 挂类名，CSS 里以 `::view-transition-old(.mr-shared)` 关掉它 —— 用 class 是因为元素名
 带 `tmdbId`、运行时生成，静态选择器选不到。
 
-#### ⚠️ 后退的过渡：同路由有，跨路由没有（别只测一种场景就下结论）
+#### 后退的过渡：用「记忆来路 + replace」拿到（已实现）
 
-实测 3 轮重复**完全一致**：
+先看清楚**为什么**要绕：实测（3 轮重复一致）popstate 这条路径下——
 
 | 场景 | 触发 |
 | --- | --- |
@@ -359,8 +359,8 @@ Chrome 默认对 `old(root)`/`new(root)` 用**叠加混合**（实测 keyframes 
 | 同路由**后退**（只回退 query） | ✅ |
 
 机制：同路由回退只改 `searchParams`，路由段身份不变、commit 很小，能落进 Next
-`onPopState` 的 `startTransition`（`dispatchTraverseAction`）窗口 → 触发过渡；
-跨路由回退要换整个路由段，落不进那个窗口。
+`onPopState` 的 `startTransition`（`dispatchTraverseAction`）窗口；跨路由回退要换
+整个路由段，落不进那个窗口。
 
 > ❗️本文早期版本写的是「`back()` **完全不触发** `startViewTransition`（0 次）」——
 > **那是错的**，只在跨路由场景测过就推广到了所有后退。教训：按
@@ -368,14 +368,38 @@ Chrome 默认对 `old(root)`/`new(root)` 用**叠加混合**（实测 keyframes 
 > Next 官方指南其实说对了（「back navigations… the shared element morph **still
 > applies**」）。
 
-跨路由这一条两条自救路径都不划算：
+**解法：不要走 popstate，走普通导航。** 详情页的返回按钮现在这样工作（三条按优先级）：
+
+1. **记住了来路** → `router.replace(来路)`。常态路径。来路 URL 里带着完整状态
+   （媒体库的 `type`/`filter`、搜索页的 `?q=`），所以**状态不丢**；而普通导航
+   **会触发 View Transition**，所以**海报形变回来**。
+2. 没记住（直接输网址进来 / storage 不可用）→ 退化成 `router.back()`：没有过渡，
+   但回到正确位置、状态也不丢。
+3. 也没有历史 → `push(fallbackHref)`。
+
+实现三件套：
+
+| 文件 | 职责 |
+| --- | --- |
+| `lib/detail-origin.ts` | 纯函数：记/读来路（sessionStorage）+ `isUsableOrigin` 形状校验 |
+| `components/detail-origin-memory.tsx` | 挂在 `(shell)/layout.tsx`；全局捕获 `click`，只对 `/show/...` 链接记来路 |
+| `components/back-link.tsx` | 读来路 → `replace`；退化到 `back()` / `push()` |
+
+两个**取舍**，改之前先读：
+
+- 走 `replace` 会**盖掉详情页那条历史记录**，所以**浏览器自带的后退按钮**在这个页面
+  依旧没有过渡（那是 popstate，改不动）。本方案只覆盖应用内的返回按钮。
+- 来路必须做**形状校验**（单个 `/` 开头、拒 `//`）：值存在 sessionStorage 里，可能是
+  上次会话的旧值或人为塞入的字符串，直接喂给 `router.replace` 等于让外部输入决定跳转。
+
+**试过但走不通的两条**（留档，别再试）：
 
 - 自己包 `startViewTransition(() => router.back())`：抓不到新帧（`ready` 都不解析），
-  还会因 DOM 更新超时抛 `TimeoutError`。已试过，回滚了。
-- 改用 `router.push(返回地址)`：过渡有了，但**丢掉上一页状态** —— 媒体库的
-  `type`/`filter`、搜索页的 `?q=` 都不在详情页 URL 里。
+  还会因 DOM 更新超时抛 `TimeoutError`。
+- 直接 `router.push(一个写死的返回地址)`：过渡有了，但**丢掉上一页状态**。
 
-**功能优先 → 保持 `back()`**。要真正修，得等框架支持（或自己记状态再 push）。
+第一条说明「必须让 React 自己发起过渡」；第二条说明「目标地址必须带完整状态」。
+上面那套 `replace(记下的来路)` 正好同时满足 —— 状态在来路 URL 里，导航是 React 发的。
 
 ---
 
