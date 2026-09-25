@@ -2468,41 +2468,44 @@ p {
   }
 }
 
-/* 整页交接：**旧页做不透明遮罩淡出**（不是"不做"）。
+/* 整页交接：**旧页不画**（既不淡出、也不遮挡）。
 
-   ⚠️ 这条一定不要删。踩过一次，代价很大：我为了"彻底没有透明度"把 root 的淡出也去掉，
-   结果**旧页整层留在新页上面**，两层内容在过渡中途混在一起（用户截图：搜索页半透明
-   叠在详情页上，"内容全都混在一起"）。
+   ⚠️ 为什么不是"淡出"：DevTools 的 Animations 面板给出的动画清单只有三条 ——
 
-   为什么必须是"旧页遮罩 + 淡出"：
-   1. 旧页快照必须**盖在新页之上**（`z-index: 2`），否则新页不透明、旧页白淡。
-   2. 有它当遮罩，过程就是 `α·旧 + (1-α)·新` —— 干净的交叉淡入，不会出现"两层同时
-      半透明叠加"的双重曝光。
-   3. 旧页是**不透明遮罩**这一点很关键：它盖着的时候，海报在哪一层都不会双重曝光。
+     ::view-transition-old(root)                    vt-root-out
+     ::view-transition-new(_t_0_)                   vt-slide-y
+     ::view-transition-group(poster-tv-299939)      -ua-…-anim-poster-tv-299939
 
-   同时保留"揭幕只做位移"（见下面的 `.slide-*`）与"海报 `.morph` 始终实心"。
+   注意：**没有海报自己的 old / new 动画** —— 说明海报本身并没有做透明度过渡。
+   唯一的淡出是 `old(root)`（整页旧帧）。而我为了让旧页盖住新页，给它设了
+   `z-index: 2` —— 这层遮罩**连正在形变的海报一起盖住了**，于是旧页越淡，海报就被
+   压得越透。用户看到的"海报有透明度过渡"，来源就在这里。
 
-   ⚠️ 缓动不要前倾：曾共用海报的 `cubic-bezier(0.2,0.8,0.2,1)`，实测 opacity 在 80ms
-   就掉到 0.44 —— 420ms 的动画前 20% 就结束，肉眼就是"啪一下换掉"。用对称缓动铺满全程。
-   ⚠️ 若调试时用 `document.head.appendChild(<style>)` 临时注入过时长，那条样式会留在
-   页面上直到刷新 —— 别被自己的临时注入骗了。 */
-:root {
-  --vt-fade-duration: 420ms;
-  --vt-fade-ease: cubic-bezier(0.45, 0, 0.55, 1);
-}
+   所以现在把旧页整个**不画**：既不淡、也不参与堆叠。新页本来就是不透明的，直接出现；
+   海报走自己的命名分组，干净地形变过去。
 
-@keyframes vt-root-out {
-  to {
-    opacity: 0;
-  }
-}
+   代价：旧页不再淡出，是"直接切换"。这是刻意的取舍 —— 用户明确要"不要透明度过渡"。
 
+   想恢复"旧页淡出"，把下面这条换成（关键帧与变量需一并加回）：
+
+     :root {
+       --vt-fade-duration: 420ms;
+       --vt-fade-ease: cubic-bezier(0.45, 0, 0.55, 1);
+     }
+     @keyframes vt-root-out { to { opacity: 0 } }
+     ::view-transition-old(root) {
+       z-index: 2;
+       animation: vt-root-out var(--vt-fade-duration) var(--vt-fade-ease) both;
+     }
+
+   ⚠️ 注意 `z-index: 2` 会让旧页成为**盖在一切之上**的遮罩 —— 包括盖住正在形变的海报，
+   这正是"海报看起来在变透明"的来源。要淡出又要海报不被遮，需要另想办法（例如让海报
+   脱离 root 快照），不能只加回这一段。 */
 ::view-transition-old(root) {
-  z-index: 2;
-  animation: vt-root-out var(--vt-fade-duration) var(--vt-fade-ease) both;
+  display: none;
 }
 
-/* 新页不做动画：它是被旧页"揭示"出来的那一层（浏览器也不给 root 的新帧做动画）。 */
+/* 新页不做动画：它是"直接出现"的那一层（浏览器也不给 root 的新帧做动画）。 */
 ::view-transition-new(root) {
   animation: none;
 }
