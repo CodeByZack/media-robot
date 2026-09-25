@@ -2457,11 +2457,20 @@ p {
 
    而浏览器是用 **WAAPI** 驱动的（所以 Styles 面板里根本看不到一条 `opacity:`——
    那是 UA 生成的动画，不是作者声明）：`animation: none` 压不住 WAAPI，
-   必须靠 `opacity: 1 !important`（`!important` 的作者声明优先级高于 WAAPI）。 */
+   必须靠 `opacity: 1 !important`（`!important` 的作者声明优先级高于 WAAPI）。
+
+   ⚠️⚠️ **`mix-blend-mode: normal !important` 和 opacity 一样重要。**
+   Chrome 还会给每对快照挂一条 `-ua-mix-blend-mode-plus-lighter` —— `plus-lighter` 是
+   **加法混合**：把「旧帧 + 新帧」相加，正好得到 1（不透明）。**它依赖"成对"**：
+   一旦旧帧不画了（本文件把 `old(root)` 设成了 `display: none`），加法就只剩新帧，
+   等于把新帧"加"到背景上 → **背景透出来、画面发白发亮**，看起来就是"海报是透明的"。
+   实测确认：此时 `opacity` 已经读到恒为 `1`（作者规则生效），**视觉上却仍然透** ——
+   因为问题不在透明度，在混合模式。所以这两条必须成对写。 */
 ::view-transition-old(*),
 ::view-transition-new(*) {
   animation: none !important;
   opacity: 1 !important;
+  mix-blend-mode: normal !important;
 }
 
 /* 过渡期间 `::view-transition` 覆盖层会吃掉指针事件 → 动画那几百毫秒里的点击全部丢失。
