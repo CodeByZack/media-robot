@@ -346,7 +346,6 @@ App Router 的 layout **在导航间不重新渲染**，所以侧栏放这里，
   静默失效，比崩更难查）。凡是装饰性动效，都不该有"失败也把页面搞崩"的能力。
 
 > **尺寸契约：所有形变端点必须是 2:3。**
->
 > | 端点 | 尺寸 | 定尺寸的写法 |
 > | --- | --- | --- |
 > | `.hub-poster` 详情页大图 | 180×270 | `width` + `aspect-ratio: 2/3` |
@@ -361,6 +360,40 @@ App Router 的 layout **在导航间不重新渲染**，所以侧栏放这里，
 >
 > 写法上统一用「定宽度 + `aspect-ratio`」而不是硬编码高度：改宽度时比例不会悄悄跑掉。
 > 新增任何 `PosterTransition` 端点前，先回来核对这张表。
+
+#### 冷启动为什么原本没有形变，以及怎么补上的
+
+形变的硬性前提是「**新旧两侧在同一个 commit 里都出现同名元素**」。官方指南原文：
+
+> The morph plays when the destination content renders in the same commit as the
+> navigation… **If the destination suspends into a fallback first, no pair forms**.
+
+详情页整体包在一个 `<Suspense>` 里（`await connection()` + 读 DB），所以**冷启动**
+时 React 提交的第一个版本是**骨架屏** —— 它上面没有海报 → 配不上对 → 那一路完全
+没有形变；等真内容到达已是另一次提交（过渡之外）→ 骨架硬切。
+（第二次访问有动画，是因为 `staleTimes.dynamic = 60` 让访问过的路由在客户端缓存里
+复用、不再 suspend。）
+
+两件事补上：
+
+| 做法 | 位置 | 作用 |
+| --- | --- | --- |
+| 海报交接 | `lib/poster-handoff.ts` + `components/hub-skeleton-poster.tsx` | 骨架屏用**真海报** + 同一个 name → 冷启动也有配对对象 |
+| Suspense reveal | `page.tsx` 的 `enter`/`exit` + `globals.css` | 骨架 → 内容从"硬切"变成有方向的交接 |
+
+交接的几个**必须守住的点**：
+
+- **模块级变量，不进 sessionStorage。** 它的寿命正好是一次客户端导航。放 storage
+  会在硬刷新后残留（骨架显示上一部片子的海报），还要另造过期校验。
+- **必须用 tmdbId 核对**（`pendingPosterFor`）。否则「点 A 进详情 → 返回 → 再用浏览器
+  前进到 B」会把 A 的海报顶到 B 上。
+- **链接没有 `?t=` 就不做**。TMDB 的 movie/tv 是两套 id 命名空间，拼错的名字只会
+  静默失效，不如干脆不给名字。
+- **海报图可能不在被点的 `<a>` 里**：搜索页候选卡把「海报」和「标题」拆成了两个
+  链接，点标题时锚点内没有 `img`，要退一步到外层 `<article>` 找。
+- ⚠️ **读 `useParams()` 的那半段必须包自己的 `<Suspense>`。** 它是外层 Suspense 的
+  *fallback*，而 cacheComponents 把 `useParams()` 视作读未缓存数据 → 在 fallback 里
+  直接读会让 `next build` 失败：*"Uncached data was accessed outside of `<Suspense>`"*。
 
 #### 整页怎么交接（以及一个必须改的默认行为）
 
