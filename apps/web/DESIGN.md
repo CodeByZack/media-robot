@@ -403,11 +403,27 @@ Chrome 默认对 `old(root)`/`new(root)` 用**叠加混合**（实测 keyframes 
 在自己滑"。所以显式把旧页变成**遮罩层**（`z-index: 2` + `mix-blend-mode: normal`，
 淡出），新页不做动画、被"揭示"出来。
 
-共享元素（海报）反过来要**关掉交叉淡入**：同一张图的新旧两帧叠加会变成发白重影。
-`components/poster-transition.tsx` 用 `share="morph"`（= view-transition-class）
-挂类名，CSS 里以 `::view-transition-old(.morph)` / `new(.morph)` 关掉它（`animation:
-none; opacity: 1`）—— 用 class 是因为元素名带 `tmdbId`、运行时生成，静态选择器选不到。
-`default="none"` 必须与 `share` 成对出现（只给 `default="none"` 会让配对静默失去形变）。
+共享元素（海报）反过来要**永不做交叉淡入**：同一张图的新旧两帧叠加会变成发白重影。
+`components/poster-transition.tsx` 用 `share="morph"` **和** `default="morph"`
+（都是 view-transition-class）挂类名，CSS 里以 `::view-transition-old(.morph)` /
+`new(.morph)` 关掉它（`animation: none; opacity: 1`）—— 用 class 是因为元素名带
+`tmdbId`、运行时生成，静态选择器选不到。
+
+**`default` 必须也是 `morph`，不能是 `none`。** 实测（造一个"未配对"的过渡 = 元素被
+插入，再读伪元素）：
+
+| 未配对时 | `animation-name` | `opacity` |
+| --- | --- | --- |
+| 没有 class | `-ua-view-transition-fade-in` | `0` |
+| 带 `morph` | `none` | `1` |
+
+也就是说：`default="none"` 只表示"本元素不跟着所在边界做 enter/exit 动画"，它**并不
+阻止伪元素吃浏览器默认的 fade-in**。于是凡是**没配上对**的过渡（揭幕里配对本来就不
+稳定 —— 骨架上的海报是 hydration 后由客户端换上的），海报就会从 `opacity: 0` 淡出来，
+观感是「变透明/变亮再回来」。两条都挂 `morph` 才真正覆盖"任何触发方式"。
+
+React 把 `default` 映射到 `vt-update` 属性，可在 DOM 里核对：
+`vt-update="morph"` + `vt-share="morph"`（旧值是 `vt-update="none"`）。
 
 #### ⚠️ 那条 `.morph` 规则的位置是**有语义的**，不要挪
 
