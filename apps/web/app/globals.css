@@ -2445,10 +2445,23 @@ p {
    海报自己的 group/image-pair/old/new **全程都是实心无动画**，唯一在动透明度的是
    **`::view-transition-group(root)`**（`opacity: 1 → 0 → 1`）—— 只要海报没进自己的
    命名分组（骨架那一跳里常常进不去），它就在 root 快照里跟着淡。所以现在整个 VT 里
-   一条透明度动画都没有，观感全部交给形变 + 位移。 */
+   一条透明度动画都没有，观感全部交给形变 + 位移。
+
+   ⚠️⚠️ **`opacity: 1 !important` 是必需的，只写 `animation: none` 不够。**
+   淡入淡出挂在 `old` / `new` 这两个**快照**伪元素上（不是 group，group 只管几何）：
+
+     ::view-transition-group(name)          ← 只有 transform/size
+       ::view-transition-image-pair(name)
+         ::view-transition-old(name)        ← 透明度在这一层
+         ::view-transition-new(name)        ← 透明度在这一层
+
+   而浏览器是用 **WAAPI** 驱动的（所以 Styles 面板里根本看不到一条 `opacity:`——
+   那是 UA 生成的动画，不是作者声明）：`animation: none` 压不住 WAAPI，
+   必须靠 `opacity: 1 !important`（`!important` 的作者声明优先级高于 WAAPI）。 */
 ::view-transition-old(*),
 ::view-transition-new(*) {
-  animation: none;
+  animation: none !important;
+  opacity: 1 !important;
 }
 
 /* 过渡期间 `::view-transition` 覆盖层会吃掉指针事件 → 动画那几百毫秒里的点击全部丢失。
@@ -2598,12 +2611,15 @@ p {
    放在前面时 `.slide-down` 会赢，于是 `animation: none` 被覆盖成
    「淡出 + 下移」→ 海报在揭幕那一瞬间**暗一下再亮回来**（实测被用户看到：
    "在骨架屏数据回来的那一瞬间，海报闪烁了一下"）。挪到后面，海报的
-   old/new 两帧永远是不透明的，位移交给它的 group 去做。 */
+   old/new 两帧永远是不透明的，位移交给它的 group 去做。
+
+   ⚠️⚠️ 这里同样是 `!important` —— 淡入淡出挂在 `old` / `new` 这两个**快照**伪元素上，
+   而且由 **WAAPI** 驱动，`animation: none` 压不住它，只能压属性值（详见上面兜底那段）。 */
 ::view-transition-old(.morph),
 ::view-transition-new(.morph) {
-  animation: none;
-  opacity: 1;
-  mix-blend-mode: normal;
+  animation: none !important;
+  opacity: 1 !important;
+  mix-blend-mode: normal !important;
 }
 
 .hub-poster {
