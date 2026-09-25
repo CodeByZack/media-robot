@@ -34,18 +34,21 @@ export function PosterTransition({
   name: string | null;
   children: React.ReactNode;
 }) {
-  // ⚠️ 这里**没有** className：React 的 `ViewTransitionProps` 不含它（它的 `default`/
-  // `enter`/`exit` 是 view-transition-class 不是元素 class）。页面样式写在真实元素上，
+  // ⚠️ 这里**没有** className：React 的 `ViewTransitionProps` 不含它（`share`/`enter`/
+  // `exit` 是 view-transition-class 不是元素 class）。页面样式写在真实元素上，
   // 动画写在 `::view-transition-*` 伪元素上 —— 后者是唯一能让共享元素动起来的写法。
   if (name === null) {
     // 退化成普通渲染：动画没了，内容照常。装饰性功能不该有"失败也把页面搞崩"的能力。
     return <>{children}</>;
   }
-  // `default` = view-transition-class。名字是**运行时**生成的（带 tmdbId），没法用
-  // 静态选择器批量选中；class 可以，于是 CSS 写得成
-  // `::view-transition-old(.mr-shared)`（见 globals.css：关掉它的交叉淡入）。
+  // `share="morph"` / `default="none"` 是 React 官方文档给共享元素形变的写法：
+  //   · `share` 只在**两侧同名配对**时生效，并给伪元素挂上 `.morph` 类 → CSS 可选中
+  //     （元素名带 tmdbId、运行时生成，静态选择器选不到，只能靠 class）。
+  //   · `default="none"` 关掉"本元素在其他任何过渡里也跟着淡入淡出"的默认行为。
+  // ⚠️ 官方文档明确警告：**配了 `default="none"` 就必须同时给 `share`** —— 只给
+  // `default="none"` 会让配对静默失去形变（不报错）。所以这两个 prop 是一对。
   return (
-    <ViewTransition name={name} default="mr-shared">
+    <ViewTransition name={name} share="morph" default="none">
       {children}
     </ViewTransition>
   );
