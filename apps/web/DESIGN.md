@@ -148,6 +148,7 @@ MediaRobot 是一个**自托管**的个人媒体获取 Agent。它替你**巡弋
 | 侧栏导航项 | `.nav-item` | 36–40px 高、14px/700；`is-active` 用 `--bg-raised` + 图标染 `--accent` |
 | 底部标签栏 | `.nav-item`（≤860px 变形） | ≥44px 触控目标；激活态文字染 `--accent`，**不变灰** |
 | 徽章 | `.nav-badge` | mono 10px，warn 底 8% 透明，最小 18px |
+| 搜索区头部 | `.search-head` / `.search-hero` / `.search-scope-note` | 间距**只由 `.search-head` 给**（28px），内部元素不自带下边距 —— 否则多一条提示就叠加成两套间距互相打架。多盘隔离提示属于搜索区，故紧贴 hero（12px）、远离下方内容（28px）：**距离即归属** |
 | 品牌区 | `.brand` / `.brand-mark` / `.brand-copy` | 标识底用设计稿 symbol 的**渐变**（`--navy-tint → --navy-deep`，135°），不是平涂 navy；字标双色 + 副题见 §9 |
 | 页脚收尾卡 | `.sidebar-footer` | 抬升卡（`--bg-raised` + `--border-soft` + `--radius-lg`），上半活体状态、下半元信息 |
 | 巡检状态行 | `.sidebar-status` | 呼吸绿点（`--success`，`breathe` 2.6s，**全站唯一常驻动画**）+ 「巡检运行中」+ 右对齐 `下次 HH:MM`。数据来自巡检设置（`lib/patrol-status.ts` 纯逻辑）；**只读演示站不显示**（那里巡检并不真跑，给绿灯等于编造状态） |
@@ -236,6 +237,8 @@ MediaRobot 是一个**自托管**的个人媒体获取 Agent。它替你**巡弋
 - 桌面：`grid-template-columns: 248px minmax(0, 1fr)`，侧栏 `position: sticky`。
 - ≤860px：侧栏收起，顶栏（毛玻璃 + 发丝底边）替代导航，底部固定标签栏承担主导航，
   触控目标 ≥ 44px。**移动端不横向滚动 —— 横向滚动只允许出现在"货架"这一种组件里。**
+  顶栏很窄（390px 下内容区仅 331px）且要装品牌 + 盘切换器，**任何新增元素都先量**：
+  曾因盘标识 16px→20px 就撑出 4px 横滚（当时零余量）。
 - ⚠️ **不要用裸 `1fr`**，用 `minmax(0, 1fr)`。裸 `1fr` = `minmax(auto, 1fr)`，会被宽子元素
   （搜索框、候选卡）撑破视口。
 - 主区 `max-width: 1360px`，超出后居中留白，不做通栏拉伸。
@@ -300,6 +303,11 @@ MediaRobot 是一个**自托管**的个人媒体获取 Agent。它替你**巡弋
 > 长出 14.8px），视觉上才分层 —— 副题是标题的**底座**，而不是第二个标题。
 > 这正是文案取 25 字符官方全文而非 20 字符版的原因。
 
+> ⚠️ **≤860px 隐藏副题。** 移动端侧栏变成顶栏，要同时装「品牌 + 盘切换器」；
+> 副题是纯装饰、没有信息功能，让位给功能控件（§7）。这同时修掉一个真实的横向溢出：
+> 顶栏此前**刚好卡在 390px 零余量**，任何微小变化都会撑出横滚 —— 盘标识从旧实现的
+> 16px 图片换成 20px 方牌时就多出 4px。隐藏副题后余量 15px（375/390）。
+
 > ⚠️ 副题**长度受侧栏宽度硬约束**，实测预算（10px / w500）：`.brand` 内容宽 200 −
 > 标志 48 − gap 12 = **文本可用 140px**。`your personal media agent` 在 system-ui
 > （最差情况，Inter/Arial 都更窄）下的字距—宽度对照：
@@ -310,8 +318,31 @@ MediaRobot 是一个**自托管**的个人媒体获取 Agent。它替你**巡弋
 > 改文案或字体前先量这份预算。
 
 
-**盘卡标识.** 设置页的网盘标识用**文字方牌**（`115` / `夸` / `鸭` / `翼` / `123`），
-不用品牌 logo 图片。数据源：`packages/workflow/src/storage-brands.ts` 的 `STORAGE_BRANDS[].mark`。
+**盘卡标识.** 网盘标识一律用**文字方牌**（`115` / `夸` / `鸭` / `翼` / `123`），
+不用品牌 logo 图片。数据源：`packages/workflow/src/storage-brands.ts` 的 `STORAGE_BRANDS[].mark`，
+统一经 `apps/web/lib/provider-display.ts` 的 `providerMark()` 取值。
+
+> ⚠️ **配色只定义一处：`.drive-mark`。** 这个方牌在**三处**出现 —— 设置页盘卡
+> （`drive-card-icon`，38px）、设置页「添加网盘」品牌胶囊（`brand-tile-mark`，24px）、
+> 侧栏盘切换器（`ws-mark`，20px）。三处的规则**只写尺寸**，配色全部继承 `.drive-mark`；
+> 尺寸可以不同（场景不同），配色必须一致。
+>
+> 为什么抽出来：这三份曾经各写一份，已经漂移了两次 ——
+> ① 切换器整个漏改成 `/brands/<provider>.svg` 图片（同一块盘侧栏彩色、设置页 navy，
+> 看着像两个体系）；② `tabular-nums` / `letter-spacing` 只加在设置页那份，侧栏没有
+> （数字牌宽度会抖）。**改这个方牌时先想另外两处。**
+
+> ⚠️ **底色不是设计稿的 `--navy-tint` 原值，而是 `color-mix(in oklab, var(--navy-tint), white 16%)`。**
+> 原值 `#12345a` 是个很暗的实心块，压在同样暗的石墨底上对比度只有 **1.1–1.36**
+> （在 `--bg-card` 上仅 1.1），方块几乎看不出边界 —— 看着像糊掉的印子而不是标识。
+> 提亮一档后升到 **1.72–2.12**，牌内文字仍有 **7.2**（远超 AA 的 4.5）。
+> 这是有意的偏离设计稿：设计稿那个方牌是 30px/11px，靠粗白字撑住辨识度；
+> 缩到 20px/9px 后底色必须自己站出来。另加一道 `inset` 发丝内描边（用 inset 而非
+> border，避免 border 占盒模型导致三处尺寸不一致）。
+
+> 注：`apps/web/public/brands/*.svg` 是旧实现遗留的品牌图，现已无引用（但文件保留，
+> 删它要连 Dockerfile 的 `COPY public` 一起动）。它里面的字与注册表**不一致**
+> （SVG 是 光/天，注册表是 鸭/翼），**以注册表为准**。
 
 > ⚠️ 客户端组件**不能** import `@mediarobot/workflow` 的 barrel（会把 `node:sqlite`
 > 拽进浏览器 chunk，编译直接失败），所以「添加网盘」的品牌表在

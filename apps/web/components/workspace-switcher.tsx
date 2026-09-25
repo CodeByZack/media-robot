@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { lastQueryKey, switcherTabHref, workspaceSection } from "@mediarobot/workflow/scope";
 
@@ -9,28 +8,10 @@ export interface WorkspaceTab {
   id: string;
   href: string;
   label: string;
+  /** 文字方牌的字符（115 / 夸 / 鸭 / 翼 / 123）。**由服务端 loader 从注册表取好
+   *  传下来** —— 本组件是客户端组件，不能去读 workflow 的 barrel。 */
+  mark: string;
   frozen: boolean;
-  provider?: string | undefined;
-}
-
-/** Brand logo for a drive (left of the label). Falls back to the legacy colored
- *  dot when the drive has no provider or its /brands/<provider>.svg is missing —
- *  so an unconfigured brand never breaks the row. */
-function BrandMark({ provider, frozen }: { provider?: string | undefined; frozen: boolean }) {
-  const [failed, setFailed] = useState(false);
-  if (!provider || failed) {
-    return <span className={`ws-dot${frozen ? " is-frozen" : ""}`} aria-hidden />;
-  }
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      className="ws-icon"
-      src={`/brands/${provider}.svg`}
-      alt=""
-      aria-hidden
-      onError={() => setFailed(true)}
-    />
-  );
 }
 
 /**
@@ -57,7 +38,9 @@ export function WorkspaceSwitcher({ tabs }: { tabs: WorkspaceTab[] }) {
   return (
     <details className="workspace-switcher">
       <summary className="ws-current" aria-label="切换网盘工作区">
-        <BrandMark provider={current.provider} frozen={current.frozen} />
+        <span className="drive-mark ws-mark" aria-hidden>
+          {current.mark}
+        </span>
         <span className="ws-label">{current.label}</span>
         {current.frozen ? (
           <span className="ws-frozen" aria-label="掉线">
@@ -96,7 +79,9 @@ export function WorkspaceSwitcher({ tabs }: { tabs: WorkspaceTab[] }) {
                 }
               }}
             >
-              <BrandMark provider={tab.provider} frozen={tab.frozen} />
+              <span className="drive-mark ws-mark" aria-hidden>
+                {tab.mark}
+              </span>
               <span className="ws-label">{tab.label}</span>
               {tab.frozen ? (
                 <span className="ws-frozen" aria-label="掉线">

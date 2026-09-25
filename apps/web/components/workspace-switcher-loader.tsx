@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { switcherItems, isRegisteredStorageProvider } from "@mediarobot/workflow";
 import { getAccountConnectedStorages } from "../lib/workflow-runtime";
+import { providerMark } from "../lib/provider-display";
 import { WorkspaceSwitcher } from "./workspace-switcher";
 
 /**
@@ -34,6 +35,15 @@ export async function WorkspaceSwitcherLoader() {
       status: storage.status,
     })),
     "/",
-  ).map((item) => ({ id: item.id, href: item.href, label: item.label, frozen: item.frozen, provider: item.provider }));
+    // `mark` 在这里算好再传：客户端组件不能 import workflow 的 barrel
+    // （node:sqlite 会进浏览器 chunk），所以标识字符必须由服务端 props 下发。
+    // 与设置页盘卡、添加网盘胶囊共用 providerMark，保证三处长得一样。
+  ).map((item) => ({
+    id: item.id,
+    href: item.href,
+    label: item.label,
+    mark: providerMark(item.provider ?? ""),
+    frozen: item.frozen,
+  }));
   return <WorkspaceSwitcher tabs={tabs} />;
 }

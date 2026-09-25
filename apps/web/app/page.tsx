@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { CalendarClock, CheckCircle2, Clock3, Library, LoaderCircle, TriangleAlert } from "lucide-react";
+import { CalendarClock, CheckCircle2, Clock3, Info, Library, LoaderCircle, TriangleAlert } from "lucide-react";
 import { AcquiringPoller } from "../components/acquiring-poller";
 import { AppSidebar } from "../components/app-sidebar";
 import { RequestTrackButton } from "../components/request-track-button";
@@ -108,18 +108,27 @@ async function HomeSurface({
         {activeTab === "search" ? (
           <section className="search-surface">
             <RememberQuery query={query} basePath={basePath} />
-            <div className="search-hero">
-              <div>
-                <h1>搜索</h1>
-                <p>找到目标后发起获取，后台会处理资源判断、转存和验证。</p>
+            {/* 搜索区头部 = 标题 + 表单 +（多盘时）网盘隔离提示。
+                提示必须留在 .search-head 里、紧贴 hero —— **距离即归属**：它讲的是
+                搜索/获取的行为，就该读作搜索区的一部分。此前它是散在 hero 之后的一个
+                裸 <p>（还带 marginTop:-4 的负边距硬塞），离下方货架只有 8px、离 hero
+                有 24px，于是眼睛把它读成「热门剧集」的说明文字 —— 位置错了，而不是
+                文案错了。 */}
+            <div className="search-head">
+              <div className="search-hero">
+                <div>
+                  <h1>搜索</h1>
+                  <p>找到目标后发起获取，后台会处理资源判断、转存和验证。</p>
+                </div>
+                <SearchForm basePath={basePath} defaultQuery={query} />
               </div>
-              <SearchForm basePath={basePath} defaultQuery={query} />
+              {driveCount >= 2 ? (
+                <p className="search-scope-note">
+                  <Info size={13} aria-hidden />
+                  搜索与获取按网盘隔离 —— 请先切到目标网盘再操作
+                </p>
+              ) : null}
             </div>
-            {driveCount >= 2 ? (
-              <p className="panel-note" style={{ marginTop: -4, marginBottom: 4 }}>
-                搜索与获取按网盘隔离 —— 想为某块盘获取资源，请切到该盘后在它的搜索页操作。
-              </p>
-            ) : null}
             <Suspense key={`search-${query}`} fallback={<SearchResultsSkeleton />}>
               <SearchResults
                 query={query}

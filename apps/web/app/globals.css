@@ -461,13 +461,38 @@ p {
 
 /* ---------- search ---------- */
 
+/* 搜索区头部：标题 + 表单 +（多盘时）网盘隔离提示。
+   间距统一由本容器给，内部元素不自带下边距 —— 这样“与下方内容的间距”只有一处
+   来源，不会因为多了一条提示而叠加（之前 hero 自带 28px、提示又带负边距，两个
+   间距互相打架，结果离货架只有 8px）。 */
+.search-head {
+  margin-bottom: 28px;
+}
+
 .search-hero {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
   gap: 20px;
-  margin-bottom: 28px;
+}
+
+/* 多盘（≥2）时的网盘隔离提示。采用设计稿 `.risk` 的「图标 + 文字」排法，
+   但用次级灰而非 warn 色 —— 这是“要先知道”而不是“出错了”。
+   紧贴 hero（12px）—— 距离即归属，它属于搜索区。 */
+.search-scope-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+.search-scope-note svg {
+  flex: none;
+  /* 与首行基线对齐（设计稿 .risk svg 同法） */
+  margin-top: 2px;
 }
 
 .search-hero h1 {
@@ -1254,6 +1279,16 @@ p {
   .brand {
     padding: 0;
     gap: 10px;
+  }
+
+  /* 移动端隐藏字标副题。顶栏要同时装「品牌 + 盘切换器」，副题是纯装饰、
+     没有信息功能，让位给功能控件（§7 移动端优先保功能）。
+     这里同时修掉一个真实的横向溢出：顶栏此前**刚好卡在 390px 零余量**，
+     于是任何微小变化都会撑出横向滚动 —— 盘标识从旧实现的 16px 图片换成
+     20px 方牌时就多出 4px、页面开始横滚。隐藏副题后余量 15px，
+     不是把数字退回去继续贴着极限。 */
+  .brand-copy-sub {
+    display: none;
   }
 
   /* Mobile primary navigation = a fixed bottom tab bar (Material/HIG pattern for
@@ -3800,20 +3835,26 @@ select.setting-control {
   background: var(--bg-raised);
   color: var(--text);
 }
-.workspace-switcher .ws-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.35);
-  flex: none;
+/* 盘标识方牌的尺寸。**配色不在这里** —— 见 .drive-mark（三处共用的唯一配色定义）。
+   尺寸随场景（盘卡 38 / 品牌胶囊 24 / 侧栏 20），配色必须一致。
+   20px 是按设计稿 30px/11px 等比缩到侧栏行高容得下的结果（30px 那个尺寸是给盘卡
+   准备的，塞进 32px 的行会把行撑高）。 */
+.workspace-switcher .ws-mark {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  font-size: 9px;
 }
-.workspace-switcher .ws-tab.is-active .ws-dot,
-.workspace-switcher .ws-current .ws-dot {
-  background: var(--accent);
+/* 当前盘不再靠改标识颜色来区分（旧实现是 .ws-dot 变 accent 色）—— 方牌的职责是
+   "这是哪个品牌"，行的 `.is-active` 底 + 提亮文字已经表达了"当前是它"。标识在
+   三处（侧栏 / 盘卡 / 品牌胶囊）必须长得完全一样，不该因状态变颜色。 */
+.workspace-switcher .ws-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.workspace-switcher .ws-dot.is-frozen,
-.workspace-switcher .ws-tab.is-frozen .ws-dot {
-  background: #f59e0b;
+.workspace-switcher .ws-frozen {
+  color: #f59e0b;
 }
 .demo-banner {
   background: var(--accent);
@@ -3968,22 +4009,6 @@ select.setting-control {
   font-size: 12px;
   color: var(--text-muted, #9a9a9a);
 }
-.workspace-switcher .ws-icon {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  object-fit: contain;
-  flex: none;
-}
-.workspace-switcher .ws-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.workspace-switcher .ws-frozen {
-  color: #f59e0b;
-}
-
 /* Small secondary button (e.g. settings 测试连接). */
 .ghost-button {
   padding: 5px 12px;
@@ -5044,21 +5069,35 @@ select.setting-control {
   border-color: color-mix(in oklab, var(--warning), transparent 65%);
 }
 
-/* 网盘的文字方牌（设计稿 .drive-icon：navy 底 + 白字，不是品牌 logo 图片）。
-   盘卡与「添加网盘」的品牌胶囊共用同一套外观，只有尺寸不同 ——
-   以字代图的标识语言在两处必须长得一样，否则看着像两个体系。 */
-.settings-shell .drive-card-icon,
-.settings-shell .brand-tile-mark {
+/* 盘标识方牌（设计稿 `.drive-icon`：方底 + 浅字，不是品牌 logo 图片）的
+   **唯一配色定义**，三处共用：设置页盘卡（.drive-card-icon）、设置页「添加网盘」
+   胶囊（.brand-tile-mark）、侧栏盘切换器（.ws-mark）。各处的规则只负责**尺寸**，
+   不许再写颜色 —— 以字代图的标识语言在三处必须长得一样，否则看着像两个体系。
+
+   为什么抽成一处：这三份曾经各写一份，已经漂移了两次 ——
+   ① 切换器整个漏改成品牌图片（同一块盘侧栏彩色、设置页 navy，像两个体系）；
+   ② tabular-nums / letter-spacing 只加在设置页那份，侧栏没有（数字牌宽度会抖）。
+   同一样东西写三遍，迟早三份都不一样。
+
+   为什么底色不是设计稿的 --navy-tint 原值：那是个很暗的实心块，压在同样暗的石墨底
+   上对比度只有 1.1–1.36（在 --bg-card 上仅 1.1），方块几乎看不出边界 —— 看着像
+   一块糊掉的印子，而不是一枚清晰的标识（用户反馈“看着真奇怪”）。提亮一档
+   （mix 白 16%）后升到 1.46–1.8，既读得出是方块，又不像 --accent 那样抢主操作。
+   牌内文字对比度仍有 8.5，远超 AA 的 4.5。 */
+.drive-mark {
   flex: none;
   display: grid;
   place-items: center;
-  background: var(--navy-tint);
+  background: color-mix(in oklab, var(--navy-tint), white 16%);
   color: #eaf3ff;
   font-weight: 800;
   letter-spacing: -0.01em;
   line-height: 1;
   /* 数字牌（115/123）比单字牌宽；tabular-nums 让数字宽度一致，并排不抖动。 */
   font-variant-numeric: tabular-nums;
+  /* 发丝内描边：在同样暗的底上给方牌一个明确的边，进一步把它和背景分开。
+     用 inset 而不是 border —— border 占盒模型，三处尺寸就不一致了。 */
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
 }
 
 .settings-shell .drive-card-icon {

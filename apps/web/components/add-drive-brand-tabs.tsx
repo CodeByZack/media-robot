@@ -33,7 +33,7 @@ export function AddDriveBrandTabs({ defaultBrand = "pan115" }: { defaultBrand?: 
             onClick={() => setBrand(brand === tile.key ? null : tile.key)}
             aria-pressed={brand === tile.key}
           >
-            <span className="brand-tile-mark" aria-hidden>
+            <span className="drive-mark brand-tile-mark" aria-hidden>
               {tile.mark}
             </span>
             <span className="brand-tile-label">{tile.label}</span>

@@ -47,7 +47,8 @@ import {
   PANSOU_BASE_URL_SETTING_KEY,
   resolveGlobalWorkspace,
 } from "../../lib/workflow-runtime";
-import { brandSupportsProwlarr, getStorageBrand, isRegisteredStorageProvider } from "@mediarobot/workflow";
+import { brandSupportsProwlarr } from "@mediarobot/workflow";
+import { providerLabel, providerMark } from "../../lib/provider-display";
 import { isDemoMode } from "../../lib/demo-mode";
 
 export default function SettingsPage({
@@ -399,19 +400,6 @@ async function SubtitleSourceSection() {
   );
 }
 
-/** 品牌显示名直读 workflow 注册表(单一事实源,与 workspace-switcher 一致),
- *  未注册品牌兜底显示原始 provider 串。盘卡与解绑确认共用。 */
-function providerLabel(provider: string): string {
-  return isRegisteredStorageProvider(provider) ? getStorageBrand(provider).label : provider;
-}
-
-/** 盘卡左侧文字标识（设计稿 `.drive-icon`）。已注册品牌走注册表的 `mark`；
- *  未注册品牌兜底取 provider 串首字符，保证方牌永远有内容、不会空框。 */
-function providerMark(provider: string): string {
-  if (isRegisteredStorageProvider(provider)) return getStorageBrand(provider).mark;
-  return provider.trim().charAt(0).toUpperCase();
-}
-
 async function Pan115Section() {
   await connection();
   const status = await getPan115ConnectionStatus();
@@ -459,7 +447,7 @@ async function Pan115Section() {
                   {/* 设计稿的盘卡标识是**文字方牌**（`.drive-icon`：navy 底 + 白字），
                       不是品牌 logo 图片 —— 五个品牌并排时，字母牌比小图标更快扫读，
                       也少一层图片请求。mark 取自 workflow 注册表（单一事实源）。 */}
-                  <span className="drive-card-icon" aria-hidden>
+                  <span className="drive-mark drive-card-icon" aria-hidden>
                     {providerMark(drive.provider)}
                   </span>
                   <span className="drive-card-name">{providerLabel(drive.provider)}</span>

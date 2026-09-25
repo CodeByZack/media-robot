@@ -83,8 +83,11 @@ ENV HOSTNAME=0.0.0.0
 COPY --from=builder /app/apps/web/.next/standalone ./
 COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
 # `output: standalone` does NOT bundle public/ — copy it explicitly, else every
-# public asset (e.g. /brands/<provider>.svg for the workspace switcher icons) 404s
-# and BrandMark falls back to a bare dot (demo on Vercel serves public/ natively).
+# public asset 404s (demo on Vercel serves public/ natively).
+#
+# 注：public/ 里目前只有 brands/*.svg（各家网盘 logo）。自盘标识改成文字方牌后，
+# 应用里已无任何地方引用它们，这行 COPY 是为将来新增的 public 资源留的——
+# 留着无害，删掉却要连 public/ 目录一起动（目录空了 git 就不跟踪，COPY 会直接失败）。
 COPY --from=builder /app/apps/web/public ./apps/web/public
 # Records the git commit this image was built from. `docker compose exec web cat
 # BUILD_COMMIT` tells you exactly which code the running container serves — the host's
