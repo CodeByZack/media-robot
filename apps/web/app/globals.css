@@ -2581,6 +2581,22 @@ li.hub-season-row.untracked {
   cursor: default;
 }
 
+/* 获取操作的结果提示（成功后换到锁定态；这里是失败/需要用户知道的说明）。
+
+   ⚠️ 这个类此前**没有任何样式定义**，但被两个组件引用 —— 又一起"静默失效"：
+   它照常渲染成 <p>，只是完全不按设计语言出现。新增类名时请一并搜一下 CSS。
+
+   配色用次级灰而不是 negative：这里既承载失败（该盘不支持磁力、权限不足），
+   也承载中性告知（已预定、未配置 AI 模型）—— 同一个元素不能按状态变色，而把
+   文案本身写清楚比把中性的那条标成红色更重要。 */
+.request-result {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  max-width: 46ch;
+}
+
 .hub-episode-grid {
   background: var(--bg-surface);
   border-bottom-left-radius: var(--radius-card);

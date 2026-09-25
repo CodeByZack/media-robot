@@ -17,17 +17,22 @@ export function isLockedResult(result: AcquireResult | null): boolean {
 }
 
 /**
- * The acquire-time LLM pre-check (issue #52) returned the "未配置 AI 模型" message
- * and enqueued NOTHING — so the control must stay clickable (NOT locked) and show
- * the guidance inline. Shared so the acquire components surface it consistently
- * instead of only as a hover title. Renders nothing for any other status.
+ * 获取操作的结果提示。
+ *
+ * **必须显示失败，不能只显示 llm_not_configured** —— 早先它只认这一个状态，而
+ * 调用方把"请求失败"（网络错误、服务端拒绝、该盘不支持该资源）一律设为
+ * `unsupported`，于是**点「获取」失败后界面毫无反应**：按钮恢复可点，没有任何说明。
+ * 用户只会觉得"点了没用"，而真实原因（例如该网盘不支持磁力）完全看不到。
+ *
+ * 只对"锁定类"状态返回 null：那些情况下按钮自己已经变成「已请求/已追踪」，
+ * 再叠一段文字是重复。
  */
 export function AcquireResultNotice({
   result,
 }: {
   result: AcquireResult | null;
 }) {
-  if (result?.status !== "llm_not_configured") {
+  if (result === null || isLockedResult(result)) {
     return null;
   }
   return <p className="request-result">{result.message}</p>;
