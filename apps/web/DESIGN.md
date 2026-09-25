@@ -307,6 +307,33 @@ App Router 的 layout **在导航间不重新渲染**，所以侧栏放这里，
 > chevron 的正确做法是**始终渲染同一个图标**，靠 CSS `.is-open` 旋转。
 > 换成"两个图标对调"就做不出过渡动画了。
 
+### 8.1 共享元素过渡（海报变形）
+
+`媒体库卡片 → 详情页大图`（以及反向）走 View Transitions：源和目标共用同一个
+`view-transition-name`，由 React 19.3 的 `<ViewTransition>` 驱动（需
+`next.config.ts` 的 `experimental.viewTransition`）。**只做媒体库 ↔ 详情页这一条
+链路**；搜索页候选卡暂未接入。
+
+| 项 | 值 / 位置 |
+| --- | --- |
+| 名字规则 | `poster-<type>-<tmdbId>`，见 `lib/poster-transition.ts` |
+| 时长 / 曲线 | `--vt-poster-duration: 420ms`、`--vt-poster-ease`，`globals.css` 的 `:root` |
+| 包裹组件 | `components/poster-transition.tsx`（`name: string \| null`） |
+
+两条**踩过的坑**，改这块之前先读：
+
+- **时长必须写成 `::view-transition-group(*)` + CSS 变量。**
+  `::view-transition-group(...)` 括号里是**运行时**生成的元素名，静态选择器
+  `::view-transition-group(poster-movie-*)` 永远命中不了 —— 实测一直停在默认
+  250ms，而 `::view-transition-old(root)` 却是 420ms，两边不一致非常明显。
+- **算不出名字时返回 `null`，让调用方退化成普通渲染，绝不抛错。**
+  实测踩过：`mediaType` 一度为 `undefined` → TypeError → 整个详情页 500，而它
+  只是个装饰动画。拿不到类型就**不给名字**（不猜：猜错的名字不报错，只让过渡
+  静默失效，比崩更难查）。凡是装饰性动效，都不该有"失败也把页面搞崩"的能力。
+
+> 尺寸契约：卡片海报 160×240，详情页大图 180×270 —— 同为 **2:3**，缩放才不拉伸。
+> 以后改任何一侧的宽高比，两边都要一起改。
+
 ---
 
 ## 9. 品牌
