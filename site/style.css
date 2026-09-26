@@ -171,6 +171,9 @@ section > .wrap > .sub {
 .btn-ghost { border-color: var(--line-strong); color: var(--text); }
 .btn-ghost:hover { border-color: var(--cyan); }
 
+/* 「下载 .fpk」按钮上的下载图标（内联 svg 默认会撑成 300×150）。 */
+.dl-btn svg { width: 16px; height: 16px; flex: none; }
+
 .hero-facts {
   display: flex; flex-wrap: wrap; gap: 8px 22px;
   margin: 24px 0 0; padding: 0; list-style: none;

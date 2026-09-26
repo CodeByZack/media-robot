@@ -132,6 +132,12 @@
 
     <div class="cta-row">
       <a class="btn btn-primary" href="https://github.com/CodeByZack/mediary-scout">去 GitHub 部署</a>
+      <!-- 指向**发布页**而不是某个附件：.fpk 分 x86 / arm 两个架构，而且附件名里
+           带版本号（每发版都变），直连单个文件既选错架构又会随发版 404。 -->
+      <a class="btn btn-ghost dl-btn" href="https://github.com/CodeByZack/mediary-scout/releases/latest">
+        <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8.2M4.9 7.3 8 10.4l3.1-3.1M3 13.6h10"/></svg>
+        下载 .fpk
+      </a>
       <a class="btn btn-ghost" href="#demo">先看它跑一遍</a>
     </div>
 
@@ -313,7 +319,7 @@
       <div class="deploy-card">
         <span class="tag">飞牛 fnOS</span>
         <h4>NAS 上的原生应用</h4>
-        <p>去 Releases 按架构下载 <code>.fpk</code>（arm / x86），在 fnOS 应用中心「手动安装」。</p>
+        <p>去 Releases 按架构下载 <code>.fpk</code>（x86 / arm），在 fnOS 应用中心「手动安装」。</p>
         <a class="link" href="https://github.com/CodeByZack/mediary-scout/releases/latest">打开发布页 →</a>
       </div>
 
