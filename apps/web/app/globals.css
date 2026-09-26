@@ -2160,7 +2160,9 @@ p {
 }
 
 .wall-state.tone-green {
-  background: rgba(76, 155, 232, 0.85);
+  /* 蓝色迁移时只改了文字没改底：这两行原本是蓝底（与 tone-blue 同色）配深绿字。
+     语义是「已获取」（demo-session-library 在用），底必须跟着 --success。 */
+  background: color-mix(in oklab, var(--success), transparent 12%);
   color: #04250f;
 }
 
@@ -3781,7 +3783,9 @@ select.setting-control {
 }
 
 .act-poster-fallback.tone-info { background: rgba(76, 155, 232, 0.18); color: var(--info); }
-.act-poster-fallback.tone-success { background: rgba(76, 155, 232, 0.18); color: var(--accent); }
+/* tone-success 的语义是「成功」。之前跟着 tone-info 用了 --accent(蓝) ——
+   与同组 tone-warn/tone-danger 各自用语义色的做法不一致（activity-feed 在用）。 */
+.act-poster-fallback.tone-success { background: color-mix(in oklab, var(--success), transparent 82%); color: var(--success); }
 .act-poster-fallback.tone-warn { background: rgba(217, 164, 65, 0.18); color: var(--warning); }
 
 .act-row-body {
@@ -4109,6 +4113,18 @@ select.setting-control {
 }
 .workspace-switcher .ws-frozen {
   color: #f59e0b;
+}
+/* 切盘失败的提示。挂在 <details> 里、菜单之后 —— 失败时菜单还开着，
+   提示就出现在用户刚点过的那个按钮正下方。 */
+.workspace-switcher .ws-error {
+  margin: 6px 8px 2px;
+  padding: 6px 9px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  border-radius: 7px;
+  color: var(--danger);
+  background: color-mix(in oklab, var(--danger), transparent 86%);
+  border: 1px solid color-mix(in oklab, var(--danger), transparent 62%);
 }
 .demo-banner {
   background: var(--accent);

@@ -87,7 +87,7 @@ mediary-scout-x86.fpk
 
 ```bash
 git clone https://github.com/CodeByZack/media-robot
-cd mediarobot
+cd media-robot
 
 cp .env.example .env
 

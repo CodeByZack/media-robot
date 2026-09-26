@@ -1,9 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import {
   DRIVE_COOKIE_NAME,
-  getCurrentAccountId,
   getWorkflowRepository,
   isCookieSecure,
+  requireAuthenticatedAccountId,
 } from "../../../lib/workflow-runtime";
 import { isRegisteredStorageProvider } from "@mediarobot/workflow";
 
@@ -31,7 +31,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "driveId required" }, { status: 400 });
   }
 
-  const accountId = await getCurrentAccountId();
+  // 写路径一律用 requireAuthenticatedAccountId，**不用** getCurrentAccountId：
+  // 后者会返回 `acct_unauthenticated` 哨兵，而仓库约定该哨兵「绝不到达写路径」。
+  // 哨兵名下本来就没有网盘（下面的归属校验会 403），但那是在依赖一个耦合关系；
+  // 这里显式拒掉，使校验 fail-closed。与 /api/drives、/api/rules、/api/settings/save 一致。
+  //
+  // 它**会抛** UnauthenticatedAccountError，所以必须接住 —— 否则未登录只是一个
+  // 未处理异常（500），而不是一个说得清的 401。
+  let accountId: string;
+  try {
+    accountId = await requireAuthenticatedAccountId();
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "未登录" },
+      { status: 401 },
+    );
+  }
   const storages = (await getWorkflowRepository().listConnectedStorages(accountId)).filter(
     (storage) => isRegisteredStorageProvider(storage.provider),
   );

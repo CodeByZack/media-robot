@@ -18,14 +18,16 @@ on:
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
-# GitHub Pages 的部署需要这三项，缺一不可：
+# GitHub Pages 的部署需要三个 scope，缺一不可：
 #   contents:read  —— checkout
 #   pages:write    —— 发布到 Pages
 #   id-token:write —— deploy-pages 用 OIDC 换取部署凭证
+#
+# ⚠️ 按**最小权限**分配：写在 workflow 层等于给**每个 job** 全给上，
+# 而 build 只跑 checkout / configure-pages / upload-pages-artifact，不需要写权限。
+# 所以 workflow 层只留 contents:read，两个写权限下沉到真正要它们的 deploy job。
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 # 同一时间只允许一个发布在跑；新的推送把排队中的旧任务取消（不让陈旧版本上线）。
 concurrency:
@@ -46,6 +48,9 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

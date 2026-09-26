@@ -19,9 +19,17 @@ export const DETAIL_ORIGIN_KEY = "mr_detail_origin";
  * sessionStorage 里可能是上一次会话的旧值、或被人为塞进的任意字符串，直接交给
  * `router.replace()` 等于让外部输入决定跳转目标，所以这里做形状校验：
  * 必须以单个 `/` 开头（`//evil.com` 是协议相对 URL，必须挡掉）。
+ *
+ * ⚠️ **只挡 `//` 不够**：浏览器对特殊 scheme（http/https）会把 `\` **规范化成 `/`**，
+ * 所以 `/\evil.com`、`/\t/evil.com` 这类值（以 `/` 开头、第二字符是反斜杠或控制符）
+ * 能过形状检查，却会在导航时变成 `//evil.com` —— 正是本函数要挡住的那个洞。
+ * 因此额外拒绝反斜杠与控制字符。
  */
 export function isUsableOrigin(value: string | null | undefined): value is string {
-  return typeof value === "string" && value.startsWith("/") && !value.startsWith("//");
+  if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//")) {
+    return false;
+  }
+  return !/[\\\u0000-\u001f\u007f]/.test(value);
 }
 
 /**
@@ -180,9 +188,17 @@ export function restorePendingScroll(): void {
   }
 
   // 目标页还在变高（流式渲染）→ 补正几帧。上限很短：再久也该让用户自己滚了。
+  // ⚠️ 必须记住**开始补正时的路径**：这十几帧里用户可能又点了一个海报跳到详情页，
+  // 那时 applyScroll(y) 会把**新路由**滚到旧目标（观测到过：返回媒体库后立刻点卡片，
+  // 详情页被滚到媒体库的位置）。路径一变就放弃补正。
+  const startedAtPath = window.location.pathname;
   let frames = 0;
   const tick = () => {
     frames += 1;
+    if (window.location.pathname !== startedAtPath) {
+      clearScrollY();
+      return;
+    }
     if (applyScroll(y) || frames > 12) {
       clearScrollY();
       return;

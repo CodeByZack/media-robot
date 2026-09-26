@@ -49,7 +49,7 @@ MediaRobot 有两种部署方式:
 ## Compose 快速开始
 
 ```bash
-git clone https://github.com/CodeByZack/media-robot && cd mediary-scout
+git clone https://github.com/CodeByZack/media-robot && cd media-robot
 docker compose --project-directory . -f deploy/docker/docker-compose.yml up -d        # 首次会构建 web 镜像,几分钟
 ```
 

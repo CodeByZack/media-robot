@@ -48,8 +48,14 @@ async function wireStars() {
   }
 }
 
-/** <details> 手风琴：只能开一个。原生 details[name] 是更好的方案，但写出
- *  兼容分支不如这一行监听来得直接，且不依赖引擎版本。 */
+/** <details> 手风琴：只能开一个。
+ *
+ *  两种机制**同时**存在，是有意的：
+ *    1. 标记上的 `name="faq"`（Chrome 120+ / FF 130+ / Safari 17.2+）—— 原生独占，
+ *       **不依赖 JS**。脚本被 CSP 拦掉、加载失败或 JS 关闭时，手风琴语义仍在。
+ *    2. 下面这段监听 —— 给不认 `name` 的老引擎兜底。
+ *  只留 2 的话，本文件顶层那个 try/catch 只会 console.warn，FAQ 会静默退化成
+ *  「可以全开」而页面看起来一切正常 —— 那是最难发现的一类退化。 */
 function initFAQ() {
   const faqs = [...document.querySelectorAll("details.faq")];
   if (faqs.length === 0) return;

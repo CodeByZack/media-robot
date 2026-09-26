@@ -15,6 +15,18 @@ describe("isUsableOrigin", () => {
     expect(isUsableOrigin("javascript:alert(1)")).toBe(false);
   });
 
+  it("挡掉反斜杠与控制字符 — 浏览器会把它们规范化成 /（只挡 // 不够）", () => {
+    // 浏览器对 http/https 这类特殊 scheme 会把 `\` 当成 `/`，所以 `/\evil.com`
+    // 会在导航时变成 `//evil.com`。这几个都能过「以单个 / 开头」的形状检查，
+    // 必须在形状检查之外单独挡掉 —— 否则守卫对**它自己声称要防的那个威胁**是漏的。
+    expect(isUsableOrigin("/\\evil.com")).toBe(false);
+    expect(isUsableOrigin("/\\/evil.com")).toBe(false);
+    expect(isUsableOrigin("/\t/evil.com")).toBe(false);
+    expect(isUsableOrigin("/\u0000")).toBe(false);
+    expect(isUsableOrigin("/\u007f")).toBe(false);
+    expect(isUsableOrigin("/li\\brary")).toBe(false);
+  });
+
   it("挡掉空值与非字符串", () => {
     expect(isUsableOrigin("")).toBe(false);
     expect(isUsableOrigin(null)).toBe(false);

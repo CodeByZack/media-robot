@@ -21,7 +21,7 @@ let demoSearchCache: InMemoryMediaSearchCache | null = null;
 // on restart is fine — a 2nd SQLite schema isn't worth it).
 let sqliteSearchCache: InMemoryMediaSearchCache | null = null;
 
-export async function getSearchView(query: string, storageId?: string): Promise<SearchPageView> {
+export async function getSearchView(query: string): Promise<SearchPageView> {
   const repository = getWorkflowRepository();
   await ensureDemoSeeded(repository);
   // Tree model: scope a movie's 已获取/获取 state to the active drive — obtained on

@@ -20,8 +20,6 @@ export function RequestSeasonButton({
 }: {
   tmdbId: number;
   seasonNumber: number;
-  /** Tree model: the active workspace drive — acquisition lands HERE. REQUIRED
-   *  (value may be undefined = primary) so the workspace is always threaded. */
   /** Server truth: this title already has an acquisition run in flight. */
   titleAcquiring?: boolean;
   /** Demo only: recorded to the session library when the scripted playback ends. */
@@ -117,8 +115,6 @@ export function RequestRemainingButton({
 }: {
   tmdbId: number;
   label: string;
-  /** Tree model: the active workspace drive — acquisition lands HERE. REQUIRED
-   *  (value may be undefined = primary) so the workspace is always threaded. */
   /** Server truth: this title already has an acquisition run in flight. */
   titleAcquiring?: boolean;
   /** Demo only: recorded to the session library when the scripted playback ends. */

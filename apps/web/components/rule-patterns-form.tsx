@@ -205,6 +205,11 @@ export function RulePatternsForm({ initial }: { initial: RulePatternDraft[] }) {
                 aria-expanded={isOpen}
                 onClick={() => setExpanded((prev) => ({ ...prev, [role]: !prev[role] }))}
                 onKeyDown={(e) => {
+                  // 只在**头部自身**获得焦点时响应。这个头里嵌着「＋ 添加」按钮，
+                  // 它的 Enter/Space 的 keydown 会冒泡到这里 —— 而它自己的 click 已经
+                  // stopPropagation 了，于是变成「编辑器打开」+「本组被折叠」两个效果。
+                  // 守卫放在 key 判断之前，语义是「事件不是发自我的，我不处理」。
+                  if (e.target !== e.currentTarget) return;
                   if (e.key !== "Enter" && e.key !== " ") return;
                   e.preventDefault();
                   setExpanded((prev) => ({ ...prev, [role]: !prev[role] }));

@@ -32,6 +32,8 @@ export function WorkspaceSwitcher({ tabs }: { tabs: WorkspaceTab[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [switchingTo, setSwitchingTo] = useState<string | null>(null);
+  /** 切盘失败的原因。**必须有** —— 见下方 switchTo 里的注释。 */
+  const [error, setError] = useState<string | null>(null);
   // 当前盘（服务端按 cookie 算出来的）。钩子必须在提前 return 之前调用，所以
   // 这里先算出一个可空值。
   const activeId = tabs.find((tab) => tab.isActive)?.id ?? null;
@@ -49,11 +51,19 @@ export function WorkspaceSwitcher({ tabs }: { tabs: WorkspaceTab[] }) {
   const current = tabs.find((tab) => tab.isActive) ?? tabs[0]!;
 
   const switchTo = async (driveId: string) => {
-    if (driveId === current.id || pending) {
+    // 守卫要同时看**两段飞行期**：
+    //   switchingTo ≠ null —— POST 在路上（`pending` 这时还是 false，见下）
+    //   pending           —— POST 已回来、router.refresh() 还在跑
+    // 只看 pending 不够：它要等 startTransition 才变 true，而那是 `await fetch`
+    // 之后的事 —— 请求在路上时它仍是 false，连点会发出第二个 POST，
+    // 两次写 cookie 谁赢不确定。
+    if (driveId === current.id || switchingTo !== null || pending) {
       return;
     }
+    setError(null);
     setSwitchingTo(driveId);
     let ok = false;
+    let failure = "";
     try {
       const res = await fetch("/api/workspace", {
         method: "POST",
@@ -61,12 +71,20 @@ export function WorkspaceSwitcher({ tabs }: { tabs: WorkspaceTab[] }) {
         body: JSON.stringify({ driveId }),
       });
       ok = res.ok;
+      if (!ok) {
+        // 路由会给出有意义的错误体（400 `driveId required` / 403 `unknown drive`），
+        // 原样带给用户。以前这里只是 return，等于把错误吞掉 —— 那正是这个组件
+        // 注释里说要避免的「点了没反应」。
+        const body = (await res.json().catch(() => ({}))) as { error?: unknown };
+        failure = typeof body.error === "string" ? body.error : `HTTP ${res.status}`;
+      }
     } catch {
       ok = false;
+      failure = "网络请求失败";
     }
     if (!ok) {
-      // 不静默吞掉：切盘失败必须看得见，否则用户只会觉得"点了没反应"。
       setSwitchingTo(null);
+      setError(failure);
       return;
     }
     // 回到搜索区并恢复**那块盘自己**的搜索词（与旧行为一致：切盘保持在同一功能区，
@@ -123,6 +141,12 @@ export function WorkspaceSwitcher({ tabs }: { tabs: WorkspaceTab[] }) {
           </button>
         ))}
       </nav>
+      {/* 失败必须看得见：这条不渲染的话，用户看到的就是「点了没反应」。 */}
+      {error !== null ? (
+        <p className="ws-error" role="alert">
+          切换失败：{error}
+        </p>
+      ) : null}
     </details>
   );
 }
