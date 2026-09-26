@@ -628,14 +628,21 @@ React 把 `default` 映射到 `vt-update` 属性，可在 DOM 里核对：
 `MEDIA_TRACK_LIBRARY_ROOT_DIR` 覆盖）。**不要**跟着品牌名改成 `MediaRobot`：
 老用户的文件已在 `MediaRover/`，改了会把他们的文件拆到两个目录。
 
-同样属于数据契约、改名时**不动**的：`fpk` 的 `appname` / 打包产物名
-（`mediary-scout*`，是 fnOS 应用的安装标识与数据目录名，改了等于换一个应用、
-老用户数据会成孤儿）、README 里的 `.fpk` 附件名、`MEDIA_TRACK_*` 环境变量前缀、
+同样属于数据契约、改名时**不动**的：`MEDIA_TRACK_*` 环境变量前缀、
 发往 PanSou 的 User-Agent（`clawd-media-track/1.0`，沿用上游标识）。
 
-**仓库名不属于**数据契约，可以自由改（本仓库已从 `mediary-scout` 改为
-`mediarobot`，以避开与上游仓库同名）—— 但注意 `fpk` 的 `appname` 刻意保持
-`mediary-scout` 不变，所以「仓库名」与「产物名」现在**是有意不一致的**。
+**仓库名与 fpk 的 `appname` 不属于**数据契约，可以自由改。本仓库已从
+`mediary-scout` 改为 `media-robot`（避开与上游同名），fpk 的 `appname` 也跟着
+改成 `media-robot`。
+
+> ⚠️ **改 `appname` 的真实代价**（2026-09-26 已知情后拍板，不再考虑迁移）：
+> fnOS 把 `appname` 当作应用的安装标识与数据目录名（`/vol1/@appdata/<appname>`），
+> 所以换了它之后，**老用户的 `mediary-scout` 安装不会变成升级，而会变成两个并存的应用**
+> —— 新版从空数据目录开始，旧的要手动卸。当时项目尚无真实用户，故接受。
+> 另外三处必须与 `appname` **同步改**，否则构建会失败或产物名对不上：
+> `build-fpk.sh` 的 `APPNAME` / `FPK_BASE`、`.github/workflows/build-fpk.yml` 里
+> 上传产物的 `path`（用 `if-no-files-found: error`，路径不匹配直接红）、
+> 以及 `app/ui/config` 的 `.url` 入口键。
 
 ---
 

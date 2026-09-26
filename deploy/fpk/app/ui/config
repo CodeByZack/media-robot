@@ -1,7 +1,7 @@
 {
     ".url": {
-        "mediary-scout.Application": {
-            "title": "MediaTrack",
+        "media-robot.Application": {
+            "title": "MediaRobot",
             "icon": "images/icon_{0}.png",
             "type": "iframe",
             "protocol": "http",

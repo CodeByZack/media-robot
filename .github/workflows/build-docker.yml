@@ -85,7 +85,7 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          IMAGE="mediary-scout:${VERSION}"
+          IMAGE="media-robot:${VERSION}"
           echo "==> image tag: ${IMAGE} (platform ${{ matrix.docker_platform }})"
           docker build \
             --platform "${{ matrix.docker_platform }}" \
@@ -94,7 +94,7 @@ jobs:
             -t "${IMAGE}" \
             .
           mkdir -p dist
-          docker save "${IMAGE}" | gzip > "dist/mediary-scout-${VERSION}-${{ matrix.arch }}.tar.gz"
+          docker save "${IMAGE}" | gzip > "dist/media-robot-${VERSION}-${{ matrix.arch }}.tar.gz"
           echo "==> 导出产物: $(ls -lh dist/)"
 
       - name: Upload docker image artifact (${{ matrix.arch }})

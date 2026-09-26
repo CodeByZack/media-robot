@@ -10,7 +10,7 @@ MediaRobot 有两种部署方式:
 | 端口 | 3333 | 3000 |
 | 下载 | [GitHub Releases](https://github.com/CodeByZack/media-robot/releases) | 本指南下方 |
 
-**fnOS fpk**:去 [Releases](https://github.com/CodeByZack/media-robot/releases) 按架构下载 `.fpk`(`mediary-scout-arm.fpk` / `mediary-scout-x86.fpk`),在飞牛应用中心「手动安装」,装完直接开 `http://<NAS>:3333` 进设置页配网盘和 LLM。打包与维护细节见 [deploy/fpk/README.md](../deploy/fpk/README.md)。
+**fnOS fpk**:去 [Releases](https://github.com/CodeByZack/media-robot/releases) 按架构下载 `.fpk`(`media-robot-<版本>-arm.fpk` / `media-robot-<版本>-x86.fpk`),在飞牛应用中心「手动安装」,装完直接开 `http://<NAS>:3333` 进设置页配网盘和 LLM。打包与维护细节见 [deploy/fpk/README.md](../deploy/fpk/README.md)。
 
 **Docker 版**:继续往下看。
 
@@ -314,8 +314,8 @@ docker compose --project-directory . -f deploy/docker/docker-compose.yml start w
 ```cron
 # 每天 03:30 备份 mediary-data；保留最近 14 天
 # 若要固定北京时间，在 crontab 顶部加: TZ=Asia/Shanghai
-30 3 * * * cd /path/to/mediary-scout && docker compose exec -T web sh -c 'cp /data/mediary.db /backups/mediary-$(date +%Y%m%d-%H%M%S).db' >>./backups/cron.log 2>&1
-0 4 * * * find /path/to/mediary-scout/backups -name 'mediary-*.db' -mtime +14 -delete
+30 3 * * * cd /path/to/media-robot && docker compose exec -T web sh -c 'cp /data/mediary.db /backups/mediary-$(date +%Y%m%d-%H%M%S).db' >>./backups/cron.log 2>&1
+0 4 * * * find /path/to/media-robot/backups -name 'mediary-*.db' -mtime +14 -delete
 ```
 
 把 `backups/` 目录同步到机外（对象存储 / NAS / 另一台机器）再算真正有备份。

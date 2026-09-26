@@ -1,6 +1,6 @@
-# MediaTrack — 飞牛 fnOS fpk 打包（原生应用）
+# MediaRobot — 飞牛 fnOS fpk 打包（原生应用）
 
-本目录为 [mediary-scout](../..)（Next.js 应用，`apps/web`）的 fnOS **原生应用**打包方案，
+本目录为 [media-robot](../..)（Next.js 应用，`apps/web`）的 fnOS **原生应用**打包方案，
 产物是飞牛应用中心可手动安装的 `.fpk` 文件（非 Docker）。
 
 ## 目录结构
@@ -47,7 +47,7 @@ deploy/fpk/
    - `apps/web/.next/static/` → `app/server/apps/web/.next/static/`
    - `apps/web/public/` → `app/server/apps/web/public/`
 3. 图标为已入库的静态资源（`deploy/fpk/ICON*.PNG`、`app/ui/images/*.png`），打包不再重新生成
-4. `fnpack build` 产出 `deploy/fpk/dist/mediary-scout-<ARCH>.fpk` 并打印大小
+4. `fnpack build` 产出 `deploy/fpk/dist/media-robot-<VERSION>-<ARCH>.fpk` 并打印大小
    （ARCH 默认按构建机探测：aarch64 → `arm`，x86_64 → `x86`；可用 `ARCH=x86` 覆盖）
 
 > 产物不入 git：`deploy/fpk/app/server/`、`deploy/fpk/dist/` 已在 `.gitignore`。
@@ -56,17 +56,17 @@ deploy/fpk/
 
 1. 在飞牛应用中心安装 **Node.js 24** 运行时应用（本 fpk 声明 `install_dep_apps=nodejs_v24`，
    依赖会自动处理；fpk **不**内置 node_modules）。
-2. 应用中心 → 手动安装 → 选择 `deploy/fpk/dist/mediary-scout-<ARCH>.fpk`
-   （本机 aarch64 构建产物为 `mediary-scout-arm.fpk`；CI 双架构产物为
-   `mediary-scout-arm.fpk` / `mediary-scout-x86.fpk`，按 NAS 架构选对应包）。
-3. 安装完成后打开飞牛桌面上的 **MediaTrack** 图标，或浏览器访问
+2. 应用中心 → 手动安装 → 选择 `deploy/fpk/dist/media-robot-<VERSION>-<ARCH>.fpk`
+   （本机 aarch64 构建产物为 `media-robot-<版本>-arm.fpk`；CI 双架构产物为
+   `media-robot-<版本>-arm.fpk` / `media-robot-<版本>-x86.fpk`，按 NAS 架构选对应包）。
+3. 安装完成后打开飞牛桌面上的 **MediaRobot** 图标，或浏览器访问
    `http://<NAS地址>:3333` 完成初始化（设置页扫码连 115、填 LLM key 等）。
 
 ## 数据目录（升级不丢）
 
 | 内容 | 位置 |
 | --- | --- |
-| 数据库 | `${TRIM_PKGVAR}/mediary.db`（即 `/vol1/@appdata/mediary-scout/mediary.db`） |
+| 数据库 | `${TRIM_PKGVAR}/mediary.db`（即 `/vol1/@appdata/media-robot/mediary.db`） |
 | 运行日志 | `${TRIM_PKGVAR}/mediary.log` |
 | PID 文件 | `${TRIM_PKGVAR}/mediary.pid` |
 
@@ -77,7 +77,7 @@ deploy/fpk/
 
 1. 拉取新代码 → 修改 `deploy/fpk/cmd/main` 里的环境变量（如需）
 2. `./deploy/fpk/build-fpk.sh`（可带 `VERSION=x.y.z`）
-3. 应用中心 → MediaTrack → 更新 → 选择新 `.fpk`
+3. 应用中心 → MediaRobot → 更新 → 选择新 `.fpk`
 4. 数据保留，服务自动重启
 
 ## 运行时环境变量（在 cmd/main 中设置）
@@ -113,4 +113,4 @@ deploy/fpk/
 - 依赖 `nodejs_v24` 由飞牛应用中心提供；若中心版本与构建机 Node 24 ABI 不一致
   （node_modules 里的原生模块），需在 NAS 上重建 better-sqlite3——当前两者同为
   v24.13.1（modules=137），无此问题。
-- `config/resource` 为空：MediaTrack 存储走 115 云盘，无本地共享目录需求。
+- `config/resource` 为空：MediaRobot 存储走 115 云盘，无本地共享目录需求。

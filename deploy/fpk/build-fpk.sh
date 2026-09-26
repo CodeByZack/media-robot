@@ -1,12 +1,12 @@
 #!/bin/bash
-# MediaTrack (mediary-scout) — 飞牛 fnOS fpk 一键构建 + 打包脚本
+# MediaRobot — 飞牛 fnOS fpk 一键构建 + 打包脚本
 #
 # 用法：
 #   ./deploy/fpk/build-fpk.sh             # 构建 web + 填充 app/server + 打包（ARCH 默认按 uname 探测）
 #   VERSION=1.2.0 ./deploy/fpk/build-fpk.sh  # 指定 fpk 版本号（默认读 package.json，缺省 1.0.0）
 #   ARCH=x86 ./deploy/fpk/build-fpk.sh    # 指定架构（arm|x86，决定 manifest platform 与产物名）
 #   FNPACK_BIN=/path/to/fnpack ./deploy/fpk/build-fpk.sh  # 指定 fnpack 可执行文件（默认 PATH 里的 fnpack）
-#   FPK_MODE=test ./deploy/fpk/build-fpk.sh     # 测试版：appname=mediary-scout-dev、端口 3334，
+#   FPK_MODE=test ./deploy/fpk/build-fpk.sh     # 测试版：appname=media-robot-dev、端口 3334，
 #                                                独立数据目录，装/卸都不影响正式版数据
 #   FPK_RUNTIME=fake ./deploy/fpk/build-fpk.sh  # 免费运行模式：agent 用 stub 确定性脚本、网盘用
 #                                                fake（FakeStorageExecutor 假文件），不调 LLM、不碰
@@ -14,9 +14,9 @@
 #                                                默认 live（真 LLM + 真网盘，需在设置页配 key）
 #
 # 产物：
-#   deploy/fpk/dist/mediary-scout-<VERSION>-<ARCH>.fpk        （release：arm → mediary-scout-0.0.1-arm.fpk）
-#   deploy/fpk/dist/mediary-scout-dev-<VERSION>-<ARCH>.fpk     （test：arm → mediary-scout-dev-0.0.1-arm.fpk）
-#   deploy/fpk/dist/mediary-scout-dev-<VERSION>-fake-<ARCH>.fpk （test+fake：arm → mediary-scout-dev-0.0.1-fake-arm.fpk）
+#   deploy/fpk/dist/media-robot-<VERSION>-<ARCH>.fpk        （release：arm → media-robot-0.0.1-arm.fpk）
+#   deploy/fpk/dist/media-robot-dev-<VERSION>-<ARCH>.fpk     （test：arm → media-robot-dev-0.0.1-arm.fpk）
+#   deploy/fpk/dist/media-robot-dev-<VERSION>-fake-<ARCH>.fpk （test+fake：arm → media-robot-dev-0.0.1-fake-arm.fpk）
 #
 # 前置条件（本机已具备）：
 #   - node + npm（构建机与 NAS 同架构 + Node 24，ABI 匹配；CI 里 setup-node 用 24）
@@ -75,20 +75,20 @@ esac
 echo "==> fpk runtime: ${FPK_RUNTIME}"
 
 # ---- 0.8 打包模式：FPK_MODE（release 正式版 | test 测试版）----
-# test 模式 = 换 appname 装成独立应用（mediary-scout-dev）：独立数据目录
-# /vol1/@appdata/mediary-scout-dev、独立端口 3334，装/卸都不碰正式版数据，
+# test 模式 = 换 appname 装成独立应用（media-robot-dev）：独立数据目录
+# /vol1/@appdata/media-robot-dev、独立端口 3334，装/卸都不碰正式版数据，
 # 适合反复试装验证（尤其是 CI 产物），正式版一直能用。
-# appname 带 runtime 后缀：mediary-scout-dev-fake / -demo / 无后缀=normal
+# appname 带 runtime 后缀：media-robot-dev-fake / -demo / 无后缀=normal
 FPK_MODE="${FPK_MODE:-release}"
 case "${FPK_MODE}" in
     release)
-        APPNAME="mediary-scout"
-        DISPLAY_NAME="MediaTrack"
+        APPNAME="media-robot"
+        DISPLAY_NAME="MediaRobot"
         SERVICE_PORT="3333"
         ;;
     test)
-        APPNAME="mediary-scout-dev"
-        DISPLAY_NAME="MediaTrack (测试版)"
+        APPNAME="media-robot-dev"
+        DISPLAY_NAME="MediaRobot (测试版)"
         SERVICE_PORT="3334"
         ;;
     *)
@@ -186,7 +186,7 @@ chmod +x "${FPK_DIR}"/cmd/* "${FPK_DIR}"/wizard/*
 echo "    cmd/wizard 脚本执行位已确认"
 
 # ---- 2.7 app/ui/config 桌面入口随模式改写 ----
-# fnpack 校验：".url" 下的入口键名必须以 appname 开头（如 mediary-scout.Application）；
+# fnpack 校验：".url" 下的入口键名必须以 appname 开头（如 media-robot.Application）；
 # 端口/标题也必须与当前模式一致。release 和 test 都全量写一次，避免残留污染。
 UI_CONFIG="${FPK_DIR}/app/ui/config"
 if [ -f "${UI_CONFIG}" ]; then
@@ -217,7 +217,12 @@ fi
 # 模式改写（release 3333 / test 3334），正则 :333[34] 保证从任一残留状态都能归一。
 WIZARD_INSTALL="${FPK_DIR}/wizard/install"
 if [ -f "${WIZARD_INSTALL}" ]; then
-    sed -i "s/:333[34]/:${SERVICE_PORT}/g" "${WIZARD_INSTALL}"
+    # ⚠️ `-i.bak` 不能省：GNU sed 的 `-i` 可无参数，但 **BSD sed（macOS）把紧跟的参数
+    # 当成备份扩展名** —— 写成 `sed -i "s/…/" file` 会把 `file` 吃掉，报
+    # "extra characters at the end of d command"。本脚本本就跑在 macOS 上构建，
+    # 所以全文件统一用 `-i.bak` + 事后 rm（见下方 manifest 那几行）。
+    sed -i.bak "s/:333[34]/:${SERVICE_PORT}/g" "${WIZARD_INSTALL}"
+    rm -f "${WIZARD_INSTALL}.bak"
     echo "    wizard/install 说明端口已改为 ${SERVICE_PORT}"
 else
     echo "    wizard/install 不存在，跳过"
@@ -233,19 +238,24 @@ fi
 CMD_MAIN="${FPK_DIR}/cmd/main"
 if [ -f "${CMD_MAIN}" ]; then
     # 1) 删除所有旧的 adapter/demo 独立变量行 + 残留的 MODE/quark 行（无论在哪个位置）
-    sed -i '/^export MEDIA_TRACK_STORAGE_ADAPTER=/d' "${CMD_MAIN}"
-    sed -i '/^export MEDIA_TRACK_WORKFLOW_ADAPTER=/d' "${CMD_MAIN}"
-    sed -i '/^export MEDIA_TRACK_AGENT_ADAPTER=/d' "${CMD_MAIN}"
-    sed -i '/^export MEDIA_TRACK_SEARCH_PROVIDER=/d' "${CMD_MAIN}"
-    sed -i '/^export MEDIA_TRACK_DEMO_MODE=/d' "${CMD_MAIN}"
-    sed -i '/^export NEXT_PUBLIC_MEDIA_TRACK_DEMO_MODE=/d' "${CMD_MAIN}"
-    sed -i '/^export MEDIA_TRACK_DEMO_SEED=/d' "${CMD_MAIN}"
-    sed -i '/^export MEDIA_TRACK_DEFAULT_STORAGE_BRAND=/d' "${CMD_MAIN}"
-    sed -i '/^export MEDIA_TRACK_MODE=/d' "${CMD_MAIN}"
-    sed -i '/^export MEDIA_TRACK_LIBRARY_ROOT_DIR=/d' "${CMD_MAIN}"
-    # 注释掉的旧 adapter 行（如果有）
-    sed -i '/^# export MEDIA_TRACK_AGENT_ADAPTER=/d' "${CMD_MAIN}"
-    sed -i '/^# export MEDIA_TRACK_STORAGE_ADAPTER=/d' "${CMD_MAIN}"
+    #    用循环而不是 12 条 sed：少写一遍易错的 `-i.bak`，也少一遍 rm（见下）。
+    #    ⚠️ 模式串里不能有 `/`（这里是 sed 的 s/// 之外的地址写法，安全）。
+    for pat in \
+        '^export MEDIA_TRACK_STORAGE_ADAPTER=' \
+        '^export MEDIA_TRACK_WORKFLOW_ADAPTER=' \
+        '^export MEDIA_TRACK_AGENT_ADAPTER=' \
+        '^export MEDIA_TRACK_SEARCH_PROVIDER=' \
+        '^export MEDIA_TRACK_DEMO_MODE=' \
+        '^export NEXT_PUBLIC_MEDIA_TRACK_DEMO_MODE=' \
+        '^export MEDIA_TRACK_DEMO_SEED=' \
+        '^export MEDIA_TRACK_DEFAULT_STORAGE_BRAND=' \
+        '^export MEDIA_TRACK_MODE=' \
+        '^export MEDIA_TRACK_LIBRARY_ROOT_DIR=' \
+        '^# export MEDIA_TRACK_AGENT_ADAPTER=' \
+        '^# export MEDIA_TRACK_STORAGE_ADAPTER='; do
+        sed -i.bak "/${pat}/d" "${CMD_MAIN}"
+    done
+    rm -f "${CMD_MAIN}.bak"
 
     # 2) 构造要插入的运行时变量块，插到 `CMD="cd` 之前（幂等：残留行已在 1 删净）。
     #    只有 MEDIA_TRACK_MODE 一行：resolver 全部派生（adapter/search/demo）。
@@ -253,19 +263,43 @@ if [ -f "${CMD_MAIN}" ]; then
     #    （品牌无关），driveProvider 仅作日志标签且有默认 "quark" 兜底，设了是纯噪声。
     RUNTIME_BLOCK="export MEDIA_TRACK_MODE=${FPK_RUNTIME}"
     # 测试版 + normal 运行时：网盘根目录名默认加 -dev 后缀，实测时一眼区分
-    # 是哪个包建的树（正式版=「Mediary Scout」，测试版=「Mediary Scout-dev」）。
+    # 是哪个包建的树（正式版=代码默认 `MediaRover`，测试版=`MediaRover-dev`）。
+    # ⚠️ 必须跟着代码默认值走：`account-credentials.ts` 的 rootName 默认是
+    # `MediaRover`，不是产品名 —— 这里若写产品名，测试版建的树会和正式版分叉。
     # 用户在 .env / 部署配置里显式设置过则尊重其值（:- 兜底不覆盖）。
     if [ "${FPK_MODE}" = "test" ] && [ "${FPK_RUNTIME}" = "normal" ]; then
         RUNTIME_BLOCK="${RUNTIME_BLOCK}
-export MEDIA_TRACK_LIBRARY_ROOT_DIR=\${MEDIA_TRACK_LIBRARY_ROOT_DIR:-Mediary Scout-dev}"
+export MEDIA_TRACK_LIBRARY_ROOT_DIR=\${MEDIA_TRACK_LIBRARY_ROOT_DIR:-MediaRover-dev}"
     fi
-    awk -v block="${RUNTIME_BLOCK}" '
+    # ⚠️ 不能写 `awk -v block="${RUNTIME_BLOCK}" ...`：RUNTIME_BLOCK 在 test 模式
+    #    下是**多行**（MODE + LIBRARY_ROOT_DIR），而 **BSD awk（macOS）拒绝含换行的
+    #    -v 值**，直接 `exit 2`（"newline in string"）—— GNU awk 才容忍。
+    #    后果曾经很隐蔽：awk 失败 → .tmp 没写成 → 运行时块**一行都没插进去**，
+    #    而脚本照样打印"已插入"并继续（静默降级，打出的包行为与宣称的不符）。
+    #    改为把块写入临时文件、在 awk 里 getline 读，不再把多行值塞进 -v。
+    BLOCK_FILE="$(mktemp)"
+    printf '%s\n' "${RUNTIME_BLOCK}" > "${BLOCK_FILE}"
+    if ! awk -v blockfile="${BLOCK_FILE}" '
         /^CMD="/ && !inserted {
-            print block
+            while ((getline line < blockfile) > 0) print line
+            close(blockfile)
             inserted = 1
         }
         { print }
-    ' "${CMD_MAIN}" > "${CMD_MAIN}.tmp" && mv "${CMD_MAIN}.tmp" "${CMD_MAIN}"
+    ' "${CMD_MAIN}" > "${CMD_MAIN}.tmp"; then
+        rm -f "${BLOCK_FILE}" "${CMD_MAIN}.tmp"
+        echo "❌ 向 cmd/main 插入运行时块失败（${RUNTIME_BLOCK}）" >&2
+        exit 1
+    fi
+    rm -f "${BLOCK_FILE}"
+    mv "${CMD_MAIN}.tmp" "${CMD_MAIN}"
+
+    # 收尾自检：插进去的东西必须真在文件里，否则宁可失败也不要打出一个
+    # 「声称 fake/dev 其实跑 normal」的包（#2026-09-18 那次双症状同源事故的教训）。
+    if ! grep -q '^export MEDIA_TRACK_MODE=' "${CMD_MAIN}"; then
+        echo "❌ cmd/main 里没找到注入的 MEDIA_TRACK_MODE —— 拒绝产出行为不明包" >&2
+        exit 1
+    fi
     echo "    cmd/main 已改为 ${FPK_RUNTIME} 运行模式（MEDIA_TRACK_MODE 已插入 CMD 之前）"
 else
     echo "    cmd/main 不存在，跳过 runtime 改写"
@@ -283,15 +317,15 @@ sed -i.bak "s/^platform[[:space:]]*=.*/platform                   = ${ARCH}/" "$
 rm -f "${FPK_DIR}/manifest.bak"
 
 if [ "${FPK_MODE}" = "test" ]; then
-    FPK_BASE="mediary-scout-dev"
+    FPK_BASE="media-robot-dev"
 else
-    FPK_BASE="mediary-scout"
+    FPK_BASE="media-robot"
 fi
 # 追加 runtime 后缀到 FPK_BASE（normal 不加）
 if [ "${FPK_RUNTIME}" != "normal" ]; then
     FPK_BASE="${FPK_BASE}-${FPK_RUNTIME}"
 fi
-# issue #29 用户拍板(十轮):产物名带版本号——mediary-scout-<VERSION>-<ARCH>.fpk,
+# issue #29 用户拍板(十轮):产物名带版本号——media-robot-<VERSION>-<ARCH>.fpk,
 # 与 manifest version / package.json 同步(CI 传 tag 去 v 前缀;本地缺省读 package.json)。
 FPK_NAME="${FPK_BASE}-${VERSION}-${ARCH}.fpk"
 
@@ -300,7 +334,7 @@ mkdir -p "${DIST_DIR}"
 rm -f "${FPK_DIR}/${FPK_NAME}"
 
 cd "${FPK_DIR}"
-# fnpack 输出名固定为 manifest 的 appname（release: mediary-scout.fpk / test: mediary-scout-dev.fpk），
+# fnpack 输出名固定为 manifest 的 appname（release: media-robot.fpk / test: media-robot-dev.fpk），
 # 按模式+架构重命名到 dist/。
 "${FNPACK_BIN}" build -d .
 mv "${APPNAME}.fpk" "${DIST_DIR}/${FPK_NAME}"

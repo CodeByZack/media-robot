@@ -75,8 +75,8 @@ S03  10 / 10
 从 [Releases](https://github.com/CodeByZack/media-robot/releases/latest) 下载对应架构的 `.fpk`：
 
 ```text
-mediary-scout-arm.fpk
-mediary-scout-x86.fpk
+media-robot-<版本>-arm.fpk
+media-robot-<版本>-x86.fpk
 ```
 
 然后在 fnOS 应用中心选择 **手动安装**。
