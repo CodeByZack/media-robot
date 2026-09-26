@@ -1,5 +1,5 @@
 [{
-  "stepTitle": "卸载 MediaTrack",
+  "stepTitle": "卸载 MediaRobot",
   "items": [{
     "type": "radio",
     "field": "wizard_delete_data",

@@ -75,8 +75,8 @@ S03  10 / 10
 从 [Releases](https://github.com/CodeByZack/media-robot/releases/latest) 下载对应架构的 `.fpk`：
 
 ```text
-mediary-scout-arm.fpk
-mediary-scout-x86.fpk
+media-robot-<版本>-arm.fpk
+media-robot-<版本>-x86.fpk
 ```
 
 然后在 fnOS 应用中心选择 **手动安装**。
@@ -244,27 +244,7 @@ npm run build:web    # 生产构建
 
 MediaRobot fork 自 **[`fancydirty/mediary-scout`](https://github.com/fancydirty/mediary-scout)**。
 
-> 说明：本仓库 `git log` 的根 commit 是 `3b99776 "Initial public clawd-media-track release"`，
-> 而 GitHub 记录的 fork 父仓是 `fancydirty/mediary-scout` —— 两个上游仓库里**只有后者**
-> 包含那个根 commit，即上游是承接了早期 `clawd-media-track` 的那个项目。
-> 早期那个同名仓库（`fancydirty/clawd-media-track`，已停更）不是本 fork 的直接来源。
-
-原项目是一个基于 agent skill 的媒体获取与追踪工具，主要面向 115 网盘。
-
-这个项目保留了原项目中比较核心的资源获取和追踪思路，但目前已经做了比较大的改动，包括：
-
-- 全新的 Web UI
-- 多网盘支持
-- 配置中心
-- 媒体库
-- 自动巡检
-- Docker Compose 部署
-- fnOS 原生应用
-- 转存后的实际文件验证
-
-所以它现在已经不是原项目的简单 UI 包装，而是一个独立维护的项目。
-
-感谢原项目提供的思路和基础。
+这个项目保留了原项目中比较核心的资源获取和追踪思路，但目前已经做了比较大的改动，感谢原项目提供的思路和基础。
 
 ---
 

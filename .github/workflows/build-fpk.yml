@@ -28,7 +28,7 @@ on:
         required: false
         default: ""
       mode:
-        description: "打包模式：release=正式版（默认）；test=测试版（appname=mediary-scout-dev、端口3334、独立数据目录，装/卸不影响正式版）"
+        description: "打包模式：release=正式版（默认）；test=测试版（appname=media-robot-dev、端口3334、独立数据目录，装/卸不影响正式版）"
         required: false
         default: release
         type: choice
@@ -151,7 +151,7 @@ jobs:
 
       # 复用现有打包脚本：tsc workflow + next build standalone + 填充 app/server + fnpack build。
       # VERSION 为空时脚本回退读 package.json；ARCH 决定 manifest platform 与产物名；
-      # FPK_MODE=test 时打出独立测试版（mediary-scout-dev，端口3334），不影响正式版数据；
+      # FPK_MODE=test 时打出独立测试版（media-robot-dev，端口3334），不影响正式版数据；
       # FPK_RUNTIME=fake 时 agent/网盘走 stub+fake（不调 LLM、不碰真网盘），产物带 -fake 后缀。
       - name: Build fpk (VERSION + ARCH + MODE + RUNTIME)
         env:
@@ -165,7 +165,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.mode == 'test' && format('fpk-{0}-dev-{1}', matrix.arch, inputs.runtime) || format('fpk-{0}-{1}', matrix.artifact, inputs.runtime) }}
-          path: deploy/fpk/dist/${{ inputs.mode == 'test' && 'mediary-scout-dev' || 'mediary-scout' }}${{ inputs.runtime != 'normal' && format('-{0}', inputs.runtime) || '' }}-${{ steps.version.outputs.version }}-${{ matrix.platform }}.fpk
+          path: deploy/fpk/dist/${{ inputs.mode == 'test' && 'media-robot-dev' || 'media-robot' }}${{ inputs.runtime != 'normal' && format('-{0}', inputs.runtime) || '' }}-${{ steps.version.outputs.version }}-${{ matrix.platform }}.fpk
           if-no-files-found: error
           retention-days: 7
 
