@@ -1,6 +1,6 @@
-/* Media-Robot — Media-Robot design language (graphite + cruise blue) */
+/* Media Robot — Media Robot design language (graphite + cruise blue) */
 /*
- * 阶段 1: token 层换皮(Spotify 绿 → Media-Robot 石墨蓝)。
+ * 阶段 1: token 层换皮(Spotify 绿 → Media Robot 石墨蓝)。
  * 色值取自 newui/colors_and_type.css;只换值,不动结构与类名。
  * 层级靠明度抬升(--bg 系列),不靠描边 —— border 比旧版更暗。
  */
@@ -147,8 +147,9 @@ p {
 }
 
 /* 字标双色:Media 用前景色,Robot 用信号青(品牌规范里深底上的做法)。
-   ⚠️ 字标是 `MediaRobot`（**无连字符**），而正文品牌名是 `Media-Robot` ——
-   刻意的例外，理由是宽度预算（见下方 .brand-copy-sub 里的测算），别顺手改。 */
+   ⚠️ 字标是 `MediaRobot`（**无分隔符**），而文案里的品牌名是 `Media Robot`（带空格）。
+   不是漏改：双色 lockup 靠**颜色分界**分两个词，颜色交界本身就是分隔符；
+   而且加分隔符会吃掉宽度预算（下方 .brand-copy-sub 里的测算），别顺手改。 */
 .brand-copy-accent {
   color: var(--cyan);
 }
@@ -163,11 +164,13 @@ p {
    恢复官方全文（25 字符）后 0.06em 会直接溢出 5.8px —— 字数上去了，字距就得下来，
    24+ 字符本来也不需要那么大字距。
 
-   **为什么要比字标宽**：20px 的 MediaRobot 实测 121px，副题若与之等宽或更窄，
-   两行会看着像一个方块的两条边；让副题伸出一点（现 135.8px，长出 14.8px），视觉上
+   **为什么要比字标宽**：副题是 135.8px，字标在 20px/800/0.025em 下实测——
+     `MediaRobot` 121.0px（余 14.8px）→ 采用
+     `Media Robot` 125.8px（余 10.0px）
+     `Media-Robot` 130.7px（余 5.1px）
+   副题若与字标等宽或更窄，两行会看着像一个方块的两条边；让副题伸出一点，视觉上
    才分层（副题为标题的底座，而不是第二个标题）。这是这次把 `your` 加回来的原因。
-   ⚠️ 字标**不加连字符**也与此有关：带连字符的 `Media-Robot` 实测 130.7px，
-   会把上面的余量从 14.8px 压到 5.1px（见 app-sidebar.tsx 里那条注释）。
+   ⚠️ 字标**无分隔符**与此相关：加空格会吃掉 4.8px 余量（见 app-sidebar.tsx 那条注释）。
 
    实测宽度（文本可用 140px = .brand 内容 200 − 标志 48 − gap 12；10px/w500，
    `your personal media agent`，system-ui 为最差情况——Inter/Helvetica/Arial 都更窄）：

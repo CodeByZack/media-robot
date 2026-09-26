@@ -18,7 +18,7 @@ export function GitHubNameplate() {
         {/* GitHub mark（共享组件，见 github-mark.tsx）。 */}
         <GitHubMark />
         <span className="github-nameplate-text">
-          Media-Robot · 开源自部署 · <span className="github-nameplate-cta">GitHub →</span>
+          Media Robot · 开源自部署 · <span className="github-nameplate-cta">GitHub →</span>
         </span>
       </Link>
     </footer>

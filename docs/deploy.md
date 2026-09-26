@@ -1,6 +1,6 @@
-# Deploy Media-Robot
+# Deploy Media Robot
 
-Media-Robot 有两种部署方式:
+Media Robot 有两种部署方式:
 
 | | 飞牛 fnOS 原生应用 (fpk) | Docker Compose (服务器) |
 |---|---|---|

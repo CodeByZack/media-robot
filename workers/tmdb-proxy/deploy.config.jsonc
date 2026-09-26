@@ -9,8 +9,8 @@
   "tmdbToken": "",
 
   // 是否将 tmdbToken 设为 Cloudflare Secret
-  // true  = 设 secret（推荐，token 存在 Worker 端，Media-Robot 不用传）
-  // false = 跳过 secret（token 由 Media-Robot 通过 Authorization header 传入）
+  // true  = 设 secret（推荐，token 存在 Worker 端，Media Robot 不用传）
+  // false = 跳过 secret（token 由 Media Robot 通过 Authorization header 传入）
   "storeSecret": true,
 
   // ─── Cloudflare 配置 ───────────────────────────────────────────────────
