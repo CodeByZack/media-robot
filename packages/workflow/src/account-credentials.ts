@@ -133,7 +133,11 @@ export async function provisionCategoryDirs(input: {
   varietyName?: string;
 }): Promise<ProvisionedCids> {
   const named = (value: string | undefined, fallback: string) => value?.trim() || fallback;
-  const rootName = named(input.rootName, "MediaRover");
+  // ⚠️ DATA CONTRACT, not brand copy. The brand string is "Media-Robot" (hyphenated);
+  // this folder name deliberately is NOT — it is written into the USER'S OWN drive,
+  // so renaming it orphans every existing `MediaRobot/` tree (and, on a re-connect,
+  // repoints the stored CIDs at a fresh empty folder). See DESIGN.md「数据契约」.
+  const rootName = named(input.rootName, "MediaRobot");
   const moviesName = named(input.moviesName, "Movies");
   const tvName = named(input.tvName, "TV");
   const animeName = named(input.animeName, "Anime");

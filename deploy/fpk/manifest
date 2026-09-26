@@ -1,7 +1,7 @@
 appname                    = media-robot
 version                    = 1.0.0
-display_name               = MediaRobot
-desc                       = MediaRobot 影音追更与自动入库工具：追踪剧集更新、搜索网盘资源（PanSou/TMDB）、自动下载并整理入库（115）。
+display_name               = Media-Robot
+desc                       = Media-Robot 影音追更与自动入库工具：追踪剧集更新、搜索网盘资源（PanSou/TMDB）、自动下载并整理入库（115）。
 platform                   = arm
 source                     = thirdparty
 maintainer                 = media-robot

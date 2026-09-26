@@ -1,6 +1,6 @@
-# Deploy MediaRobot
+# Deploy Media-Robot
 
-MediaRobot 有两种部署方式:
+Media-Robot 有两种部署方式:
 
 | | 飞牛 fnOS 原生应用 (fpk) | Docker Compose (服务器) |
 |---|---|---|
@@ -125,7 +125,7 @@ docker compose --project-directory . -f deploy/docker/docker-compose.yml up -d  
 
 ### 1. 在设置页粘 token
 
-**设置 → 网盘连接 → 选「光鸭云盘」标签页**。最省事:把下面 Console 打印出来的内容(打印的两段、或它复制到剪贴板的 JSON,都行)整段粘到**第一个框**,再点框下方的 **「识别并拆分 token」**,两个框会自动填好;确认无误后点「连接光鸭」。(也可以仍按老办法手动把两个值分别粘进两个框。)连接时会用 token 校验登录态、并在你盘里建好 `MediaRover/{Movies,TV,Anime,Variety}` 分类目录。
+**设置 → 网盘连接 → 选「光鸭云盘」标签页**。最省事:把下面 Console 打印出来的内容(打印的两段、或它复制到剪贴板的 JSON,都行)整段粘到**第一个框**,再点框下方的 **「识别并拆分 token」**,两个框会自动填好;确认无误后点「连接光鸭」。(也可以仍按老办法手动把两个值分别粘进两个框。)连接时会用 token 校验登录态、并在你盘里建好 `MediaRobot/{Movies,TV,Anime,Variety}` 分类目录。
 
 ### 2. 怎么拿到这两个 token
 
@@ -180,11 +180,11 @@ docker compose --project-directory . -f deploy/docker/docker-compose.yml up -d  
 - **TMDB Key**(设置 → TMDB 元数据):片名 / 季集数 / 上映状态的唯一来源。**没有内置 key、也不读环境变量兜底** —— 这是刻意设计(宁可不工作,也不用别人的额度)。免费申请见 [tmdb-setup.md](tmdb-setup.md)。
 - **AI 模型**(设置 → AI 模型):填一个 OpenAI 兼容的 `baseURL / apiKey / modelId` —— agent 靠它决策。不填则获取流程无法规划。
 
-> 网盘的**写盘范围不用你配**:连接网盘时会自动在你盘里 find-or-create 出 `MediaRover/{Movies,TV,Anime,Variety}`(幂等、不删东西),并把写权限就限制在这几个目录内。目录名想改见「可选增强」。
+> 网盘的**写盘范围不用你配**:连接网盘时会自动在你盘里 find-or-create 出 `MediaRobot/{Movies,TV,Anime,Variety}`(幂等、不删东西),并把写权限就限制在这几个目录内。目录名想改见「可选增强」。
 
 ## 可选增强
 
-- **自定义媒体库目录名**(`.env`):默认根目录叫 `MediaRover`、分类目录叫 `Movies / TV / Anime / Variety`。想换名字(比如用中文)设 `MEDIA_TRACK_LIBRARY_ROOT_DIR` / `MEDIA_TRACK_LIBRARY_MOVIES_DIR` / `..._TV_DIR` / `..._ANIME_DIR` / `..._VARIETY_DIR`。⚠️ **改名只影响之后新连接的盘**;已连接的盘要重连才会按新名字建目录(库里存的是建目录时拿到的 CID)。
+- **自定义媒体库目录名**(`.env`):默认根目录叫 `MediaRobot`、分类目录叫 `Movies / TV / Anime / Variety`。想换名字(比如用中文)设 `MEDIA_TRACK_LIBRARY_ROOT_DIR` / `MEDIA_TRACK_LIBRARY_MOVIES_DIR` / `..._TV_DIR` / `..._ANIME_DIR` / `..._VARIETY_DIR`。⚠️ **目录名是连接那一刻定下的**:建好之后,应用只认它拿到的目录 CID,所以改这几个变量**不会动已连接的盘**(同账号重新登录只刷新凭据、保留原 CID)。要让已连接的盘换名字,得先在网盘里把目录改名(CID 不变,应用无感),或者断开重连(重连会新建目录、老文件不会自己搬过去)。
 - **自建 TMDB 代理**(墙内可选):`workers/tmdb-proxy/` 里带一个 Cloudflare Worker 参考实现 —— 把 TMDB 请求经它出海 + KV 缓存。注意它**不再是作者托管的能力**,要自己部署到自己的 Cloudflare 账号,然后在 **设置 → TMDB 元数据** 把 base URL 指过去(部署步骤见 [workers/tmdb-proxy/README.md](../workers/tmdb-proxy/README.md))。相比配 `HTTP_PROXY`,它的好处是只代理白名单元数据路径、带宽和延迟都可控。
 - **出站代理**(`.env` 设 `HTTP_PROXY` / `HTTPS_PROXY`):TMDB 的 API 主机(`api.themoviedb.org`)在国内常被单独墙(官网能开 ≠ API 能通),直连不到 TMDB 你的 key 就用不上。给容器配一个能穿透的代理即可让全部出站请求(TMDB / PanSou / Prowlarr)走它:在仓库根 `.env` 里写 `HTTP_PROXY=http://172.17.0.1:7890` 和 `HTTPS_PROXY=http://172.17.0.1:7890`(`172.17.0.1` 是 Docker 默认网关,指向宿主机;端口换成你宿主上代理软件的实际端口,如 Clash 的 7890),再 `docker compose --project-directory . -f deploy/docker/docker-compose.yml up -d`。`NO_PROXY` 可排除内网地址。**不设代理时行为不变**。
   - **WSL2 部署注意**(#83 踩坑实录):容器内的 `127.0.0.1` 指容器自身,填 Windows 宿主上的代理要用 WSL2 虚拟网卡的宿主 IP;且 Windows 防火墙常拦截来自 WSL2 虚拟网卡的入站连接(即使代理软件开了「允许局域网连接」),需要放行防火墙或在 WSL2 内起一层转发(监听 0.0.0.0 转发到 127.0.0.1:代理端口),容器再指向 WSL2 自身 IP。

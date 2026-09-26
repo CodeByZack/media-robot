@@ -58,7 +58,7 @@ export interface StorageBrand {
    *  field — replacing the old hardcoded `provider === "guangya"` checks. */
   authKind: "cookie" | "token";
   /** Parent directory id under which connect-time provisioning creates the
-   *  MediaRover/{Movies,TV,Anime} tree — per-brand DATA, not logic. 115 & 夸克
+   *  MediaRobot/{Movies,TV,Anime} tree — per-brand DATA, not logic. 115 & 夸克
    *  both root at "0"; 光鸭 roots at "" (account root); 天翼 personal-cloud roots
    *  at "-11". Consumed as `provisionCategoryDirs`' baseParentId so the root is
    *  registry-driven instead of hardcoded at each provision call site. */

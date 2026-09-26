@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/images/hero-dark.svg">
-    <img src="docs/images/hero.svg" alt="MediaRobot — your personal media agent" width="400">
+    <img src="docs/images/hero.svg" alt="Media-Robot — your personal media agent" width="400">
   </picture>
 </p>
 
@@ -12,16 +12,16 @@
   <img src="https://img.shields.io/badge/self--hosted-only-success" alt="仅自部署">
 </p>
 
-# MediaRobot
+# Media-Robot
 
 **自己部署的个人媒体库助手。**
 
 告诉它你想找什么，它负责搜索资源、转存到你的网盘，并检查文件是否真的已经落盘。电视剧还可以继续追踪。哪一季缺了哪几集，它会记录下来，之后的定时巡检只处理还没补齐的部分。
 
-不需要把视频下载到本地，也没有托管服务。MediaRobot 运行在你自己的 NAS 或服务器上，网盘、TMDB 和 LLM 都使用你自己的账号和配置。
+不需要把视频下载到本地，也没有托管服务。Media-Robot 运行在你自己的 NAS 或服务器上，网盘、TMDB 和 LLM 都使用你自己的账号和配置。
 
 <p align="center">
-  <img src="docs/images/demo.gif" alt="MediaRobot —— 从首页最近热门点进一部片，点获取，去通知页看到已入库" width="820">
+  <img src="docs/images/demo.gif" alt="Media-Robot —— 从首页最近热门点进一部片，点获取，去通知页看到已入库" width="820">
 </p>
 
 <p align="center">
@@ -34,7 +34,7 @@
 
 ### 搜索并转存
 
-输入电影或电视剧名称，MediaRobot 会根据 TMDB 信息找到对应作品，再搜索可用资源。
+输入电影或电视剧名称，Media-Robot 会根据 TMDB 信息找到对应作品，再搜索可用资源。
 
 找到合适的资源后，直接转存到你配置的网盘，不需要先下载到本地。
 
@@ -42,7 +42,7 @@
 
 转存完成并不代表文件一定已经准备好。
 
-MediaRobot 会再次读取网盘中的实际目录和文件，对照预期结果进行检查。确认文件已经落盘后，才会把它标记为已入库。
+Media-Robot 会再次读取网盘中的实际目录和文件，对照预期结果进行检查。确认文件已经落盘后，才会把它标记为已入库。
 
 ### 自动追剧
 
@@ -113,7 +113,7 @@ http://<主机>:3000
 
 ### 1. TMDB
 
-MediaRobot 使用 TMDB 获取影片和剧集的基础信息，包括：
+Media-Robot 使用 TMDB 获取影片和剧集的基础信息，包括：
 
 - 片名
 - 季数和集数
@@ -139,7 +139,7 @@ TMDB API 是必需配置。
 - 简繁混杂
 - 年份不同的同名作品
 
-MediaRobot 使用 LLM 辅助判断这些情况。
+Media-Robot 使用 LLM 辅助判断这些情况。
 
 支持 **OpenAI 兼容 API**，只需要填写 Endpoint 和 API Key，然后点击「测试连接」。
 
@@ -213,7 +213,7 @@ MediaRobot 使用 LLM 辅助判断这些情况。
 
 ## 技术栈
 
-MediaRobot 是一个单体应用，目前没有额外的消息队列或独立 worker 服务。
+Media-Robot 是一个单体应用，目前没有额外的消息队列或独立 worker 服务。
 
 ```text
 Next.js 16
@@ -242,7 +242,7 @@ npm run build:web    # 生产构建
 
 ## 项目来源
 
-MediaRobot fork 自 **[`fancydirty/mediary-scout`](https://github.com/fancydirty/mediary-scout)**。
+Media-Robot fork 自 **[`fancydirty/mediary-scout`](https://github.com/fancydirty/mediary-scout)**。
 
 这个项目保留了原项目中比较核心的资源获取和追踪思路，但目前已经做了比较大的改动，感谢原项目提供的思路和基础。
 
@@ -259,7 +259,7 @@ MediaRobot fork 自 **[`fancydirty/mediary-scout`](https://github.com/fancydirty
 - [cloud189-auto-save](https://github.com/1307super/cloud189-auto-save) / [cloudpan189-api](https://github.com/tickstep/cloudpan189-api) —— 天翼云盘 API 参考
 - [TMDB](https://www.themoviedb.org/) —— 媒体元数据
 
-MediaRobot 与 115、夸克、光鸭云盘、123 网盘、天翼云盘、TMDB 以及任何资源索引器均无隶属关系。
+Media-Robot 与 115、夸克、光鸭云盘、123 网盘、天翼云盘、TMDB 以及任何资源索引器均无隶属关系。
 
 ---
 
@@ -267,7 +267,7 @@ MediaRobot 与 115、夸克、光鸭云盘、123 网盘、天翼云盘、TMDB �
 
 [0BSD](LICENSE)。
 
-MediaRobot 是开源、自部署软件，不提供托管服务。
+Media-Robot 是开源、自部署软件，不提供托管服务。
 
 你需要自行提供：
 

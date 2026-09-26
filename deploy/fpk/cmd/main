@@ -1,5 +1,5 @@
 #!/bin/bash
-# MediaRobot — fnOS 原生应用生命周期脚本
+# Media-Robot — fnOS 原生应用生命周期脚本
 # 由飞牛应用中心调用：start / stop / status
 #
 # 布局说明：
@@ -59,7 +59,7 @@ start_process() {
         return 0
     fi
 
-    log_msg "Starting MediaRobot (server=${SERVER_DIR}, port=${PORT}) ..."
+    log_msg "Starting Media-Robot (server=${SERVER_DIR}, port=${PORT}) ..."
     bash -c "${CMD}" >> "${LOG_FILE}" 2>&1 &
     # bash -c 以 exec 替换自身，$! 即 node 进程 PID
     printf "%s" "$!" > "${PID_FILE}"
@@ -67,7 +67,7 @@ start_process() {
 }
 
 stop_process() {
-    log_msg "Stopping MediaRobot ..."
+    log_msg "Stopping Media-Robot ..."
 
     if [ -r "${PID_FILE}" ]; then
         pid=$(head -n 1 "${PID_FILE}" | tr -d '[:space:]')

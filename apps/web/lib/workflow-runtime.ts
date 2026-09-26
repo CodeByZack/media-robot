@@ -1581,7 +1581,7 @@ function extractStorageCredential(
 }
 
 /**
- * Provision a drive's media tree (MediaRover/{Movies,TV,Anime,Variety}) under the
+ * Provision a drive's media tree (MediaRobot/{Movies,TV,Anime,Variety}) under the
  * account root and return the CIDs. Uses an UNRESTRICTED bootstrap executor — a
  * fresh drive has no write scope yet, and the scope is meant to come FROM these
  * dirs (the catch-22 that left 115 drives stuck "目录待建"). Bounded, idempotent

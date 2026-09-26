@@ -1,5 +1,5 @@
 #!/bin/bash
-# MediaRobot — 飞牛 fnOS fpk 一键构建 + 打包脚本
+# Media-Robot — 飞牛 fnOS fpk 一键构建 + 打包脚本
 #
 # 用法：
 #   ./deploy/fpk/build-fpk.sh             # 构建 web + 填充 app/server + 打包（ARCH 默认按 uname 探测）
@@ -86,12 +86,12 @@ FPK_MODE="${FPK_MODE:-release}"
 case "${FPK_MODE}" in
     release)
         APPNAME="media-robot"
-        DISPLAY_NAME="MediaRobot"
+        DISPLAY_NAME="Media-Robot"
         SERVICE_PORT="3333"
         ;;
     test)
         APPNAME="media-robot-dev"
-        DISPLAY_NAME="MediaRobot (测试版)"
+        DISPLAY_NAME="Media-Robot (测试版)"
         SERVICE_PORT="3334"
         ;;
     *)
@@ -266,13 +266,14 @@ if [ -f "${CMD_MAIN}" ]; then
     #    （品牌无关），driveProvider 仅作日志标签且有默认 "quark" 兜底，设了是纯噪声。
     RUNTIME_BLOCK="export MEDIA_TRACK_MODE=${FPK_RUNTIME}"
     # 测试版 + normal 运行时：网盘根目录名默认加 -dev 后缀，实测时一眼区分
-    # 是哪个包建的树（正式版=代码默认 `MediaRover`，测试版=`MediaRover-dev`）。
+    # 是哪个包建的树（正式版=代码默认 `MediaRobot`，测试版=`MediaRobot-dev`）。
     # ⚠️ 必须跟着代码默认值走：`account-credentials.ts` 的 rootName 默认是
-    # `MediaRover`，不是产品名 —— 这里若写产品名，测试版建的树会和正式版分叉。
+    # `MediaRobot`，**不是**品牌名 `Media-Robot` —— 这里若写品牌名，测试版建的树
+    # 会和正式版分叉。
     # 用户在 .env / 部署配置里显式设置过则尊重其值（:- 兜底不覆盖）。
     if [ "${FPK_MODE}" = "test" ] && [ "${FPK_RUNTIME}" = "normal" ]; then
         RUNTIME_BLOCK="${RUNTIME_BLOCK}
-export MEDIA_TRACK_LIBRARY_ROOT_DIR=\${MEDIA_TRACK_LIBRARY_ROOT_DIR:-MediaRover-dev}"
+export MEDIA_TRACK_LIBRARY_ROOT_DIR=\${MEDIA_TRACK_LIBRARY_ROOT_DIR:-MediaRobot-dev}"
     fi
     # ⚠️ 不能写 `awk -v block="${RUNTIME_BLOCK}" ...`：RUNTIME_BLOCK 在 test 模式
     #    下是**多行**（MODE + LIBRARY_ROOT_DIR），而 **BSD awk（macOS）拒绝含换行的

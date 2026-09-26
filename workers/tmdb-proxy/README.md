@@ -2,20 +2,20 @@
 
 参考实现：把 TMDB 元数据请求经此 Worker 代理出海 + KV 缓存（电影 7d / 电视·搜索 1h），只代理白名单元数据路径。
 
-**从 #38 起这份 Worker 不再是"作者托管的公共兜底"**——作者不再代持任何人的 TMDB key。想用的话自己部署到 Cloudflare 账号，填自己的 token。MediaRobot 侧把 `TMDB_BASE_URL` 指过来即可。
+**从 #38 起这份 Worker 不再是"作者托管的公共兜底"**——作者不再代持任何人的 TMDB key。想用的话自己部署到 Cloudflare 账号，填自己的 token。Media-Robot 侧把 `TMDB_BASE_URL` 指过来即可。
 
 ## 认证方式（两种，任选）
 
 | 路径 | 谁用 | 说明 |
 |---|---|---|
-| `Authorization: Bearer <token>` 请求头 | 新部署 | MediaRobot 在 `TMDB_BASE_URL` 指过来后自动带头；token 全程在你的服务器和 proxy 之间，不落 CF secret |
+| `Authorization: Bearer <token>` 请求头 | 新部署 | Media-Robot 在 `TMDB_BASE_URL` 指过来后自动带头；token 全程在你的服务器和 proxy 之间，不落 CF secret |
 | `TMDB_READ_TOKEN` CF secret | 旧部署 | 向后兼容，不用改 app 配置；cron 预热也只走这条（`scheduled()` 无 request 上下文） |
 
 优先级：**请求头 > secret**。两边都没 → 401。
 
 ## CORS（可选）
 
-MediaRobot 的 Web UI 全 server-side 调用，**不需要 CORS**。只有你自己跑一份落地页（像作者原来的 mediaryscout.app 那样浏览器端 fetch trending）才需要配。
+Media-Robot 的 Web UI 全 server-side 调用，**不需要 CORS**。只有你自己跑一份落地页（像作者原来的 mediaryscout.app 那样浏览器端 fetch trending）才需要配。
 
 - 默认允许 `http://localhost:8788` / `http://127.0.0.1:8788`（本地开发）
 - 生产落地页：在 CF Worker → Settings → Variables 加 `CORS_ALLOWED_ORIGINS=https://mediary.dkai.cc.cd`（逗号分隔多个）
@@ -42,13 +42,13 @@ npx wrangler deploy --config workers/tmdb-proxy/wrangler.jsonc
 - `kv_namespaces[0].id` → 第 1 步输出的 namespace id
 - `routes[0].pattern` → 你自己的域名（或先删掉这段，用 workers.dev URL）
 
-### 部署到 MediaRobot 侧
+### 部署到 Media-Robot 侧
 
-在 MediaRobot 设置页的 **TMDB 元数据** 卡片，除了填 token，还要填：
+在 Media-Robot 设置页的 **TMDB 元数据** 卡片，除了填 token，还要填：
 
 - **API Base URL**：`https://<你刚部署的 proxy URL>`
 
-保存后请求链路变成：`MediaRobot → 你的 proxy → api.themoviedb.org`。完整教程见 [docs/tmdb-setup.md](../../docs/tmdb-setup.md)。
+保存后请求链路变成：`Media-Robot → 你的 proxy → api.themoviedb.org`。完整教程见 [docs/tmdb-setup.md](../../docs/tmdb-setup.md)。
 
 ## 校验
 

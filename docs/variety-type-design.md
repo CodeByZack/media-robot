@@ -110,7 +110,7 @@ A 档效果:新入库综艺上「综艺」架、显示「综艺」,但**仍落 T
 ### C 档 · 独立网盘落点「Variety」(首批实施,P1,≈ 1–1.5 人日)
 
 ```
-MediaRover/
+MediaRobot/
 ├── Movies/  ├── TV/  ├── Anime/  └── Variety/   ← 新增
 ```
 

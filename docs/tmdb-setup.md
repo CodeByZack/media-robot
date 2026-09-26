@@ -1,6 +1,6 @@
 # TMDB 配置指南
 
-MediaRobot 的影视元数据（海报、集数、播出日、季集名）全部来自 [TMDB](https://www.themoviedb.org/)。
+Media-Robot 的影视元数据（海报、集数、播出日、季集名）全部来自 [TMDB](https://www.themoviedb.org/)。
 从 **v0.0.5** 起，应用不再内置公共代理兜底，**TMDB read token 必填**——没配就无法取元数据，
 「获取」按钮不会工作。
 
@@ -9,7 +9,7 @@ MediaRobot 的影视元数据（海报、集数、播出日、季集名）全部
 1. 去 TMDB 官网申请一个 read token（免费，约 5 分钟）
 2. 确认网络能否直连 TMDB（能直连就跳到第 4 步）
 3. （可选，墙内环境）自建 tmdb-proxy 出海
-4. 把 MediaRobot 指过去
+4. 把 Media-Robot 指过去
 
 > **English TL;DR.** Grab a free read-only TMDB token from
 > [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api), paste it into
@@ -29,7 +29,7 @@ MediaRobot 的影视元数据（海报、集数、播出日、季集名）全部
   - [3.1 一键部署脚本](#31-一键部署脚本)
   - [3.2 配置说明](#32-配置说明)
   - [3.3 手动部署（不用脚本）](#33-手动部署不用脚本)
-- [第 4 步：把 MediaRobot 指过去](#第-4-步把-mediarobot-指过去)
+- [第 4 步：把 Media-Robot 指过去](#第-4-步把-media-robot-指过去)
 - [验证配置](#验证配置)
 
 ---
@@ -41,7 +41,7 @@ MediaRobot 的影视元数据（海报、集数、播出日、季集名）全部
 | TMDB read token | ✅ | 官网免费申请，只读权限，不写 TMDB 数据 |
 | Cloudflare 账号 | 仅场景 B 需要 | 自建 proxy 出海用；墙外直连 TMDB 无需 |
 
-Token 只读、免费、无流量限制（TMDB 官方限流 800 req/10s，MediaRobot 一次搜索约 11 个请求，
+Token 只读、免费、无流量限制（TMDB 官方限流 800 req/10s，Media-Robot 一次搜索约 11 个请求，
 日常使用绰绰有余）。
 
 ---
@@ -51,7 +51,7 @@ Token 只读、免费、无流量限制（TMDB 官方限流 800 req/10s，MediaR
 1. 打开 <https://www.themoviedb.org/settings/api>（需先登录 TMDB 账号；没有就注册，邮箱即可）。
 2. 页面顶部有三个 tab：**API Keys** / **Auth Tokens** / **Session Tokens**。点进 **API Keys**。
 3. 点 **Request**（右上角蓝色按钮），在弹出的表单里：
-   - **Key Type** 选 **Read**（只要读权限，MediaRobot 不会往 TMDB 写数据）
+   - **Key Type** 选 **Read**（只要读权限，Media-Robot 不会往 TMDB 写数据）
    - **Application Name** 填任意名字（如 `media-robot`）
    - **Application Website** 可留空
 4. 提交后页面会展示两把钥匙：
@@ -61,13 +61,13 @@ Token 只读、免费、无流量限制（TMDB 官方限流 800 req/10s，MediaR
    丢了只能重新申请。
 
 > **⚠️ 别把 token 分享出去**：Token 是 TMDB 官方发的个人凭据，绑到你账号，别人拿去用会
-> 扣你的额度并可能触发官方封禁。MediaRobot 只会用它做 read 请求，不会往外转发。
+> 扣你的额度并可能触发官方封禁。Media-Robot 只会用它做 read 请求，不会往外转发。
 
 ---
 
 ## 第 2 步：确认网络能否直连 TMDB
 
-在你的 MediaRobot 所在网络环境跑：
+在你的 Media-Robot 所在网络环境跑：
 
 ```bash
 curl -s -o /dev/null -w "%{http_code}\n" \
@@ -75,7 +75,7 @@ curl -s -o /dev/null -w "%{http_code}\n" \
   "https://api.themoviedb.org/3/movie/278?language=zh-CN"
 ```
 
-- **`200`** → 直连通，跳到 [第 4 步](#第-4-步把-mediarobot-指过去)
+- **`200`** → 直连通，跳到 [第 4 步](#第-4-步把-media-robot-指过去)
 - **`000` / `ETIMEDOUT`** → 网络不通，继续 [第 3 步](#第-3-步可选大陆网络自建-tmdb-proxy)
 - **`401`** → token 错或过期，回第 1 步重新申请
 
@@ -88,7 +88,7 @@ curl -s -o /dev/null -w "%{http_code}\n" \
 到 TMDB 的 API 主机被墙（**官网能开 ≠ API 能通**，两者是不同域名）。
 
 这时候自建 tmdb-proxy。仓库自带一份 Cloudflare Worker 参考实现（`workers/tmdb-proxy/`）：
-KV 缓存 + 出海。部署到你自己的 Cloudflare 账号后，把 MediaRobot 指过去。
+KV 缓存 + 出海。部署到你自己的 Cloudflare 账号后，把 Media-Robot 指过去。
 
 ### 3.1 一键部署脚本
 
@@ -123,7 +123,7 @@ node deploy.mjs
 |---|---|---|---|
 | `workerName` | ✅ | `media-track-tmdb-proxy` | Worker 名称，CF 全局唯一 |
 | `tmdbToken` | ⚠️ | `a2fb790c...` | TMDB read token。留空则不设 CF secret，仅用于验证测试 |
-| `storeSecret` | ❌ | `true` | `true` = 设 CF secret（MediaRobot 页面上不用填 token）；`false` = 跳过 secret（MediaRobot 页面上需要填 token） |
+| `storeSecret` | ❌ | `true` | `true` = 设 CF secret（Media-Robot 页面上不用填 token）；`false` = 跳过 secret（Media-Robot 页面上需要填 token） |
 | `cfApiToken` | ❌ | `''` | Cloudflare API token（可选，浏览器登录也行） |
 | `corsOrigins` | ❌ | `https://your-site.com` | 调用方域名（逗号分隔多个），留空则用 workers.dev 默认 CORS |
 | `customDomain` | ❌ | `tmdb.your-domain.com` | 自定义域名，留空则用 workers.dev URL |
@@ -157,9 +157,9 @@ npx wrangler deploy
 
 ---
 
-## 第 4 步：把 MediaRobot 指过去
+## 第 4 步：把 Media-Robot 指过去
 
-打开 MediaRobot → **设置** 页，找到 **TMDB 元数据** 卡片：
+打开 Media-Robot → **设置** 页，找到 **TMDB 元数据** 卡片：
 
 ### 直连 TMDB（第 2 步返回 200）
 
@@ -175,7 +175,7 @@ npx wrangler deploy
 现在请求链路变成：
 
 ```
-MediaRobot → 你的 proxy（CF，出海） → api.themoviedb.org
+Media-Robot → 你的 proxy（CF，出海） → api.themoviedb.org
 ```
 
 Token 全程走你的服务器，不经过作者的 key。

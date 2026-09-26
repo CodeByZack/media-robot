@@ -53,13 +53,13 @@ export function AppSidebar() {
         </span>
         <span className="brand-copy">
           <strong>
-            Media<span className="brand-copy-accent">Robot</span>
+            Media<span className="brand-copy-accent">-Robot</span>
           </strong>
           {/* 副题 = 设计稿横排 lockup 的**官方全文** `YOUR PERSONAL MEDIA AGENT`
               （25 字符），只是按品牌中文动词体系之外的书写习惯改成全小写。
               设计语言里「字标副题」是英文仅有的三个合法出场位之一。
               全小写是有意的：与 20px 的粗字标形成体重差，比全大写更安静，
-              也不会和 MediaRobot 抢视觉重量；同时小写比大写省宽度（同字号下
+              也不会和 Media-Robot 抢视觉重量；同时小写比大写省宽度（同字号下
               约省 20px），否则这行会超预算。 */}
           <span className="brand-copy-sub">your personal media agent</span>
         </span>
