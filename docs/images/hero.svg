@@ -1,4 +1,9 @@
-<svg width="620" height="120" viewBox="0 0 620 120" role="img" xmlns="http://www.w3.org/2000/svg">
+<!-- viewBox 按**内容实际宽度**收紧（不是随便给个 620）——外面用 <img> 居中时，
+     SVG 里的空白也会一起居中，左对齐的内容看起来就是偏左。
+     实测内容 x 范围 22 → 360（字标右端 339，副题右端 360），取 386 让左右留白
+     接近 22/26（留一点余量：别的字体把副题排得宽一些时不会顶出去）。
+     改这个值前先量一遍：浏览器里对 <text> 调 getBBox()。 -->
+<svg width="386" height="120" viewBox="0 0 386 120" role="img" xmlns="http://www.w3.org/2000/svg">
   <title>MediaRobot</title>
   <desc>your personal media agent</desc>
 
