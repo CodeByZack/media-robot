@@ -191,26 +191,35 @@ jobs:
             echo "tag=${GITHUB_REF_NAME}" >> "${GITHUB_OUTPUT}"
           fi
 
+      # ⚠️ 这个 checkout 必须排在 download-artifact **之前**：
+      # actions/checkout 的 `clean` 默认是 true，会跑 `git clean -ffdx`；而
+      # download-artifact 把 *.fpk 放在工作区的 dist/（未跟踪）里 —— 于是 checkout
+      # 会把产物整个删掉，最后报
+      #   Pattern 'dist/*.fpk' does not match any files
+      # （2026-09-26 首次发版就这样挂了）。放在前面时工作区还是空的，clean 无害。
+      # 这里另写 clean: false 兜底：将来若有人调顺序，不至于又静默删产物。
+      #
+      # 发布正文 = 仓库根目录的 RELEASE_NOTES.md，只读它、不在发布时拼接内容。
+      # 那份文件由 release.yml 在 bump PR 里生成 —— 所以**你在开/合 PR 时就能看到
+      # 并直接编辑**将要发布的文字（在 PR 的 Files changed 里改它即可）。内容一旦
+      # 在 PR 里审过，就不该在发布那一刻悄悄变样，故这里不做二次生成。
+      # （也因此不用 action 的 generate_release_notes：那是 GitHub 从「上个
+      # release 以来合并的 PR」自动生成，首版会把所有 PR 列一遍，且无法在合并前
+      # 审阅。）
+      - name: Checkout (按 tag 读 RELEASE_NOTES.md)
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.tag.outputs.tag }}
+          clean: false
+        # 手动 dispatch 指定的 tag 可能还没创建（softprops 会在发布时创建它），
+        # 那种情况 checkout 会失败 —— 不让它拖垮发布，下面有兜底正文。
+        continue-on-error: true
+
       - name: Download fpk artifacts
         uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
-
-      # 发布正文 = 仓库根目录的 RELEASE_NOTES.md，只读它、不在发布时拼接内容。
-      #
-      # 那份文件由 release.yml 在 bump PR 里生成 —— 所以**你在开/合 PR 时就能看到并
-      # 直接编辑**将要发布的文字（在 PR 的 Files changed 里改它即可）。内容一旦在 PR
-      # 里审过，就不该在发布那一刻悄悄变样，故这里不做二次生成。
-      # （也因此不用 action 的 generate_release_notes：那是 GitHub 从「上个 release
-      # 以来合并的 PR」自动生成，首版会把所有 PR 列一遍，且无法在合并前审阅。）
-      - name: Checkout (按 tag 读 RELEASE_NOTES.md)
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ steps.tag.outputs.tag }}
-        # 手动 dispatch 指定的 tag 可能还没创建（softprops 会在发布时创建它），
-        # 那种情况 checkout 会失败 —— 不让它拖垮发布，下面有兜底正文。
-        continue-on-error: true
 
       - name: Resolve release body
         run: |
@@ -218,12 +227,11 @@ jobs:
           NOTES="RELEASE_NOTES.md"
           if [ -f "${NOTES}" ]; then
             cp "${NOTES}" "${RUNNER_TEMP}/release-body.md"
-            echo "正文来源: ${NOTES}（$(wc -c < "${NOTES}" | tr -d " ") 字节）"
+            echo "正文来源: ${NOTES}（$(wc -c < "${NOTES}" | tr -d ' ') 字节）"
           elif [ -f .github/release-notes.template.md ]; then
             cp .github/release-notes.template.md "${RUNNER_TEMP}/release-body.md"
             echo "::notice::${NOTES} 不存在（老 tag 或 checkout 失败），改用模板"
           else
-            # 兜底：至少让 Release 页有一句话，而不是空白。
             printf '%s\n' "MediaRobot 发布。" > "${RUNNER_TEMP}/release-body.md"
             echo "::warning::${NOTES} 与模板都取不到，正文用占位一句"
           fi
