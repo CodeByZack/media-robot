@@ -21,8 +21,10 @@
 不做的事:不往本地磁盘下载、不提供托管服务、失败就如实报「暂无资源」并继续尝试,**绝不伪造成功**。
 
 <p align="center">
-  <img src="docs/images/demo.gif" alt="MediaRobot —— 搜到目标、点获取、去通知页看结果" width="820">
+  <img src="docs/images/demo.gif" alt="MediaRobot —— 从首页最近热门点进一部片，点获取，去通知页看到已入库" width="820">
 </p>
+
+<p align="center"><sub>首页最近热门 → 点一张卡片 → 点「获取」→ 通知页看到这条「已入库」</sub></p>
 
 ---
 
