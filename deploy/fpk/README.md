@@ -8,8 +8,8 @@
 ```
 deploy/fpk/
 ├── manifest            # 应用元数据（依赖 nodejs_v24、端口 3333、ctl_stop 等）
-├── ICON.PNG            # 应用中心图标 64x64（构建脚本生成）
-├── ICON_256.PNG        # 应用中心大图标 256x256（构建脚本生成）
+├── ICON.PNG            # 应用中心图标 64x64（make-icons.mjs 生成）
+├── ICON_256.PNG        # 应用中心大图标 256x256（make-icons.mjs 生成）
 ├── config/
 │   ├── privilege       # run-as: package
 │   └── resource        # 空（数据全在 TRIM_PKGVAR，无共享目录需求）
@@ -18,7 +18,7 @@ deploy/fpk/
 │   └── *_init / *_callback  # install/uninstall/upgrade/config 回调（标准空实现）
 ├── app/
 │   ├── ui/config       # 桌面图标 iframe 入口 → http://127.0.0.1:3333
-│   ├── ui/images/      # 桌面图标（构建脚本生成）
+│   ├── ui/images/      # 桌面图标（make-icons.mjs 生成）
 │   └── server/         # ⚠️ 构建产物，由 build-fpk.sh 填充，不提交 git
 ├── wizard/
 │   ├── install         # 安装向导（信息提示）
@@ -46,7 +46,13 @@ deploy/fpk/
    - `apps/web/.next/standalone/` 整体 → `app/server/`
    - `apps/web/.next/static/` → `app/server/apps/web/.next/static/`
    - `apps/web/public/` → `app/server/apps/web/public/`
-3. 图标为已入库的静态资源（`deploy/fpk/ICON*.PNG`、`app/ui/images/*.png`），打包不再重新生成
+3. 图标为已入库的静态资源（`deploy/fpk/ICON*.PNG`、`app/ui/images/*.png`），
+   打包不再重新生成。**改了 `apps/web/app/icon.svg` 后要单独跑**：
+   ```bash
+   node deploy/fpk/make-icons.mjs   # 从 icon.svg 重出 4 个 PNG（带透明圆角）
+   ```
+   （脚本用 sharp —— Next 自带依赖，内部 librsvg；`sips`/`ffmpeg` 做不到
+   SVG→带透明位图，所以别用它们。结果要一起提交。）
 4. `fnpack build` 产出 `deploy/fpk/dist/media-robot-<VERSION>-<ARCH>.fpk` 并打印大小
    （ARCH 默认按构建机探测：aarch64 → `arm`，x86_64 → `x86`；可用 `ARCH=x86` 覆盖）
 
