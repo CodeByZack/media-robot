@@ -222,4 +222,4 @@ curl -s -o /dev/null -w "%{http_code}\n" -H "Authorization: Bearer $YOUR_TOKEN" 
 - [TMDB API Keys 设置页](https://www.themoviedb.org/settings/api)
 - 自建 proxy 参考实现：[`workers/tmdb-proxy/`](../workers/tmdb-proxy/README.md)
 - 部署方式总览：[`deploy.md`](./deploy.md)
-- 相关设计讨论：[Issue #38 — TMDB 配置方案重构](https://github.com/CodeByZack/mediarobot/issues/38)
+- 相关设计讨论：[Issue #38 — TMDB 配置方案重构](https://github.com/CodeByZack/media-robot/issues/38)

@@ -8,9 +8,9 @@ MediaRobot 有两种部署方式:
 | 数据层 | SQLite(应用数据目录,升级保留) | SQLite(volume `mediary-data`) |
 | 部署 | Releases 下载 `.fpk` → 应用中心手动安装 | `git clone` + `docker compose --project-directory . -f deploy/docker/docker-compose.yml up -d` |
 | 端口 | 3333 | 3000 |
-| 下载 | [GitHub Releases](https://github.com/CodeByZack/mediarobot/releases) | 本指南下方 |
+| 下载 | [GitHub Releases](https://github.com/CodeByZack/media-robot/releases) | 本指南下方 |
 
-**fnOS fpk**:去 [Releases](https://github.com/CodeByZack/mediarobot/releases) 按架构下载 `.fpk`(`mediary-scout-arm.fpk` / `mediary-scout-x86.fpk`),在飞牛应用中心「手动安装」,装完直接开 `http://<NAS>:3333` 进设置页配网盘和 LLM。打包与维护细节见 [deploy/fpk/README.md](../deploy/fpk/README.md)。
+**fnOS fpk**:去 [Releases](https://github.com/CodeByZack/media-robot/releases) 按架构下载 `.fpk`(`mediary-scout-arm.fpk` / `mediary-scout-x86.fpk`),在飞牛应用中心「手动安装」,装完直接开 `http://<NAS>:3333` 进设置页配网盘和 LLM。打包与维护细节见 [deploy/fpk/README.md](../deploy/fpk/README.md)。
 
 **Docker 版**:继续往下看。
 
@@ -49,7 +49,7 @@ MediaRobot 有两种部署方式:
 ## Compose 快速开始
 
 ```bash
-git clone https://github.com/CodeByZack/mediarobot && cd mediary-scout
+git clone https://github.com/CodeByZack/media-robot && cd mediary-scout
 docker compose --project-directory . -f deploy/docker/docker-compose.yml up -d        # 首次会构建 web 镜像,几分钟
 ```
 

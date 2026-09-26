@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://codebyzack.github.io/mediarobot/sitemap.xml
+Sitemap: https://codebyzack.github.io/media-robot/sitemap.xml

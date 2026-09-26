@@ -92,7 +92,7 @@ export function AppSidebar() {
         <div className="sidebar-meta">
           <a
             className="sidebar-meta-link"
-            href="https://github.com/CodeByZack/mediarobot"
+            href="https://github.com/CodeByZack/media-robot"
             target="_blank"
             rel="noopener noreferrer"
           >

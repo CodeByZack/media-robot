@@ -95,4 +95,4 @@ export function buildContainerUpgradePrompt(input: {
 }
 
 export const GITHUB_MAIN_COMMITS_URL =
-  "https://github.com/CodeByZack/mediarobot/commits/main";
+  "https://github.com/CodeByZack/media-robot/commits/main";

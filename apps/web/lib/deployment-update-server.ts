@@ -7,7 +7,7 @@ import {
 import { isDemoMode } from "./demo-mode";
 
 const DEFAULT_MAIN_COMMITS_URL =
-  "https://api.github.com/repos/CodeByZack/mediarobot/commits/main";
+  "https://api.github.com/repos/CodeByZack/media-robot/commits/main";
 const REMOTE_PROBE_TTL_MS = 10 * 60 * 1000;
 
 let remoteProbeCache:
@@ -40,7 +40,7 @@ export async function fetchLatestMainCommit(
   let commit: string | null = null;
   try {
     const response = await fetchImpl(url, {
-      headers: { accept: "application/vnd.github+json", "user-agent": "mediarobot-update-check" },
+      headers: { accept: "application/vnd.github+json", "user-agent": "media-robot-update-check" },
       signal: AbortSignal.timeout(5000),
       cache: "no-store",
     });

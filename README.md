@@ -6,8 +6,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/CodeByZack/mediarobot/actions/workflows/ci.yml"><img src="https://github.com/CodeByZack/mediarobot/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/CodeByZack/mediarobot/releases"><img src="https://img.shields.io/github/v/release/CodeByZack/mediarobot?display_name=tag&sort=semver" alt="最新发布"></a>
+  <a href="https://github.com/CodeByZack/media-robot/actions/workflows/ci.yml"><img src="https://github.com/CodeByZack/media-robot/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/CodeByZack/media-robot/releases"><img src="https://img.shields.io/github/v/release/CodeByZack/media-robot?display_name=tag&sort=semver" alt="最新发布"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-0BSD-blue" alt="许可证"></a>
   <img src="https://img.shields.io/badge/self--hosted-only-success" alt="仅自部署">
 </p>
@@ -72,7 +72,7 @@ S03  10 / 10
 
 如果你使用飞牛 fnOS，可以直接安装原生应用。
 
-从 [Releases](https://github.com/CodeByZack/mediarobot/releases/latest) 下载对应架构的 `.fpk`：
+从 [Releases](https://github.com/CodeByZack/media-robot/releases/latest) 下载对应架构的 `.fpk`：
 
 ```text
 mediary-scout-arm.fpk
@@ -86,7 +86,7 @@ mediary-scout-x86.fpk
 任何可以运行 Docker 的常开设备都可以使用。
 
 ```bash
-git clone https://github.com/CodeByZack/mediarobot
+git clone https://github.com/CodeByZack/media-robot
 cd mediarobot
 
 cp .env.example .env
