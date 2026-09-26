@@ -15,12 +15,9 @@ import { runFastPathAcquisition } from "../consumption/fast-path/tv.js";
 import type { EpisodeParseRules } from "../episode-code.js";
 import type { PromptOverrideLookup } from "../ruleset.js";
 import { runMovieFastPathAcquisition } from "../consumption/fast-path/movie.js";
-
-/** ⛔ 字幕总开关 —— 2026-09-13 用户拍板:暂不支持字幕,关掉。
- *  只关这一个开关(方案 A):门禁、assrt 快照、字幕挑选、网盘转存实现全部原样保留,
- *  恢复支持改回 true 即可。选它而非全量注释 250+ 处引用的原因:目标是「产品上不支持」,
- *  清理债与目标不匹配,且要动 ports.ts 接口与 5 个网盘执行器的接口一致性。 */
-const SUBTITLES_ENABLED = false;
+// 字幕总开关搬到了 ../feature-flags.js —— 设置页也要读同一个值来决定要不要渲染
+// 「字幕来源」面板（见该文件注释）。
+import { SUBTITLES_ENABLED } from "../feature-flags.js";
 
 /** 字幕三重闸门:token 已配 + **已知**非 CN origin + 执行器有 `transferSubtitleUrl` 能力。
  *  抽成纯函数单独测试 —— 2026-09-13 字幕总开关关闭后,整条字幕链在生产上永不触发,

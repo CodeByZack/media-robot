@@ -29,6 +29,7 @@ export * from "./composite-provider.js";
 export * from "./fallback-provider.js";
 export * from "./tmdb-provider.js";
 export * from "./subtitle-provider.js";
+export * from "./feature-flags.js";
 export * from "./storage-115-executor.js";
 export * from "./pan115-cookie-client.js";
 export * from "./quark-cookie-client.js";

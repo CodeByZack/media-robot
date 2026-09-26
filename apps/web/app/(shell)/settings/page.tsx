@@ -45,7 +45,7 @@ import {
   PROWLARR_API_KEY_SETTING_KEY,
   PANSOU_BASE_URL_SETTING_KEY,
 } from "../../../lib/workflow-runtime";
-import { brandSupportsProwlarr } from "@mediarobot/workflow";
+import { brandSupportsProwlarr, SUBTITLES_ENABLED } from "@mediarobot/workflow";
 import { providerLabel, providerMark } from "../../../lib/provider-display";
 import { isDemoMode } from "../../../lib/demo-mode";
 
@@ -355,6 +355,11 @@ async function ResourceProviderSection() {
 }
 
 async function SubtitleSourceSection() {
+  // ⛔ 字幕暂不支持（packages/workflow/src/feature-flags.ts）。整块面板直接不渲染 ——
+  // 让用户去配一个不会生效的 token，比不显示它更糟。开关改回 true 时这里自动回来。
+  if (!SUBTITLES_ENABLED) {
+    return null;
+  }
   await connection();
   const repository = getAccountScopedSettings(await getCurrentAccountId());
   const tokenSet = Boolean((await repository.getSetting(ASSRT_TOKEN_SETTING_KEY))?.trim());

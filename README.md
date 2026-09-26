@@ -250,7 +250,6 @@ MediaRobot fork 自 [`fancydirty/clawd-media-track`](https://github.com/fancydir
 
 - 全新的 Web UI
 - 多网盘支持
-- 多用户
 - 配置中心
 - 媒体库
 - 自动巡检
@@ -273,7 +272,6 @@ MediaRobot fork 自 [`fancydirty/clawd-media-track`](https://github.com/fancydir
 - [AList](https://github.com/AlistGo/alist) —— 光鸭云盘 API 接入参考
 - [p123client](https://github.com/ChenyangGao/p123client) —— 123 网盘 API 参考
 - [cloud189-auto-save](https://github.com/1307super/cloud189-auto-save) / [cloudpan189-api](https://github.com/tickstep/cloudpan189-api) —— 天翼云盘 API 参考
-- [assrt.net](https://assrt.net) —— 中文字幕
 - [TMDB](https://www.themoviedb.org/) —— 媒体元数据
 
 MediaRobot 与 115、夸克、光鸭云盘、123 网盘、天翼云盘、TMDB 以及任何资源索引器均无隶属关系。

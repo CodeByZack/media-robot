@@ -75,11 +75,6 @@
           "@type": "Question",
           "name": "为什么某部片搜不到资源？",
           "acceptedAnswer": { "@type": "Answer", "text": "资源池来自 PanSou（可选再接 Prowlarr），池子里没人分享就真的没有。这时它会如实报「暂无资源」并继续尝试，不会伪造成功、也不会塞一个不相干的文件进去。" }
-        },
-        {
-          "@type": "Question",
-          "name": "外挂中文字幕支持哪些盘？",
-          "acceptedAnswer": { "@type": "Answer", "text": "只有 115 和光鸭。外挂字幕需要网盘支持「外链离线落盘」，夸克 / 天翼 / 123 不支持这个能力。" }
         }
       ]
     }
@@ -159,7 +154,7 @@
         <li><i>评分决策</i><b>无 A 级候选 → 转入别名兜底</b></li>
         <li><i>选片仲裁</i><b>选中《野兽之心 2160p 中字》</b></li>
         <li><i>转存</i><b>到暂存区（第 1 次转存）</b></li>
-        <li class="key"><i>回读验证</i><b>一部正片（视频 1 / 字幕 0）</b></li>
+        <li class="key"><i>回读验证</i><b>一部正片（视频 1）</b></li>
         <li><i>改名归位</i><b>野兽之心 (2026).mkv</b></li>
         <li class="done"><i>结论</i><b>影片已入库</b></li>
       </ol>
@@ -333,7 +328,7 @@ cp .env.example .env
 docker compose --project-directory . -f deploy/docker/docker-compose.yml up -d</code></pre>
         </div>
         <p>起来后打开 <code>http://&lt;主机&gt;:3000</code>。</p>
-        <a class="link" href="https://github.com/CodeByZack/mediary-scout/blob/main/docs/deploy.md">完整部署文档（反向代理 / Tailscale / 多用户 / 升级）→</a>
+        <a class="link" href="https://github.com/CodeByZack/mediary-scout/blob/main/docs/deploy.md">完整部署文档（反向代理 / 出站代理 / 升级）→</a>
       </div>
     </div>
   </div>
@@ -351,7 +346,6 @@ docker compose --project-directory . -f deploy/docker/docker-compose.yml up -d</
       <li><b>不伪造成功。</b>找不到资源就如实报「暂无资源」并继续尝试，不会塞一个不相干的文件充数。</li>
       <li><b>不自带任何凭证。</b>TMDB key 和 LLM key 都得你自己填，代码里没有内置的。</li>
       <li><b>不保证资源存在。</b>资源池取决于 PanSou（可选再接 Prowlarr），池子里没人分享就是真的没有。</li>
-      <li><b>外挂中文字幕只有 115 和光鸭。</b>需要网盘支持「外链离线落盘」，夸克 / 天翼 / 123 不支持。</li>
       <li><b>定时巡检要有常开主机才有意义。</b>关机的机器不会替你补集。</li>
       <li><b>115 / 夸克通常需要会员。</b>123 / 天翼的免费账号也能转存。</li>
     </ul>
@@ -386,11 +380,6 @@ docker compose --project-directory . -f deploy/docker/docker-compose.yml up -d</
     <details class="faq">
       <summary>为什么某部片搜不到资源？<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></summary>
       <div class="faq-body"><p>资源池来自 PanSou（可选再接 Prowlarr），池子里没人分享就真的没有。这时它会如实报「暂无资源」并继续尝试，不会伪造成功、也不会塞一个不相干的文件进去。</p></div>
-    </details>
-
-    <details class="faq">
-      <summary>外挂中文字幕支持哪些盘？<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></summary>
-      <div class="faq-body"><p>只有 115 和光鸭。外挂字幕需要网盘支持「外链离线落盘」，夸克 / 天翼 / 123 不支持这个能力。</p></div>
     </details>
   </div>
 </section>
