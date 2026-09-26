@@ -197,10 +197,44 @@ jobs:
           path: dist
           merge-multiple: true
 
+      # 发布正文 = 仓库根目录的 RELEASE_NOTES.md，只读它、不在发布时拼接内容。
+      #
+      # 那份文件由 release.yml 在 bump PR 里生成 —— 所以**你在开/合 PR 时就能看到并
+      # 直接编辑**将要发布的文字（在 PR 的 Files changed 里改它即可）。内容一旦在 PR
+      # 里审过，就不该在发布那一刻悄悄变样，故这里不做二次生成。
+      # （也因此不用 action 的 generate_release_notes：那是 GitHub 从「上个 release
+      # 以来合并的 PR」自动生成，首版会把所有 PR 列一遍，且无法在合并前审阅。）
+      - name: Checkout (按 tag 读 RELEASE_NOTES.md)
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.tag.outputs.tag }}
+        # 手动 dispatch 指定的 tag 可能还没创建（softprops 会在发布时创建它），
+        # 那种情况 checkout 会失败 —— 不让它拖垮发布，下面有兜底正文。
+        continue-on-error: true
+
+      - name: Resolve release body
+        run: |
+          set -euo pipefail
+          NOTES="RELEASE_NOTES.md"
+          if [ -f "${NOTES}" ]; then
+            cp "${NOTES}" "${RUNNER_TEMP}/release-body.md"
+            echo "正文来源: ${NOTES}（$(wc -c < "${NOTES}" | tr -d " ") 字节）"
+          elif [ -f .github/release-notes.template.md ]; then
+            cp .github/release-notes.template.md "${RUNNER_TEMP}/release-body.md"
+            echo "::notice::${NOTES} 不存在（老 tag 或 checkout 失败），改用模板"
+          else
+            # 兜底：至少让 Release 页有一句话，而不是空白。
+            printf '%s\n' "MediaRobot 发布。" > "${RUNNER_TEMP}/release-body.md"
+            echo "::warning::${NOTES} 与模板都取不到，正文用占位一句"
+          fi
+          echo "--- 正文预览（前 20 行）---"
+          head -20 "${RUNNER_TEMP}/release-body.md"
+
       - name: Upload fpk files to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
+          name: MediaRobot ${{ steps.tag.outputs.tag }}
+          body_path: ${{ runner.temp }}/release-body.md
           files: dist/*.fpk
           fail_on_unmatched_files: true
-          generate_release_notes: true
