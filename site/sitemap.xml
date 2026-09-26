@@ -2,15 +2,16 @@
 <!--
   首页 + 指南页。锚点（#features / #faq …）不是独立页面，刻意不列 ——
   sitemap 只放希望被索引的规范页面。
+  换了域名/发布方式时改这里的 loc（与 index.html 的 canonical 必须一致）。
 -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://mediaryscout.app/</loc>
+    <loc>https://codebyzack.github.io/media-robot/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://mediaryscout.app/guides/which-cloud-drive/</loc>
+    <loc>https://codebyzack.github.io/media-robot/guides/which-cloud-drive/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>

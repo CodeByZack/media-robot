@@ -5,6 +5,17 @@ vi.mock("./deployment-update-server", () => ({ loadDeploymentUpdateState: vi.fn(
 vi.mock("./workflow-runtime", () => ({
   getAccountScopedSettings: vi.fn(() => ({ getSetting: async () => null })),
   getCurrentAccountId: vi.fn(async () => "acct_default"),
+  // 盘改为由 cookie 解析（resolveCurrentWorkspace）。测试里没有请求上下文，
+  // 这里直接给出"无当前盘 → 回退主盘"的结果：storages 由 getWorkflowRepository 的
+  // mock 提供，connectedStorageId 取最早创建的那块。
+  resolveCurrentWorkspace: vi.fn(async () => {
+    const repo = (await import("./workflow-runtime")).getWorkflowRepository() as unknown as {
+      listConnectedStorages: (accountId: string) => Promise<Array<{ id: string; createdAt: string }>>;
+    };
+    const storages = await repo.listConnectedStorages("acct_default");
+    const sorted = [...storages].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    return { accountId: "acct_default", connectedStorageId: sorted[0]?.id ?? null, storages };
+  }),
   getLlmConfig: vi.fn(async () => ({ baseURL: "https://llm.example", modelId: "m" })),
   getWorkflowRepository: vi.fn(),
   PANSOU_BASE_URL_SETTING_KEY: "pansou_base_url",

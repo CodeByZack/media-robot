@@ -2,7 +2,7 @@ import { isDemoMode } from "../../../../../lib/demo-mode";
 import { NextResponse, type NextRequest } from "next/server";
 import { completeTianyiQrLogin, StorageOwnedByOtherAccountError } from "../../../../../lib/workflow-runtime";
 import { validateTianyiQrSession, validateTianyiRedirectUrl } from "../../../../../lib/tianyi-qr-session";
-import type { TianyiQrSession } from "@media-track/workflow";
+import type { TianyiQrSession } from "@mediarobot/workflow";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   if (isDemoMode()) return NextResponse.json({ error: "演示站只读" }, { status: 403 });

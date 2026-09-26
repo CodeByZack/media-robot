@@ -1,6 +1,6 @@
 /**
  * The library's media shelves as a VALUE list. This module is deliberately
- * dependency-free and exported via the package subpath "@media-track/workflow/media-types":
+ * dependency-free and exported via the package subpath "@mediarobot/workflow/media-types":
  * client components (demo-session guards, `?type=` validation) need the runtime
  * whitelist, but importing it from the package ROOT would drag dist/index.js —
  * node:sqlite included — into the browser bundle (Turbopack build error; CI

@@ -11,8 +11,8 @@ import {
   loadEpisodeRules,
   loadRulePatterns,
   BUILTIN_RULE_IDS,
-} from "@media-track/workflow";
-import type { EpisodeParseRules } from "@media-track/workflow";
+} from "@mediarobot/workflow";
+import type { EpisodeParseRules } from "@mediarobot/workflow";
 
 export async function POST(request: NextRequest) {
   await connection();

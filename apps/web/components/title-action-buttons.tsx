@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, DownloadCloud, Layers, LoaderCircle } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { apiCall } from "../lib/api";
 import type { AcquireResult } from "../lib/api-types";
@@ -15,15 +15,11 @@ import { useDemoAcquiredTmdbIds } from "../lib/use-demo-session";
 export function RequestSeasonButton({
   tmdbId,
   seasonNumber,
-  storageId,
   titleAcquiring = false,
   demoEntry,
 }: {
   tmdbId: number;
   seasonNumber: number;
-  /** Tree model: the active workspace drive — acquisition lands HERE. REQUIRED
-   *  (value may be undefined = primary) so the workspace is always threaded. */
-  storageId: string | undefined;
   /** Server truth: this title already has an acquisition run in flight. */
   titleAcquiring?: boolean;
   /** Demo only: recorded to the session library when the scripted playback ends. */
@@ -41,6 +37,15 @@ export function RequestSeasonButton({
   const demo = isDemoModeClient();
   const [demoPlaying, setDemoPlaying] = useState(false);
   const acquiredIds = useDemoAcquiredTmdbIds();
+
+  // 锁的生命周期 = 这次请求在飞的那段时间。transition 结束（成功或失败）即释放，
+  // 不再依赖 router.refresh() 让 Provider 重挂载 —— 那样一旦刷新失败，acquiring
+  // 永远是当前 scope，同剧所有按钮会永久禁用。
+  useEffect(() => {
+    if (!isPending) {
+      lock?.release(scope);
+    }
+  }, [isPending, lock, scope]);
 
   if (demo && demoPlaying) {
     return <DemoAcquirePlayback entry={demoEntry} />;
@@ -75,13 +80,12 @@ export function RequestSeasonButton({
               type: "season",
               tmdbId,
               seasonNumber,
-              storageId,
             });
             if (!r.ok) {
               setResult({ status: "unsupported", message: r.error });
-              // 必须 refresh:lock.acquiring 是前端 state,靠重挂载重置。
-              // 失败不刷新,锁永远卡住,兄弟按钮全禁用(Copilot round 1)。
-              router.refresh();
+              // 不刷新：请求失败意味着服务端什么都没变，重渲染整页毫无收益
+              // （旧注释说"必须 refresh 才能清锁"—— 那是锁没有释放接口时的绕法，
+              //   现在由上面的 effect 显式释放，且不依赖任何网络往返）。
               return;
             }
             setResult(r.value);
@@ -106,15 +110,11 @@ export function RequestSeasonButton({
 export function RequestRemainingButton({
   tmdbId,
   label,
-  storageId,
   titleAcquiring = false,
   demoEntry,
 }: {
   tmdbId: number;
   label: string;
-  /** Tree model: the active workspace drive — acquisition lands HERE. REQUIRED
-   *  (value may be undefined = primary) so the workspace is always threaded. */
-  storageId: string | undefined;
   /** Server truth: this title already has an acquisition run in flight. */
   titleAcquiring?: boolean;
   /** Demo only: recorded to the session library when the scripted playback ends. */
@@ -132,6 +132,15 @@ export function RequestRemainingButton({
   const demo = isDemoModeClient();
   const [demoPlaying, setDemoPlaying] = useState(false);
   const acquiredIds = useDemoAcquiredTmdbIds();
+
+  // 锁的生命周期 = 这次请求在飞的那段时间。transition 结束（成功或失败）即释放，
+  // 不再依赖 router.refresh() 让 Provider 重挂载 —— 那样一旦刷新失败，acquiring
+  // 永远是当前 scope，同剧所有按钮会永久禁用。
+  useEffect(() => {
+    if (!isPending) {
+      lock?.release(scope);
+    }
+  }, [isPending, lock, scope]);
 
   if (demo && demoPlaying) {
     return <DemoAcquirePlayback entry={demoEntry} />;
@@ -163,12 +172,10 @@ export function RequestRemainingButton({
             const r = await apiCall<AcquireResult>("/api/acquire", {
               type: "remaining",
               tmdbId,
-              storageId,
             });
             if (!r.ok) {
               setResult({ status: "unsupported", message: r.error });
-              // 同上一处:失败必须 refresh 清锁,否则 sibling 全禁用。
-              router.refresh();
+              // 同上一处：失败不刷新，锁由 effect 释放。
               return;
             }
             setResult(r.value);

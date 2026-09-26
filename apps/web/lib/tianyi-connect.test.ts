@@ -26,7 +26,7 @@ const FAKE_SESSION = {
   loginName: LOGIN_NAME,
 };
 
-/** Stub for @media-track/workflow's TianyiQrLoginClient — returns a canned
+/** Stub for @mediarobot/workflow's TianyiQrLoginClient — returns a canned
  *  TianyiSession without any network. `loginBySson("EMPTY_UID")` yields a session
  *  with an empty loginName to exercise the missing-uid guard. */
 class FakeTianyiQrLoginClient {
@@ -51,8 +51,8 @@ class FakeTianyiQrLoginClient {
 const boot = async (opts: { failProvision?: boolean } = {}) => {
   process.env.MEDIA_TRACK_SQLITE_PATH = ":memory:";
   vi.resetModules();
-  vi.doMock("@media-track/workflow", async () => {
-    const actual = await vi.importActual<typeof import("@media-track/workflow")>("@media-track/workflow");
+  vi.doMock("@mediarobot/workflow", async () => {
+    const actual = await vi.importActual<typeof import("@mediarobot/workflow")>("@mediarobot/workflow");
     return {
       ...actual,
       TianyiQrLoginClient: FakeTianyiQrLoginClient,
@@ -69,7 +69,7 @@ const boot = async (opts: { failProvision?: boolean } = {}) => {
 };
 
 afterEach(() => {
-  vi.doUnmock("@media-track/workflow");
+  vi.doUnmock("@mediarobot/workflow");
   delete process.env.MEDIA_TRACK_SQLITE_PATH;
   vi.resetModules();
 });

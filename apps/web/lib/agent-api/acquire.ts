@@ -1,4 +1,4 @@
-import { createTmdbSearchProvider, type MediaSearchProvider } from "@media-track/workflow";
+import { createTmdbSearchProvider, type MediaSearchProvider } from "@mediarobot/workflow";
 import { getTmdbAccesses, getAccountScopedSettings, queueCandidateTracking } from "../workflow-runtime";
 
 export interface AcquireInput {

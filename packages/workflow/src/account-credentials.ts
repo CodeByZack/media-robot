@@ -133,7 +133,7 @@ export async function provisionCategoryDirs(input: {
   varietyName?: string;
 }): Promise<ProvisionedCids> {
   const named = (value: string | undefined, fallback: string) => value?.trim() || fallback;
-  const rootName = named(input.rootName, "Mediary Scout");
+  const rootName = named(input.rootName, "MediaRover");
   const moviesName = named(input.moviesName, "Movies");
   const tvName = named(input.tvName, "TV");
   const animeName = named(input.animeName, "Anime");

@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import Link from "next/link";
 import { CheckCircle2, ChevronDown, ChevronRight, Clock3, Loader2, RotateCcw, TriangleAlert, X } from "lucide-react";
-import { showHref } from "@media-track/workflow/scope";
+import { showHref } from "@mediarobot/workflow/scope";
+import { PosterTransition } from "./poster-transition";
+import { posterNamePicker } from "../lib/poster-transition";
 import type {
   ActivityActiveRun,
   ActivityCompletedItem,
@@ -25,7 +27,7 @@ import { useDemoAcquisitions, useDemoInProgress } from "../lib/use-demo-session"
 const POLL_MS = 2600;
 const POSTER = "https://image.tmdb.org/t/p/w185";
 
-export function ActivityFeed({ storageId }: { storageId?: string | undefined }) {
+export function ActivityFeed() {
   // 已完成 is session-scoped by OBSERVATION: the runIds this browser saw active.
   // Robust to notification createdAt timing (a since-filter wrongly dropped runs
   // the user opened the page after — createdAt ≈ run-start, not finish).
@@ -36,7 +38,7 @@ export function ActivityFeed({ storageId }: { storageId?: string | undefined }) 
     let alive = true;
     const poll = async () => {
       try {
-        const url = storageId ? `/api/activity?w=${encodeURIComponent(storageId)}` : "/api/activity";
+        const url = "/api/activity";
         const res = await fetch(url, { cache: "no-store" });
         if (!res.ok) return;
         const data = (await res.json()) as ActivityView;
@@ -54,7 +56,7 @@ export function ActivityFeed({ storageId }: { storageId?: string | undefined }) 
       alive = false;
       clearInterval(id);
     };
-  }, [storageId]);
+  }, []);
 
   const running = view.active.filter((run) => run.status === "running");
   const queued = view.active
@@ -70,6 +72,12 @@ export function ActivityFeed({ storageId }: { storageId?: string | undefined }) 
   const demoDone = isDemo ? demoCompletedItems(demoAcq) : [];
   const demoActive = demoInProgressActivityItems(useDemoInProgress());
   const allCompleted = [...demoDone, ...completed];
+  // 共享元素：获取中的海报 → 详情页大图。**多季并发获取**是本站常规场景（同一部剧的
+  // 第 1、2 季同时在下），两条 run 的 tmdbId 完全相同 → 撞名 → 必须整批放弃，
+  // 否则浏览器会放弃**整个**过渡（不只是少一张形变）。
+  const runningPosterName = posterNamePicker(
+    running.map((run) => ({ tmdbId: run.tmdbId, mediaType: run.type })),
+  );
 
   return (
     <div className="activity">
@@ -83,7 +91,11 @@ export function ActivityFeed({ storageId }: { storageId?: string | undefined }) 
               <DemoRunningRow item={item} key={item.id} />
             ))}
             {running.map((run) => (
-              <RunningRow run={run} storageId={storageId} key={run.runId} />
+              <RunningRow
+                run={run}
+                posterName={runningPosterName({ tmdbId: run.tmdbId, mediaType: run.type })}
+                key={run.runId}
+              />
             ))}
           </>
         )}
@@ -121,12 +133,16 @@ function seasonLabel(run: ActivityActiveRun): string {
   return seasonLabelText(run.type, run.seasonNumbers ?? [], run.seasonNumber);
 }
 
-/** Chevron affordance on an expandable row header (rotates with open state). */
+/** Chevron affordance on an expandable row header.
+ *  始终渲染同一个图标，由 CSS 的 `.is-open` 旋转 90°（设计稿做法）——
+ *  换成两个图标对换就没法做过渡动画了。 */
 export function ExpandChevron({ open }: { open: boolean }) {
-  return open ? (
-    <ChevronDown size={15} className="act-row-chevron" aria-hidden />
-  ) : (
-    <ChevronRight size={15} className="act-row-chevron" aria-hidden />
+  return (
+    <ChevronRight
+      size={15}
+      className={`act-row-chevron${open ? " is-open" : ""}`}
+      aria-hidden
+    />
   );
 }
 
@@ -279,7 +295,7 @@ function StepEvidence({ detail }: { detail: NonNullable<StepEvidenceView> }) {
   );
 }
 
-function RunningRow({ run, storageId }: { run: ActivityActiveRun; storageId?: string | undefined }) {
+function RunningRow({ run, posterName }: { run: ActivityActiveRun; posterName: string | null }) {
   const [open, setOpen] = useState(false);
   const percent = Math.max(3, Math.min(100, run.progress?.percent ?? 3));
   const headline =
@@ -287,15 +303,18 @@ function RunningRow({ run, storageId }: { run: ActivityActiveRun; storageId?: st
       ? `已确认 ${run.progress.obtained ?? 0} / ${run.progress.needed} 集`
       : null;
   return (
-    <div className="act-row act-row-active act-row-expandable">
+    <div className={`act-row act-row-active act-row-expandable${open ? " is-open" : ""}`}>
       <div className="act-row-toggle" onClick={() => setOpen((value) => !value)}>
+        {/* 共享元素：点开时这张海报形变到详情页大图。 */}
+        <PosterTransition name={posterName}>
         <Link
           className="act-poster-link"
-          href={showHref(run.tmdbId, "library", storageId, run.type)}
+          href={showHref(run.tmdbId, "library", run.type)}
           onClick={(event) => event.stopPropagation()}
         >
           {poster(run.posterPath, run.title, "info")}
         </Link>
+        </PosterTransition>
         <div className="act-row-body">
           <div className="act-row-head">
             <strong>{run.title}</strong>
@@ -383,7 +402,7 @@ function DemoRunningRow({ item }: { item: DemoActivityItem }) {
 function QueuedRow({ run }: { run: ActivityActiveRun }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="act-row act-row-queued act-row-expandable">
+    <div className={`act-row act-row-queued act-row-expandable${open ? " is-open" : ""}`}>
       <div className="act-row-toggle" onClick={() => setOpen((value) => !value)}>
         {poster(run.posterPath, run.title, "muted")}
         <div className="act-row-body act-row-inline">
@@ -421,7 +440,7 @@ function CompletedRow({ item }: { item: ActivityCompletedItem }) {
   const ok = item.status === "complete" || item.status === "acquired" || item.status === "airing";
   const failed = item.status === "failed";
   return (
-    <div className="act-row act-row-done act-row-expandable">
+    <div className={`act-row act-row-done act-row-expandable${open ? " is-open" : ""}`}>
       <div className="act-row-toggle" onClick={() => setOpen((value) => !value)}>
         {poster(item.posterPath, item.title, ok ? "success" : "warn")}
         <div className="act-row-body act-row-inline">

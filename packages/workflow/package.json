@@ -1,5 +1,5 @@
 {
-  "name": "@media-track/workflow",
+  "name": "@mediarobot/workflow",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",

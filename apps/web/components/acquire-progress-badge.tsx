@@ -41,24 +41,22 @@ function useTrickledPercent(serverPercent: number, running: boolean, runKey: str
 export function AcquireProgressBadge({
   tmdbId,
   seasonNumber = null,
-  storageId,
   title,
 }: {
   tmdbId: number;
   seasonNumber?: number | null;
-  storageId?: string | undefined;
   title?: string | undefined;
 }) {
-  const run = useActiveRun(tmdbId, seasonNumber, storageId);
+  const run = useActiveRun(tmdbId, seasonNumber);
   const view = inlineProgressView(run);
   // Hooks must run unconditionally — compute the trickled width before any early return.
   const displayPercent = useTrickledPercent(view.percent, view.running, run?.runId ?? "none");
 
   if (!view.running) {
-    return <RequestedBadge title={title} storageId={storageId} />;
+    return <RequestedBadge title={title} />;
   }
 
-  const href = storageId ? `/activity?w=${encodeURIComponent(storageId)}` : "/activity";
+  const href = "/activity";
   return (
     <Link className="demo-playback acquire-progress" href={href} title={title ?? "查看获取进度（活动）"}>
       <span className="demo-playback-bar">

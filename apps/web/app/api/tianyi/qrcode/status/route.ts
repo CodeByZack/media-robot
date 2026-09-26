@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { TianyiQrLoginClient, type TianyiQrSession } from "@media-track/workflow";
+import { TianyiQrLoginClient, type TianyiQrSession } from "@mediarobot/workflow";
 import { validateTianyiQrSession } from "../../../../../lib/tianyi-qr-session";
 
 // POST (not GET like quark): the 天翼 poll needs the WHOLE session (uuid/paramId/

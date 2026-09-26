@@ -35,12 +35,12 @@ describe("GET /api/settings/attention", () => {
     // 否则 origin 走的是 DEFAULT_LOCAL_ORIGIN 兜底，断言看着对、其实没在
     // 验证「从请求推导 origin」这件事（无 host 的兜底另有一条测试）。
     const res = await GET(
-      new NextRequest("http://localhost:3300/api/settings/attention?w=cs_other", {
+      new NextRequest("http://localhost:3300/api/settings/attention", {
         headers: { host: "localhost:3300" },
       }),
     );
+    // 盘不再由请求传入 —— 服务端从 cookie 解析。
     expect(loadSettingsAttentionSummary).toHaveBeenCalledWith({
-      w: "cs_other",
       origin: "http://localhost:3300",
     });
     expect(res.status).toBe(200);
@@ -50,7 +50,6 @@ describe("GET /api/settings/attention", () => {
   it("falls back to the compose default when the request carries no host at all", async () => {
     await GET(new NextRequest("http://localhost/api/settings/attention"));
     expect(loadSettingsAttentionSummary).toHaveBeenCalledWith({
-      w: null,
       origin: "http://localhost:3300",
     });
   });
@@ -64,15 +63,16 @@ describe("GET /api/settings/attention", () => {
         },
       }),
     );
+    // 盘不再作为参数传入 —— 服务端从 cookie 解析（loadSettingsAttentionSummary
+    // 内部调 resolveCurrentWorkspace）。所以这里只断言 origin。
     expect(loadSettingsAttentionSummary).toHaveBeenCalledWith({
-      w: null,
       origin: "https://mediary.example.com",
     });
   });
 
   it("includes full items when items=1", async () => {
     const res = await GET(
-      new NextRequest("http://localhost/api/settings/attention?w=cs_other&items=1"),
+      new NextRequest("http://localhost/api/settings/attention?items=1"),
     );
     await expect(res.json()).resolves.toEqual({
       count: 1,

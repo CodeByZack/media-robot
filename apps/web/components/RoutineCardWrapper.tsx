@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { CalendarClock, CheckCircle2 } from "lucide-react";
-import type { NotificationEvent } from "@media-track/workflow";
+import type { NotificationEvent } from "@mediarobot/workflow";
 import type { ActivityStepView } from "../lib/activity-view";
 import { StepList, ExpandChevron } from "./activity-feed";
 

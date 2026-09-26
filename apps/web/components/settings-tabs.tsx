@@ -3,6 +3,16 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
+  CalendarClock,
+  HardDrive,
+  Languages,
+  ScrollText,
+  ServerCog,
+  ShieldCheck,
+  SlidersHorizontal,
+  type LucideIcon,
+} from "lucide-react";
+import {
   OBSERVED_SETTINGS_TABS,
   SETTINGS_TABS,
   resolveSettingsTab,
@@ -11,6 +21,21 @@ import {
   type SettingsTabId,
   type SettingsTabVisibility,
 } from "../lib/settings-tabs-model";
+
+/**
+ * tab 图标。纯展示层映射放在组件里，settings-tabs-model 保持无 UI 依赖
+ * （它是 node 环境可测的纯模型）。新增 tab 时在这里补一条；漏了不报错，
+ * 只是没有图标。对照设计稿 settings.html 的 settings-nav。
+ */
+const TAB_ICONS: Record<SettingsTabId, LucideIcon> = {
+  drives: HardDrive,
+  services: ServerCog,
+  preferences: SlidersHorizontal,
+  recognition: ScrollText,
+  patrol: CalendarClock,
+  account: ShieldCheck,
+  remote: Languages,
+};
 
 /** 「内容为空即隐藏」的受观察 tab？（narrowing 供 ref map / 可见性查表用） */
 function isObserved(tab: SettingsTabId): tab is ObservedSettingsTabId {
@@ -118,21 +143,25 @@ export function SettingsTabs(props: {
   return (
     <>
       <div className="settings-tabs" role="tablist" aria-label="设置分区" onKeyDown={onTablistKeyDown}>
-        {visibleTabs.map((tab) => (
-          <button
-            key={tab.id}
-            id={`settings-tab-${tab.id}`}
-            type="button"
-            role="tab"
-            className={`settings-tab${active === tab.id ? " is-active" : ""}`}
-            aria-selected={active === tab.id}
-            aria-controls={`settings-panel-${tab.id}`}
-            tabIndex={active === tab.id ? 0 : -1}
-            onClick={() => select(tab.id)}
-          >
-            {tab.label}
-          </button>
-        ))}
+        {visibleTabs.map((tab) => {
+          const Icon = TAB_ICONS[tab.id];
+          return (
+            <button
+              key={tab.id}
+              id={`settings-tab-${tab.id}`}
+              type="button"
+              role="tab"
+              className={`settings-tab${active === tab.id ? " is-active" : ""}`}
+              aria-selected={active === tab.id}
+              aria-controls={`settings-panel-${tab.id}`}
+              tabIndex={active === tab.id ? 0 : -1}
+              onClick={() => select(tab.id)}
+            >
+              <Icon size={15} aria-hidden />
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
       {panels.map((panel) => (
         <div

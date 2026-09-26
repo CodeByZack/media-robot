@@ -10,7 +10,6 @@ export async function GET(request: NextRequest) {
   try {
     await connection();
     const summary = await loadSettingsAttentionSummary({
-      w: request.nextUrl.searchParams.get("w"),
       origin: resolveRequestOrigin(request.headers),
     });
     const includeItems = request.nextUrl.searchParams.get("items") === "1";

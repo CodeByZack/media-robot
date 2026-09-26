@@ -81,29 +81,35 @@ export function TmdbApiKeyForm({ apiKeySet, baseUrlSet, currentBaseUrl }: { apiK
           获取方法 <ExternalLink size={12} style={{ verticalAlign: "-1px" }} />
         </a>
       </p>
-      <div className="setting-row" style={{ marginBottom: 8 }}>
-        <input
-          type="text"
-          className="setting-control"
-          value={baseUrl}
-          onChange={(event) => setBaseUrl(event.target.value)}
-          placeholder="自定义 API Base URL（如 https://tmdb.your-domain.com）"
-          aria-label="TMDB Base URL"
-          autoComplete="off"
-        />
+      <div className="field-row" style={{ marginBottom: 14 }}>
+        <div className="field">
+          <label htmlFor="tmdb-api-key">API Key</label>
+          <input
+            id="tmdb-api-key"
+            type="password"
+            className="input input-mono"
+            value={apiKey}
+            onChange={(event) => setApiKey(event.target.value)}
+            placeholder={hasKey ? "已设置(留空不改)" : "TMDB API Read Token（eyJhbGciOi…）"}
+            aria-label="TMDB API Key"
+            autoComplete="off"
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="tmdb-base-url">自定义代理地址（可选）</label>
+          <input
+            id="tmdb-base-url"
+            type="text"
+            className="input input-mono"
+            value={baseUrl}
+            onChange={(event) => setBaseUrl(event.target.value)}
+            placeholder="https://tmdb-proxy.example.com"
+            aria-label="TMDB Base URL"
+            autoComplete="off"
+          />
+        </div>
       </div>
-      <div className="setting-row" style={{ marginBottom: 12 }}>
-        <input
-          type="password"
-          className="setting-control"
-          value={apiKey}
-          onChange={(event) => setApiKey(event.target.value)}
-          placeholder={hasKey ? "已设置(留空不改)" : "TMDB API Read Token（eyJhbGciOi…）"}
-          aria-label="TMDB API Key"
-          autoComplete="off"
-        />
-      </div>
-      <div className="setting-row">
+      <div className="form-foot">
         <button type="button" className="primary-button" onClick={handleSave} disabled={isPending}>
           {isPending ? <LoaderCircle size={14} className="spin" aria-hidden /> : <Check size={14} aria-hidden />}
           保存

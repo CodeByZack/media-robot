@@ -3,7 +3,7 @@ import {
   PanSouResourceProvider,
   type ResourceProvider,
   type ResourceType,
-} from "@media-track/workflow";
+} from "@mediarobot/workflow";
 
 /** 去掉首尾空白与尾随斜杠,使 `https://x` 与 `https://x/` 判为同一个源。 */
 export function normalizePanSouBaseUrl(baseURL: string | null | undefined): string {

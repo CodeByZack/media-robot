@@ -84,8 +84,8 @@ services:
       # 在 .env 里设 MEDIA_TRACK_AGENT_LOG=1 自行启用(env_file 已加载 .env)。
     volumes:
       - mediary-data:/data
-    # Optional overrides (TMDB/115/LLM/Prowlarr/CID). Missing file is fine —
-    # everything has a default or is configured in the 设置 page.
+    # Optional overrides (Prowlarr / outbound proxy / library dir names / session
+    # secret). Missing file is fine — everything else lives in the 设置 page.
     env_file:
       - path: .env
         required: false

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Check, LoaderCircle } from "lucide-react";
 import { apiCall } from "../lib/api";
 import type { SettingsResult } from "../lib/api-types";
+import { SegmentedControl } from "./segmented-control";
 
 const QUALITIES = [
   { key: "any", label: "不限（默认）" },
@@ -32,32 +33,22 @@ export function QualityPreferenceForm({ initial }: { initial: string }) {
 
   return (
     <div className="push-form">
-      <p className="panel-note" style={{ marginBottom: 12 }}>
-        偏好的画质档位会作为「召回后选片优先级」传给 AI；找不到目标画质时仍优先保证入库完整（覆盖优先）。画质不进搜索关键词。
-      </p>
-      <div className="setting-row">
-        <select
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-          className="setting-control"
-          aria-label="偏好画质"
-        >
-          {QUALITIES.map((quality) => (
-            <option key={quality.key} value={quality.key}>
-              {quality.label}
-            </option>
-          ))}
-        </select>
+      {/* 选项值保持真实语义不变（不限 / 高画质 / 中画质）——只把下拉框换成设计稿的
+          分段控件，功能零变化。 */}
+      <SegmentedControl
+        label="偏好画质"
+        options={QUALITIES}
+        value={value as (typeof QUALITIES)[number]["key"]}
+        onChange={(next) => setValue(next)}
+        disabled={isPending}
+      />
+      <div className="form-foot">
         <button type="button" className="primary-button" onClick={handleSave} disabled={isPending}>
           {isPending ? <LoaderCircle size={14} className="spin" aria-hidden /> : <Check size={14} aria-hidden />}
           保存
         </button>
+        {result ? <span className="panel-note">{result}</span> : null}
       </div>
-      {result ? (
-        <p className="panel-note" style={{ marginTop: 10 }}>
-          {result}
-        </p>
-      ) : null}
     </div>
   );
 }

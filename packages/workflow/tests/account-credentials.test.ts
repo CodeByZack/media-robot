@@ -28,12 +28,12 @@ describe("resolveStorageBinding", () => {
 });
 
 describe("provisionCategoryDirs (find-or-create, idempotent)", () => {
-  it("default root name is the brand 'Mediary Scout'; reuses same-name, creates missing", async () => {
+  it("default root name is the brand 'MediaRover'; reuses same-name, creates missing", async () => {
     const created: string[] = [];
     const fakeStorage = {
       async listChildDirs(parentId: string) {
         return parentId === "ROOT"
-          ? [{ name: "Mediary Scout", id: "rootcid" }]
+          ? [{ name: "MediaRover", id: "rootcid" }]
           : [{ name: "Movies", id: "moviescid" }];
       },
       async createDirectory({ name, parentId }: { name: string; parentId: string }) {
@@ -119,14 +119,14 @@ describe("provisionCategoryDirs (find-or-create, idempotent)", () => {
     });
     // Safety: an empty rootName must NOT place categories at the account root.
     // It falls back to the brand default and creates a real container folder.
-    expect(created[0]).toBe("Mediary Scout@0");
-    expect(cids.rootCid).toBe("new_Mediary Scout");
+    expect(created[0]).toBe("MediaRover@0");
+    expect(cids.rootCid).toBe("new_MediaRover");
     expect(cids.rootCid).not.toBe("0");
     expect(created.slice(1)).toEqual([
-      "Movies@new_Mediary Scout",
-      "TV@new_Mediary Scout",
-      "Anime@new_Mediary Scout",
-      "Variety@new_Mediary Scout",
+      "Movies@new_MediaRover",
+      "TV@new_MediaRover",
+      "Anime@new_MediaRover",
+      "Variety@new_MediaRover",
     ]);
     expect(cids.varietyCid).toBe("new_Variety");
   });

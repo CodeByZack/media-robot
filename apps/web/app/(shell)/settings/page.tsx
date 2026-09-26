@@ -1,0 +1,532 @@
+import { driveConnectionBadge } from "../../../lib/settings-badge";
+import { maskProviderUid } from "../../../lib/mask-provider-uid";
+import { connection } from "next/server";
+import { headers } from "next/headers";
+import { Suspense } from "react";
+import { Bot, Cable, CalendarClock, Clapperboard, Gauge, Languages, MessageSquare, Radio, ScrollText, ShieldCheck, Subtitles, TriangleAlert } from "lucide-react";
+import { AddDriveBrandTabs } from "../../../components/add-drive-brand-tabs";
+import { TestConnectionButton } from "../../../components/test-connection-button";
+import { UnbindStorageButton } from "../../../components/unbind-storage-button";
+import { PreferredLanguageForm } from "../../../components/preferred-language-form";
+import { QualityPreferenceForm } from "../../../components/quality-preference-form";
+import { RulePatternsForm } from "../../../components/rule-patterns-form";
+import { PromptOverridesForm } from "../../../components/prompt-overrides-form";
+import { RuleTestBench } from "../../../components/rule-test-bench";
+import { LlmConfigForm } from "../../../components/llm-config-form";
+import { TmdbApiKeyForm } from "../../../components/tmdb-api-key-form";
+import { AssrtTokenForm } from "../../../components/assrt-token-form";
+import { ProwlarrConfigForm } from "../../../components/prowlarr-config-form";
+import { PanSouConfigForm } from "../../../components/pansou-config-form";
+import { DailySweepForm } from "../../../components/daily-sweep-form";
+import { PatrolNowButton } from "../../../components/patrol-now-button";
+import { SettingsTabs } from "../../../components/settings-tabs";
+import { SettingsActionInbox } from "../../../components/settings-action-inbox";
+import { loadSettingsAttentionSummary, markSettingsAttentionSeen } from "../../../lib/settings-attention-server";
+import { resolveRequestOrigin } from "../../../lib/request-origin";
+import {
+  getAccountConnectedStorages,
+  getAccountScopedSettings,
+  getCurrentAccountId,
+  getDailySweepTimes,
+  MAX_DAILY_SWEEP_TIMES,
+  LAST_SWEEP_COMPLETED_AT_SETTING_KEY,
+  beijingDateTime,
+  getPan115ConnectionStatus,
+  getWorkflowRepository,
+  PREFERRED_LANGUAGE_SETTING_KEY,
+  QUALITY_PREFERENCE_SETTING_KEY,
+  LLM_BASE_URL_SETTING_KEY,
+  LLM_MODEL_ID_SETTING_KEY,
+  LLM_API_KEY_SETTING_KEY,
+  TMDB_API_KEY_SETTING_KEY,
+  TMDB_BASE_URL_SETTING_KEY,
+  ASSRT_TOKEN_SETTING_KEY,
+  PROWLARR_BASE_URL_SETTING_KEY,
+  PROWLARR_API_KEY_SETTING_KEY,
+  PANSOU_BASE_URL_SETTING_KEY,
+} from "../../../lib/workflow-runtime";
+import { brandSupportsProwlarr, SUBTITLES_ENABLED } from "@mediarobot/workflow";
+import { providerLabel, providerMark } from "../../../lib/provider-display";
+import { isDemoMode } from "../../../lib/demo-mode";
+
+export default function SettingsPage() {
+  return (
+    <>
+      {/* 设计稿的页头:mono 全大写 eyebrow + 主标题 + 一句说明 */}
+      <section className="page-head">
+        <p className="eyebrow">SETTINGS</p>
+        <h1>设置</h1>
+          <p>网盘连接与系统配置</p>
+        </section>
+        {isDemoMode() ? (
+          <div className="settings-card">
+            <p>
+              🔭 这是只读演示站,不提供网盘连接、登录与任何写入设置。
+              想真正使用(连 夸克/115/光鸭/123/天翼、配 LLM key、自定义画质/通知)请{" "}
+              <a href="https://github.com/CodeByZack/media-robot" target="_blank" rel="noreferrer">
+                自部署
+              </a>
+              。
+            </p>
+          </div>
+        ) : (
+          <>
+            <Suspense fallback={null}>
+              <SettingsAttentionSection />
+            </Suspense>
+            <Suspense fallback={<div className="skeleton skeleton-heading" />}>
+            {/* .settings-shell 是设计稿的外壳(tab 导航 + 面板区)。设置页专属的
+                样式微调都挂在它下面,不改动 .panel/.panel-title 等共享类,
+                以免影响 login / foreign-work 等同样在用这些类的页面。 */}
+            <div className="settings-shell">
+            <SettingsTabs
+              drives={
+                <Suspense fallback={<div className="skeleton skeleton-heading" />}>
+                  <Pan115Section />
+                </Suspense>
+              }
+              services={
+                <>
+                  <Suspense fallback={<div className="skeleton skeleton-heading" />}>
+                    <LlmConfigSection />
+                  </Suspense>
+                  <Suspense fallback={<div className="skeleton skeleton-heading" />}>
+                    <TmdbApiKeySection />
+                  </Suspense>
+                  <Suspense fallback={<div className="skeleton skeleton-heading" />}>
+                    <ResourceProviderSection />
+                  </Suspense>
+                  <Suspense fallback={<div className="skeleton skeleton-heading" />}>
+                    <SubtitleSourceSection />
+                  </Suspense>
+                </>
+              }
+              preferences={
+                <>
+                  <Suspense fallback={<div className="skeleton skeleton-heading" />}>
+                    <PreferredLanguageSection />
+                  </Suspense>
+                  <Suspense fallback={<div className="skeleton skeleton-heading" />}>
+                    <QualityPreferenceSection />
+                  </Suspense>
+                </>
+              }
+              recognition={
+                <Suspense fallback={<div className="skeleton skeleton-heading" />}>
+                  <RecognitionRulesSection />
+                </Suspense>
+              }
+              patrol={
+                <>
+                  <Suspense fallback={<div className="skeleton skeleton-heading" />}>
+                    <DailySweepSection />
+                  </Suspense>
+                  <Suspense fallback={<div className="skeleton skeleton-heading" />}>
+                  </Suspense>
+                </>
+              }
+              account={null}
+              // Fallback is null, not a skeleton: a skeleton element would stream
+              // into the slot and the empty-slot observer would read the tab as
+              // visible before we know whether the viewer is the 站主.
+              remote={null}
+            />
+            </div>
+            </Suspense>
+          </>
+        )}
+    </>
+  );
+}
+
+async function SettingsAttentionSection() {
+  // Request-time only: account drives + LLM config + optional update probe.
+  // Loader resolves account/drives (盘由 cookie 决定，不再走 ?w deep-link).
+  await connection();
+  const origin = resolveRequestOrigin(await headers());
+  const summary = await loadSettingsAttentionSummary({ origin });
+  // AFTER the summary load: anything first sighted during THIS render gets
+  // createdAt <= the seen_at written here → never badges the page it was shown on.
+  await markSettingsAttentionSeen();
+  return <SettingsActionInbox items={summary.items} />;
+}
+
+async function PreferredLanguageSection() {
+  await connection();
+  const repository = getAccountScopedSettings(await getCurrentAccountId());
+  const initial = (await repository.getSetting(PREFERRED_LANGUAGE_SETTING_KEY)) ?? "中文";
+
+  return (
+    <section className="panel">
+      <div className="panel-header">
+        <div>
+          <h2 className="panel-title">
+            <Languages size={16} aria-hidden />
+            偏好语言
+          </h2>
+          <p className="panel-note">
+            资源用什么语言起名，就更可能带那个语言的字幕；设置后作为上下文传给 AI，优先搜你能看的语言的资源。
+          </p>
+        </div>
+      </div>
+      <PreferredLanguageForm initial={initial} />
+    </section>
+  );
+}
+
+async function QualityPreferenceSection() {
+  await connection();
+  const repository = getAccountScopedSettings(await getCurrentAccountId());
+  const initial = (await repository.getSetting(QUALITY_PREFERENCE_SETTING_KEY)) ?? "any";
+
+  return (
+    <section className="panel">
+      <div className="panel-header">
+        <div>
+          <h2 className="panel-title">
+            <Gauge size={16} aria-hidden />
+            偏好画质
+          </h2>
+          <p className="panel-note">
+            作为「召回后选片优先级」传给 AI；找不到目标画质时仍优先保证入库完整（覆盖优先）。画质不进搜索关键词。
+          </p>
+        </div>
+      </div>
+      <QualityPreferenceForm initial={initial} />
+    </section>
+  );
+}
+
+async function RecognitionRulesSection() {
+  await connection();
+  const repository = getWorkflowRepository();
+  const { loadRulePatterns, loadPromptOverrides, ARBITRATION_KINDS, BUILTIN_RULE_IDS, PROMPT_TEMPLATES } = await import("@mediarobot/workflow");
+  // 生效规则(内置恒在 + 自定义追加,loadRulePatterns 语义)。内置只读(2026-09-07 拍板):
+  // 表单拿到的只含自定义行;内置展示数据由表单直接读 BUILTIN_RULE_PATTERNS。
+  const effective = await loadRulePatterns(repository);
+  const customInitial = effective
+    .filter((p) => !BUILTIN_RULE_IDS.has(p.ruleId))
+    .map((p) => ({
+      ruleId: p.ruleId,
+      role: p.role,
+      expression: p.expression,
+      label: p.label ?? "",
+      sortOrder: p.sortOrder,
+      isDefault: false,
+    }));
+
+  // AI 仲裁提示词覆盖(kind → body;缺失 kind = 内置模板)一并并入本区。
+  // 预填内置正文:初值 = 生效覆盖 ?? 内置 body,用户在原文上直接改。
+  // 表单以「与内置 body 逐字相同」判未覆盖,留空(手动清空)也算内置。
+  const overrides = await loadPromptOverrides(repository);
+  const byKind = new Map(overrides.map((o) => [o.arbitrationKind, o.promptText]));
+  const promptInitial = ARBITRATION_KINDS.map((kind) => ({
+    arbitrationKind: kind,
+    promptText: byKind.get(kind) ?? PROMPT_TEMPLATES[kind].body,
+  }));
+
+  return (
+    <>
+      {/* 设计稿把这一区拆成两个 panel（规则 / Prompt），各自带头部。
+          此前是一个 panel 里用 <h3> + 分隔线硬分节。 */}
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h2 className="panel-title">
+              <ScrollText size={16} aria-hidden />
+              识别规则
+            </h2>
+            <p className="panel-note">
+              用正则把文件名里的季号 / 集号解析出来。内置规则只读且恒在，自定义规则排在各组内置之后。
+            </p>
+          </div>
+        </div>
+        <RulePatternsForm initial={customInitial} />
+        <RuleTestBench />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h2 className="panel-title">
+              <MessageSquare size={16} aria-hidden />
+              Prompt 覆盖
+            </h2>
+            <p className="panel-note">AI 仲裁升级点的提示词覆盖（留空 = 内置模板）</p>
+          </div>
+        </div>
+        <PromptOverridesForm initial={promptInitial} />
+      </section>
+    </>
+  );
+}
+async function LlmConfigSection() {
+  await connection();
+  const repository = getAccountScopedSettings(await getCurrentAccountId());
+  const baseURL = (await repository.getSetting(LLM_BASE_URL_SETTING_KEY)) ?? "";
+  const modelId = (await repository.getSetting(LLM_MODEL_ID_SETTING_KEY)) ?? "";
+  const apiKeySet = Boolean((await repository.getSetting(LLM_API_KEY_SETTING_KEY))?.trim());
+
+  return (
+    <section className="panel">
+      <div className="panel-header">
+        <div>
+          <h2 className="panel-title">
+            <Bot size={16} aria-hidden />
+            AI 模型
+          </h2>
+          <p className="panel-note">
+            获取 agent 用的大模型(任意 OpenAI 兼容服务,自带);<strong>必填</strong>,未配置时获取会失败。本地模型 Key 可留空。只存你本机
+          </p>
+        </div>
+      </div>
+      <LlmConfigForm baseURL={baseURL} modelId={modelId} apiKeySet={apiKeySet} />
+    </section>
+  );
+}
+
+async function TmdbApiKeySection() {
+  await connection();
+  const repository = getAccountScopedSettings(await getCurrentAccountId());
+  const apiKeySet = Boolean((await repository.getSetting(TMDB_API_KEY_SETTING_KEY))?.trim());
+  const baseUrl = (await repository.getSetting(TMDB_BASE_URL_SETTING_KEY))?.trim() ?? "";
+  const baseUrlSet = Boolean(baseUrl);
+
+  return (
+    <section className="panel">
+      <div className="panel-header">
+        <div>
+          <h2 className="panel-title">
+            <Clapperboard size={16} aria-hidden />
+            TMDB 元数据
+          </h2>
+          <p className="panel-note">影视元数据来源；<strong>强烈建议配置</strong>，可填自己的 key 直连，大陆网络可自建 tmdb-proxy</p>
+        </div>
+      </div>
+      <TmdbApiKeyForm apiKeySet={apiKeySet} baseUrlSet={baseUrlSet} currentBaseUrl={baseUrl} />
+      {!apiKeySet ? (
+        <p className="panel-note drive-risk-note" style={{ marginTop: 12 }}>
+          <TriangleAlert size={12} aria-hidden style={{ verticalAlign: "-2px", marginRight: 4 }} />
+          未配置 key：播出日同步、缺集年守卫、综艺集名锚定均静默降级，结果也无法按 TMDB 规范命名归位。开始获取前请先填好。
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
+async function ResourceProviderSection() {
+  await connection();
+  const repository = getAccountScopedSettings(await getCurrentAccountId());
+  const pansouBaseURL = (await repository.getSetting(PANSOU_BASE_URL_SETTING_KEY)) ?? "";
+  const prowlarrBaseURL = (await repository.getSetting(PROWLARR_BASE_URL_SETTING_KEY)) ?? "";
+  const prowlarrApiKeySet = Boolean((await repository.getSetting(PROWLARR_API_KEY_SETTING_KEY))?.trim());
+  // Prowlarr (磁力/PT) only works for brands that support magnet (115). Hide it
+  // when every connected drive is 夸克 (no magnet API). Shown for legacy/env-only
+  // setups (no connected_storages rows) so we never hide it from a working 115.
+  const drives = await getAccountConnectedStorages();
+  const showProwlarr = drives.length === 0 || drives.some((drive) => brandSupportsProwlarr(drive.provider));
+
+  return (
+    <section className="panel">
+      <div className="panel-header">
+        <div>
+          <h2 className="panel-title">
+            <Radio size={16} aria-hidden />
+            资源提供商
+          </h2>
+          <p className="panel-note">
+            agent 搜资源的来源；PanSou（网盘）默认内置
+            {showProwlarr ? "，Prowlarr（磁力/PT）可选加挂，二者结果合并" : "（夸克盘不支持磁力，已隐藏 Prowlarr）"}
+          </p>
+        </div>
+      </div>
+      <PanSouConfigForm baseURL={pansouBaseURL} />
+      {showProwlarr ? (
+        <>
+          <div style={{ height: 18 }} />
+          <ProwlarrConfigForm baseURL={prowlarrBaseURL} apiKeySet={prowlarrApiKeySet} />
+          <p className="hint-help" style={{ margin: "10px 0 0" }}>
+            注：夸克网盘 API 不支持磁力，Prowlarr 仅对 115 盘生效；若你只用夸克，无需配置 Prowlarr。
+          </p>
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+async function SubtitleSourceSection() {
+  // ⛔ 字幕暂不支持（packages/workflow/src/feature-flags.ts）。整块面板直接不渲染 ——
+  // 让用户去配一个不会生效的 token，比不显示它更糟。开关改回 true 时这里自动回来。
+  if (!SUBTITLES_ENABLED) {
+    return null;
+  }
+  await connection();
+  const repository = getAccountScopedSettings(await getCurrentAccountId());
+  const tokenSet = Boolean((await repository.getSetting(ASSRT_TOKEN_SETTING_KEY))?.trim());
+
+  return (
+    <section className="panel">
+      <div className="panel-header">
+        <div>
+          <h2 className="panel-title">
+            <Subtitles size={16} aria-hidden />
+            字幕来源
+          </h2>
+          <p className="panel-note">外挂中文字幕自动补全（assrt.net，免费）；仅对非国产内容生效，需网盘支持外链离线（目前：115）</p>
+        </div>
+      </div>
+      <AssrtTokenForm tokenSet={tokenSet} />
+    </section>
+  );
+}
+
+async function Pan115Section() {
+  await connection();
+  const status = await getPan115ConnectionStatus();
+  const drives = await getAccountConnectedStorages();
+
+  return (
+    <section className="panel">
+      <div className="panel-header">
+        <div>
+          <h2 className="panel-title">
+            <Cable size={16} aria-hidden />
+            网盘连接
+          </h2>
+          <p className="panel-note">每块盘是独立工作区，左上角可切换；凭证入库后自动用于转存</p>
+        </div>
+        {(() => {
+          // #93: derive the header badge from ALL drives — 115-only status made
+          // a 光鸭/夸克-only user read a permanent misleading 未连接.
+          const badge = driveConnectionBadge({ drives });
+          return (
+            <span className={`hub-badge tone-${badge.tone}`}>
+              {badge.tone === "green" ? (
+                <ShieldCheck size={12} aria-hidden />
+              ) : (
+                <TriangleAlert size={12} aria-hidden />
+              )}
+              {badge.label}
+            </span>
+          );
+        })()}
+      </div>
+
+      {drives.length === 0 ? (
+        <p className="qr-hint">还没有连接任何网盘，选择下方品牌完成连接后即可开始获取资源。</p>
+      ) : null}
+
+      {drives.length > 0 ? (
+        <div className="drive-grid">
+          {drives.map((drive) => {
+            const frozen = drive.status === "frozen";
+            const ready = !frozen && drive.provisioned;
+            return (
+              <div key={drive.id} className={`drive-card${frozen ? " is-frozen" : ""}`}>
+                <div className="drive-card-head">
+                  {/* 设计稿的盘卡标识是**文字方牌**（`.drive-icon`：navy 底 + 白字），
+                      不是品牌 logo 图片 —— 五个品牌并排时，字母牌比小图标更快扫读，
+                      也少一层图片请求。mark 取自 workflow 注册表（单一事实源）。 */}
+                  <span className="drive-mark drive-card-icon" aria-hidden>
+                    {providerMark(drive.provider)}
+                  </span>
+                  <span className="drive-card-name">{providerLabel(drive.provider)}</span>
+                  <span
+                    className={`drive-dot ${ready ? "green" : "amber"}`}
+                    role="img"
+                    title={frozen ? "凭证已失效，重新绑定同一账号即可恢复" : ready ? "目录已就绪" : "目录待建"}
+                    aria-label={frozen ? "掉线" : ready ? "就绪" : "目录待建"}
+                  />
+                </div>
+                <div className="drive-card-uid" title={drive.providerUid}>
+                  {maskProviderUid(drive.providerUid)}
+                </div>
+                <div className="drive-card-meta">
+                  {frozen ? (
+                    <span className="tone-amber-text">掉线 · 重新绑定即恢复</span>
+                  ) : !drive.provisioned ? (
+                    <span className="tone-amber-text">目录待建</span>
+                  ) : drive.connectedAt ? (
+                    <span>{drive.connectedAt.slice(0, 10)} 连接</span>
+                  ) : (
+                    <span>就绪</span>
+                  )}
+                </div>
+                <div className="drive-card-actions">
+                  <TestConnectionButton storageId={drive.id} />
+                  <UnbindStorageButton storageId={drive.id} label={providerLabel(drive.provider)} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
+
+      <p className="panel-note drive-add-heading">
+        {drives.length > 0 ? "添加网盘 · 选择品牌开始连接" : "添加你的第一块网盘"}
+        {drives.length > 0 ? (
+          <span className="drive-add-hint">不同账号即新增一块独立工作区；绑已连的同一账号会自动刷新登录</span>
+        ) : null}
+      </p>
+      <AddDriveBrandTabs defaultBrand={drives.length > 0 ? null : "pan115"} />
+
+      <p className="panel-note drive-risk-note">
+        <TriangleAlert size={12} aria-hidden style={{ verticalAlign: "-2px", marginRight: 4 }} />
+        同一网盘账号勿在多个账号或多个实例绑定，易触发风控；每个网盘账号在本实例内只能归属一个用户。
+      </p>
+    </section>
+  );
+}
+
+async function DailySweepSection() {
+  await connection();
+  const repository = getWorkflowRepository();
+  const times = await getDailySweepTimes(repository);
+  const lastSweepAt = await repository.getSetting(LAST_SWEEP_COMPLETED_AT_SETTING_KEY);
+  const { hhmm } = beijingDateTime();
+
+  const nextSlot = times.find((slot) => slot > hhmm) ?? times[0]!;
+  // 坏 ISO 串（手改/旧版遗留）会让 format() 抛 RangeError 炸掉整页 SSR——先验有效性。
+  const lastSweepDate = lastSweepAt ? new Date(lastSweepAt) : null;
+  const lastLabel =
+    lastSweepDate && Number.isFinite(lastSweepDate.getTime())
+      ? new Intl.DateTimeFormat("zh-CN", {
+          timeZone: "Asia/Shanghai",
+          month: "numeric",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }).format(lastSweepDate)
+      : "尚未巡检";
+
+  return (
+    <section className="panel">
+      <div className="panel-header">
+        <div>
+          <h2 className="panel-title">
+            <CalendarClock size={16} aria-hidden />
+            每日定时巡检
+          </h2>
+          <p className="panel-note">在这些时间点自动追更：检查已追踪剧集，获取新播出或仍缺失的集数</p>
+        </div>
+      </div>
+      <DailySweepForm initial={times} max={MAX_DAILY_SWEEP_TIMES} />
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 16,
+          marginTop: 16,
+          paddingTop: 14,
+          borderTop: "1px solid #2a2a2a",
+          flexWrap: "wrap",
+        }}
+      >
+        <PatrolNowButton />
+        <span className="hint-help" style={{ marginLeft: "auto" }}>
+          上次巡检 {lastLabel} · 下次巡检 {nextSlot}
+        </span>
+      </div>
+    </section>
+  );
+}

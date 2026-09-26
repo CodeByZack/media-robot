@@ -16,21 +16,17 @@ import { isDemoModeClient } from "../lib/demo-mode";
  */
 export function UntrackButton({
   tmdbId,
-  storageId,
   mediaKind,
   seasonNumber,
-  basePath,
   label = "取消追踪",
 }: {
   tmdbId: number;
   /** Tree model: the active workspace drive. REQUIRED (value may be undefined = primary). */
-  storageId: string | undefined;
   /** Disambiguate TMDB movie/tv id namespaces (same number can be both). */
   mediaKind: "movie" | "tv";
   /** Given → untrack only this season; omitted → the whole show on this drive. */
   seasonNumber?: number | undefined;
   /** Library path to return to after a whole-show untrack ("/" or "/w/<id>"). */
-  basePath: string;
   label?: string;
 }) {
   const router = useRouter();
@@ -50,7 +46,6 @@ export function UntrackButton({
       const r = await apiCall<UntrackResult>("/api/acquire", {
         type: "untrack",
         tmdbId,
-        storageId,
         mediaKind,
         ...(seasonNumber !== undefined ? { seasonNumber } : {}),
       });
@@ -63,7 +58,7 @@ export function UntrackButton({
       const result = r.value;
       if (result.status === "untracked" && seasonNumber === undefined) {
         // Whole-show untracked → it's gone from the library; go there to show it.
-        router.push(`${basePath}?tab=library`);
+        router.push("/library");
         return;
       }
       setMessage(result.message);

@@ -46,7 +46,11 @@ const makeRequest = (opts: {
     nextUrl: {
       pathname: url.pathname,
       clone: () => new URL(url.toString()),
-      search: "",
+      search: url.search,
+      // 兼容重定向要用到这两个（真实 NextRequest 上都有）。
+      searchParams: url.searchParams,
+      origin: url.origin,
+      protocol: url.protocol,
     },
   } as unknown as NextRequest;
 };
@@ -163,5 +167,54 @@ describe("proxy — Server Actions CSRF fix（x-forwarded-host 改写）", () =>
     const req = makeRequest({ session: true, nextAction: true, origin: "not a url", forwardedHost: INTERNAL_HOST });
     expect(() => proxy(req)).not.toThrow();
     expect(proxy(req).headers.get("x-middleware-override-headers")).toBeNull();
+  });
+});
+
+describe("proxy — 老 /w/<id> 工作区链接兼容重定向", () => {
+  const location = (req: NextRequest): URL => {
+    const res = proxy(req);
+    return new URL(res.headers.get("location")!);
+  };
+  const driveCookie = (req: NextRequest): { value: string; secure: boolean } | undefined => {
+    const c = proxy(req).cookies.get("mr_drive");
+    return c ? { value: c.value, secure: Boolean(c.secure) } : undefined;
+  };
+
+  it("种 mr_drive cookie 并跳到搜索面（默认）", () => {
+    const req = makeRequest({ path: "/w/cs_quark_A0JT" });
+    expect(location(req).pathname).toBe("/");
+    expect(driveCookie(req)?.value).toBe("cs_quark_A0JT");
+  });
+
+  it("?tab=library → 跳到媒体库面", () => {
+    expect(location(makeRequest({ path: "/w/cs_x?tab=library" })).pathname).toBe("/library");
+  });
+
+  it("保留 q / type / filter（旧书签的筛选状态不能丢）", () => {
+    const loc = location(makeRequest({ path: "/w/cs_x?tab=library&type=tv&filter=partial&q=abc" }));
+    expect(loc.pathname).toBe("/library");
+    expect(loc.searchParams.get("type")).toBe("tv");
+    expect(loc.searchParams.get("filter")).toBe("partial");
+    expect(loc.searchParams.get("q")).toBe("abc");
+  });
+
+  it("远程 + 无 session 时仍先走兼容重定向（auth gate 在下一跳生效）", () => {
+    const req = makeRequest({ path: "/w/cs_x", cf: true });
+    expect(location(req).pathname).toBe("/");
+    expect(driveCookie(req)?.value).toBe("cs_x");
+  });
+
+  it("cookie 在普通 HTTP 下不带 Secure（否则浏览器不会回传，等于没切）", () => {
+    expect(driveCookie(makeRequest({ path: "/w/cs_x" }))?.secure).toBe(false);
+  });
+
+  it("普通路径不受影响（不写 cookie、不重定向）", () => {
+    const req = makeRequest({ path: "/library" });
+    expect(proxy(req).headers.get("location")).toBeNull();
+    expect(driveCookie(req)).toBeUndefined();
+  });
+
+  it("/w/ 后面为空时不处理（不会把空 id 写进 cookie）", () => {
+    expect(driveCookie(makeRequest({ path: "/w/" }))).toBeUndefined();
   });
 });

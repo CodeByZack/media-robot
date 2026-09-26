@@ -1,6 +1,6 @@
-# Deploy Mediary Scout
+# Deploy MediaRobot
 
-Mediary Scout 有两种部署方式:
+MediaRobot 有两种部署方式:
 
 | | 飞牛 fnOS 原生应用 (fpk) | Docker Compose (服务器) |
 |---|---|---|
@@ -8,15 +8,15 @@ Mediary Scout 有两种部署方式:
 | 数据层 | SQLite(应用数据目录,升级保留) | SQLite(volume `mediary-data`) |
 | 部署 | Releases 下载 `.fpk` → 应用中心手动安装 | `git clone` + `docker compose --project-directory . -f deploy/docker/docker-compose.yml up -d` |
 | 端口 | 3333 | 3000 |
-| 下载 | [GitHub Releases](https://github.com/CodeByZack/mediary-scout/releases) | 本指南下方 |
+| 下载 | [GitHub Releases](https://github.com/CodeByZack/media-robot/releases) | 本指南下方 |
 
-**fnOS fpk**:去 [Releases](https://github.com/CodeByZack/mediary-scout/releases) 按架构下载 `.fpk`(`mediary-scout-arm.fpk` / `mediary-scout-x86.fpk`),在飞牛应用中心「手动安装」,装完直接开 `http://<NAS>:3333` 进设置页配网盘和 LLM。打包与维护细节见 [deploy/fpk/README.md](../deploy/fpk/README.md)。
+**fnOS fpk**:去 [Releases](https://github.com/CodeByZack/media-robot/releases) 按架构下载 `.fpk`(`mediary-scout-arm.fpk` / `mediary-scout-x86.fpk`),在飞牛应用中心「手动安装」,装完直接开 `http://<NAS>:3333` 进设置页配网盘和 LLM。打包与维护细节见 [deploy/fpk/README.md](../deploy/fpk/README.md)。
 
 **Docker 版**:继续往下看。
 
 ---
 
-> **English summary.** Self-host with one command — `docker compose --project-directory . -f deploy/docker/docker-compose.yml up -d` brings up web (Next.js + in-process worker, SQLite storage) + a bundled PanSou. Open `http://<host>:3000`, go to Settings, scan-login your drive (115 / Quark / 123 / Tianyi by QR; GuangYaPan by pasted token), add an OpenAI-compatible LLM endpoint, and you're running. To reach it from your phone / TV / on the go, use **Tailscale** (private mesh — safest). **Never expose `:3000` raw to the internet.** Full walkthrough below (Chinese).
+> **English summary.** Self-host with one command — `docker compose --project-directory . -f deploy/docker/docker-compose.yml up -d` brings up web (Next.js + in-process worker, SQLite storage) + a bundled PanSou. Open `http://<host>:3000`, go to Settings: scan-login your drive (115 / Quark / 123 / Tianyi by QR; GuangYaPan by pasted token), **paste a TMDB read token (required — there is no built-in key and no fallback)**, and add an OpenAI-compatible LLM endpoint. **Never expose `:3000` raw to the internet.** Full walkthrough below (Chinese).
 
 一行命令起整套:**web(Next + 进程内 worker,SQLite 存储)+ 自带 PanSou**。本指南覆盖:选宿主 → compose 起服务 → 从自己的设备访问 → 安全/升级。
 
@@ -30,6 +30,7 @@ Mediary Scout 有两种部署方式:
 - [可选增强](#可选增强)
 - [从你的设备访问](#从你的设备访问)
 - [安全](#安全)
+- [登录密码](#登录密码)
 - [国内构建加速](#国内构建加速连不上-docker-hub)
 - [升级](#升级)
 - [备份与恢复](#备份与恢复mediary-data)
@@ -48,7 +49,7 @@ Mediary Scout 有两种部署方式:
 ## Compose 快速开始
 
 ```bash
-git clone https://github.com/CodeByZack/mediary-scout && cd mediary-scout
+git clone https://github.com/CodeByZack/media-robot && cd media-robot
 docker compose --project-directory . -f deploy/docker/docker-compose.yml up -d        # 首次会构建 web 镜像,几分钟
 ```
 
@@ -94,7 +95,9 @@ docker compose --project-directory . -f deploy/docker/docker-compose.yml up -d  
 
 打开 `http://<你的主机>:3000`:
 1. **设置 → 网盘**:在品牌瓦片里选一个开始连接——115 / 夸克 / 天翼 / 123 扫码登录,光鸭粘贴 token(见各品牌连接小节);凭证入库后自动用于转存。五个品牌可各绑一块盘,互为独立工作区。
-2. 就这样。**TMDB 元数据开箱即用**(内置公共代理兜底;想用自己的额度可在设置填 TMDB key);**PanSou 网盘搜索源已自带**。
+2. **设置 → TMDB 元数据**:填一个 TMDB read token。元数据的唯一来源,**没有内置 key、也没有兜底通道** —— 不填则搜片名 / 查季集数全都不可用(免费申请见 [tmdb-setup.md](tmdb-setup.md))。
+3. **设置 → AI 模型**:填一个 OpenAI 兼容的 `baseURL / apiKey / modelId` —— agent 靠它决策。
+4. 就这样。**PanSou 网盘搜索源已自带**,不用配。
 
 ### 组成 / 端口
 
@@ -106,7 +109,9 @@ docker compose --project-directory . -f deploy/docker/docker-compose.yml up -d  
 
 ### 覆盖配置
 
-`docker-compose.yml` 的 `environment:` 已设好库连接、PanSou 地址、adapters。要覆盖额外项(TMDB / 115 cookie / LLM / Prowlarr / CID),在仓库根放 `.env`(参照 `.env.example`)——compose 会自动加载(缺失也无妨)。
+`docker-compose.yml` 的 `environment:` 已设好库路径、PanSou 地址与运行模式。想覆盖额外项(**Prowlarr、出站代理、媒体库目录名、session 密钥**等),在仓库根放 `.env`(参照 `.env.example`)——compose 会自动加载(缺失也无妨)。
+
+> **网盘凭证、TMDB key、LLM 配置都不走 `.env`** —— 这些只在设置页配,存在实例自己的 SQLite 库里(`PAN115_COOKIE` / `*_CID` / `TMDB_READ_TOKEN` / `AGENT_MODEL_*` 这些旧环境变量已于 2026-09-18 移除)。
 
 ## 光鸭云盘(GuangYaPan)连接
 
@@ -120,7 +125,7 @@ docker compose --project-directory . -f deploy/docker/docker-compose.yml up -d  
 
 ### 1. 在设置页粘 token
 
-**设置 → 网盘连接 → 选「光鸭云盘」标签页**。最省事:把下面 Console 打印出来的内容(打印的两段、或它复制到剪贴板的 JSON,都行)整段粘到**第一个框**,再点框下方的 **「识别并拆分 token」**,两个框会自动填好;确认无误后点「连接光鸭」。(也可以仍按老办法手动把两个值分别粘进两个框。)连接时会用 token 校验登录态、并在你盘里建好 `Mediary Scout/{Movies,TV,Anime}` 分类目录。
+**设置 → 网盘连接 → 选「光鸭云盘」标签页**。最省事:把下面 Console 打印出来的内容(打印的两段、或它复制到剪贴板的 JSON,都行)整段粘到**第一个框**,再点框下方的 **「识别并拆分 token」**,两个框会自动填好;确认无误后点「连接光鸭」。(也可以仍按老办法手动把两个值分别粘进两个框。)连接时会用 token 校验登录态、并在你盘里建好 `MediaRover/{Movies,TV,Anime,Variety}` 分类目录。
 
 ### 2. 怎么拿到这两个 token
 
@@ -170,59 +175,53 @@ docker compose --project-directory . -f deploy/docker/docker-compose.yml up -d  
 
 ## 想跑真实获取还需要
 
-- **AI 模型**(设置 → AI 模型):填一个 OpenAI 兼容的 `baseURL / apiKey / modelId`——agent 靠它决策。不填则获取流程无法规划。
-- **115 写盘范围 CID**(`.env` 或环境变量):`MEDIA_TRACK_115_TEST_ROOT_CID` 或 `MEDIA_TRACK_115_WRITE_SCOPE_CIDS`(落盘安全阀,二选一必填)。
+两项都**必填**,缺任一项「获取」都跑不起来(都在设置页,不用改 `.env`):
+
+- **TMDB Key**(设置 → TMDB 元数据):片名 / 季集数 / 上映状态的唯一来源。**没有内置 key、也不读环境变量兜底** —— 这是刻意设计(宁可不工作,也不用别人的额度)。免费申请见 [tmdb-setup.md](tmdb-setup.md)。
+- **AI 模型**(设置 → AI 模型):填一个 OpenAI 兼容的 `baseURL / apiKey / modelId` —— agent 靠它决策。不填则获取流程无法规划。
+
+> 网盘的**写盘范围不用你配**:连接网盘时会自动在你盘里 find-or-create 出 `MediaRover/{Movies,TV,Anime,Variety}`(幂等、不删东西),并把写权限就限制在这几个目录内。目录名想改见「可选增强」。
 
 ## 可选增强
 
-- **自己的 TMDB key**(设置 → TMDB 元数据):直连你自己的额度,调不通自动回退内置公共代理。
-- **出站代理**(`.env` 设 `HTTP_PROXY` / `HTTPS_PROXY`):墙内想用**自己的 TMDB token / 额度**时用得到。TMDB 的 API 主机(`api.themoviedb.org`)在国内常被单独墙(官网能开 ≠ API 能通),直连不到你的 token 就用不上。给容器配一个能穿透的代理即可让全部出站请求(TMDB / PanSou / Prowlarr)走它:在仓库根 `.env` 里写 `HTTP_PROXY=http://172.17.0.1:7890` 和 `HTTPS_PROXY=http://172.17.0.1:7890`(`172.17.0.1` 是 Docker 默认网关,指向宿主机;端口换成你宿主上代理软件的实际端口,如 Clash 的 7890),再 `docker compose --project-directory . -f deploy/docker/docker-compose.yml up -d`。`NO_PROXY` 可排除内网地址。**不设代理时行为不变**——TMDB token 留空走作者内置代理依旧开箱即用,这条只为「墙内 + 想用自己 token」准备。
-  - **内置代理也连不上时同样用此法**(#83 实例,现已缓解):内置 TMDB 代理曾托管在 `*.workers.dev` 域名下,该域名在部分国内网络/运营商下会被整域阻断——症状是搜索报 `All N TMDB access(es) failed: TimeoutError`(N 为通道数,未配 token 时为 1)。**现默认代理已换自定义域名 `tmdb-proxy.mediaryscout.app`,绝大多数国内网络可直连**;若你的网络连它也阻断,再按上面配 `HTTP_PROXY` / `HTTPS_PROXY` 让容器出站走代理。
+- **自定义媒体库目录名**(`.env`):默认根目录叫 `MediaRover`、分类目录叫 `Movies / TV / Anime / Variety`。想换名字(比如用中文)设 `MEDIA_TRACK_LIBRARY_ROOT_DIR` / `MEDIA_TRACK_LIBRARY_MOVIES_DIR` / `..._TV_DIR` / `..._ANIME_DIR` / `..._VARIETY_DIR`。⚠️ **改名只影响之后新连接的盘**;已连接的盘要重连才会按新名字建目录(库里存的是建目录时拿到的 CID)。
+- **自建 TMDB 代理**(墙内可选):`workers/tmdb-proxy/` 里带一个 Cloudflare Worker 参考实现 —— 把 TMDB 请求经它出海 + KV 缓存。注意它**不再是作者托管的能力**,要自己部署到自己的 Cloudflare 账号,然后在 **设置 → TMDB 元数据** 把 base URL 指过去(部署步骤见 [workers/tmdb-proxy/README.md](../workers/tmdb-proxy/README.md))。相比配 `HTTP_PROXY`,它的好处是只代理白名单元数据路径、带宽和延迟都可控。
+- **出站代理**(`.env` 设 `HTTP_PROXY` / `HTTPS_PROXY`):TMDB 的 API 主机(`api.themoviedb.org`)在国内常被单独墙(官网能开 ≠ API 能通),直连不到 TMDB 你的 key 就用不上。给容器配一个能穿透的代理即可让全部出站请求(TMDB / PanSou / Prowlarr)走它:在仓库根 `.env` 里写 `HTTP_PROXY=http://172.17.0.1:7890` 和 `HTTPS_PROXY=http://172.17.0.1:7890`(`172.17.0.1` 是 Docker 默认网关,指向宿主机;端口换成你宿主上代理软件的实际端口,如 Clash 的 7890),再 `docker compose --project-directory . -f deploy/docker/docker-compose.yml up -d`。`NO_PROXY` 可排除内网地址。**不设代理时行为不变**。
   - **WSL2 部署注意**(#83 踩坑实录):容器内的 `127.0.0.1` 指容器自身,填 Windows 宿主上的代理要用 WSL2 虚拟网卡的宿主 IP;且 Windows 防火墙常拦截来自 WSL2 虚拟网卡的入站连接(即使代理软件开了「允许局域网连接」),需要放行防火墙或在 WSL2 内起一层转发(监听 0.0.0.0 转发到 127.0.0.1:代理端口),容器再指向 WSL2 自身 IP。
 - **Prowlarr**(设置 → 资源提供商):接入索引器聚合,磁力与 PanSou 结果合并,走 115 或光鸭的离线下载落盘(夸克无磁力 API)。
 - **换 PanSou 实例**(设置 → 资源提供商):默认用 compose 自带的;想指向别的实例/公共域名在此手填。
 
 ## 从你的设备访问
 
-默认 web 只监听宿主的 `:3000`(局域网内手机 / 电视浏览器直接开 `http://<宿主局域网IP>:3000` 即可)。想在外网(手机流量、出门在外)也能用,用 Tailscale——**不需要公网 IP、也别把 `:3000` 裸暴露公网**:
+默认 web 只监听宿主的 `:3000`。局域网内手机 / 电视浏览器直接开 `http://<宿主局域网IP>:3000` 即可。
 
-### Tailscale(私有 mesh,推荐家用)
-
-最简单也最安全。把宿主和你的手机 / 电脑 / 电视都加入同一个 Tailscale 网络(tailnet),它们之间用稳定私有 IP 互访,不经公网、自动加密。
-
-1. 宿主装并登录:`curl -fsSL https://tailscale.com/install.sh | sh && sudo tailscale up`(NAS 多有现成套件/插件)。
-2. 手机 / 电脑 / 电视装 Tailscale app,登同一账号。
-3. 任意设备开 `http://<宿主的-tailscale-IP>:3000`(或起个 MagicDNS 名字)。
-
-家人也想用:把他们的设备加进你的 tailnet(或用 Tailscale 分享)即可,无需开放任何公网端口。
+要在外网(手机流量、出门在外)用,就在前面放一层带鉴权的入口 —— 私有 VPN(WireGuard 之类,不需要公网 IP)或带登录的反向代理都行。**别把 `:3000` 裸暴露到公网**(见下节)。
 
 ## 安全
 
-- 本项目只走**自部署**,不提供任何托管(见 [distribution-and-legal-positioning.md](distribution-and-legal-positioning.md))。默认单用户、无登录。
-- **别在公网裸暴露 `:3000`**。要远程用就走上面的 Tailscale(私有,自带鉴权)。
-- 想多人合用同一实例(各绑各的网盘、各看各的库):设环境变量 `MEDIA_TRACK_MULTI_USER=1` 开多用户模式(出注册 / 登录页)。即便开了多用户,也仍建议放在 Tailscale / Access 之后。
+- 本项目只走**自部署**,不提供任何托管(见 [distribution-and-legal-positioning.md](distribution-and-legal-positioning.md))。**单用户** —— 没有注册、没有多用户,登录页只输密码(见下节)。
+- **别在公网裸暴露 `:3000`**:远程请求虽然一律要登录,但那只是一道密码,不该是实例唯一的防线。要远程访问,就在前面再放一层带鉴权的入口。
+- 实例的全部凭证(网盘 cookie / token、TMDB key、LLM key)都存在实例自己的 SQLite 库里 —— 能碰到这台机器的人就能读到。别把库文件或 `.env` 拷到公开地方。
 
-## 多用户与忘记密码
+## 登录密码
 
-默认单用户、无登录。想让家人 / 朋友合用同一台实例(各绑各的网盘、各看各的库、互相看不见):
+单用户:一个实例服务一个人。登录页**只输密码**(用户名被忽略),没有注册流程。
 
-1. 设环境变量 **`MEDIA_TRACK_MULTI_USER=1`** 并重启 web(`docker compose --project-directory . -f deploy/docker/docker-compose.yml up -d web`)。
-2. 第一个打开站点的人会看到**认领屏**:设个用户名 + 密码即成**站主**。
-   - 如果这台实例**之前已经是单用户、有媒体库了**,认领会**原样接管**现有的库和网盘——不会丢。
-3. 之后每个人各自在登录页**注册**自己的账号、连各自的 115 / 夸克。
+- **远程访问一律要登录**(无论你有没有设过密码),局域网直连免登录。
+- 首次从远程打开会落到 `/login`,那里提供**「设置访问密码」**表单(至少 6 位)—— 设完即用,不用重启。
+- 之后想换密码:打开 `/login` 重新设置。
 
-**忘记密码怎么办**(本项目不发邮件,无需配 SMTP):
+**忘记密码怎么办**(本项目不发邮件,无需配 SMTP):在宿主机上把 SQLite 库(`mediary.db`;Docker 在 `mediary-data` 卷 `/data/mediary.db`,fpk 在应用数据目录)里 `acct_default` 的 `password_hash` 清成空串:
 
-- **普通用户忘了** → 找**站主**,在「设置 → 账号管理」里一键给他重置密码(不影响他的网盘和媒体库)。
-- **站主自己忘了** → 在宿主机上把 SQLite 库(`mediary.db`;Docker 在 `mediary-data` 卷 `/data/mediary.db`,fpk 在应用数据目录)里该账号的 `password_hash` 清成空串,例如:
+```sql
+-- 单用户模式只有一个账号,固定是 acct_default(登录时用户名被忽略,
+-- 所以直接按 id 找它就行，不用管 username)
+UPDATE accounts SET password_hash = '' WHERE id = 'acct_default';
+```
 
-  ```sql
-  UPDATE accounts SET password_hash = '' WHERE username = '站主用户名';
-  ```
+然后打开 `/login`,它会识别「未设密码」并给出**设置访问密码**表单,设完即用新密码登录。
 
-  然后直接访问实例:`/login` 会识别「未设密码」并给出就地**设置访问密码**的表单,设完即用新密码登录。任何时候能碰到这台机器的人都能这么做——这也是为什么实例永远不该裸暴露公网。
-
-即便开了多用户,也仍建议放在 Tailscale 之后——登录只为隔离用户数据,不是给公网当门禁。
+任何时候能碰到这台机器的人都能这么做 —— 这是「本地可自救」的刻意设计,也是为什么实例永远不该裸暴露公网。
 
 ## 国内构建加速(Docker Hub 常年不稳定)
 

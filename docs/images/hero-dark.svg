@@ -1,0 +1,43 @@
+<!-- viewBox 宽度 = 内容实际宽度 + 两侧等宽留白。不是随便给的 620 ——
+     外面用 <img> 居中时，SVG 里的空白也会一起居中，左侧有墨、右侧全是空，
+     整块看起来就偏左。
+     实测（浏览器像素扫描，墨迹 = 非背景色）：墨迹 x = 22 → 358（字标右端 339，
+     最宽的是副题）。注意 358 而不是 getBBox() 读到的 360 —— 后者的 2 个单位是
+     letter-spacing 在最后一个字符后面留下的空白，**不可见**，算进去右边就多空 2。
+     所以宽度取 22 + 358 = 380，左右各 22。改之前先量一遍，别估。 -->
+<svg width="380" height="120" viewBox="0 0 380 120" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>MediaRobot</title>
+  <desc>your personal media agent</desc>
+
+  <defs>
+    <linearGradient id="mark-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#12345a" />
+      <stop offset="1" stop-color="#0b1e38" />
+    </linearGradient>
+  </defs>
+
+  <!-- 品牌标识 = apps/web/app/icon.svg 的机器人，裁成正方形并去掉外层渐变底，
+       容器提供 navy 渐变圆角底（与侧栏 .brand-mark 完全一致）。 -->
+  <rect x="22" y="14" width="92" height="92" rx="21" fill="url(#mark-bg)" />
+  <g transform="translate(22 14) scale(0.24210526) translate(-54 -45)">
+    <rect x="118" y="160" width="276" height="196" rx="92" fill="#F4FAFF" />
+    <rect x="142" y="184" width="228" height="148" rx="64" fill="#102B4D" />
+    <circle cx="214" cy="255" r="15" fill="#39C5FF" />
+    <circle cx="298" cy="255" r="15" fill="#39C5FF" />
+    <rect x="246" y="91" width="20" height="69" rx="10" fill="#F4FAFF" />
+    <circle cx="256" cy="75" r="22" fill="#39C5FF" />
+    <circle cx="162" cy="370" r="47" fill="#F4FAFF" />
+    <circle cx="350" cy="370" r="47" fill="#F4FAFF" />
+    <circle cx="162" cy="370" r="21" fill="#2C83D9" />
+    <circle cx="350" cy="370" r="21" fill="#2C83D9" />
+    <rect x="72" y="276" width="118" height="118" rx="34" fill="#2C83D9" />
+    <path d="M116 305L116 365L164 335Z" fill="#fff" />
+  </g>
+
+  <!-- 深底版本：Media 用前景色 / Robot 用信号青（与 .brand-copy-accent 一致） -->
+  <text x="136" y="60" font-family="Inter,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif"
+        font-size="34" font-weight="800" letter-spacing="0.025em" fill="#eef1f5">Media<tspan fill="#39c5ff">Robot</tspan></text>
+  <!-- 副题：用「字号 + 字距」把它排得比字标更宽 —— 上下两行右端对齐才稳。 -->
+  <text x="136" y="86" font-family="Inter,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif"
+        font-size="14.5" font-weight="500" letter-spacing="2.1" fill="#9aa4b2">your personal media agent</text>
+</svg>

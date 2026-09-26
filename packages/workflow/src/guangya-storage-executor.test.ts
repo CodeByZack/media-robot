@@ -171,9 +171,9 @@ describe("GuangYaStorageExecutor.createDirectory", () => {
     const executor = new GuangYaStorageExecutor({ client, writeScopeDirectoryIds: [] });
 
     // find-or-create the root category folder AT root ("").
-    const rootId = await executor.createDirectory({ name: "Mediary Scout", parentId: "" });
+    const rootId = await executor.createDirectory({ name: "MediaRover", parentId: "" });
     expect(rootId).toBe("dir-1");
-    expect(createDir).toHaveBeenCalledWith("", "Mediary Scout");
+    expect(createDir).toHaveBeenCalledWith("", "MediaRover");
 
     // then create a child under that returned id — also succeeds.
     const moviesId = await executor.createDirectory({ name: "Movies", parentId: rootId });

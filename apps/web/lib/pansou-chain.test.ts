@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { FallbackResourceProvider, PanSouResourceProvider } from "@media-track/workflow";
+import { FallbackResourceProvider, PanSouResourceProvider } from "@mediarobot/workflow";
 import {
   buildPanSouProviderChain,
   observeHealth,

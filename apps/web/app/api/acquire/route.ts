@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { isDemoMode } from "../../../lib/demo-mode";
 import {
   getCurrentAccountId,
+  resolveCurrentWorkspace,
   acquireLlmPreflightError,
   queueCandidateTracking,
   queueCandidateSeries,
@@ -26,6 +27,11 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
+  // 盘由 cookie 决定，**不再信任请求体里的 storageId** —— 客户端不该有权指定资源
+  // 落到哪块盘（那等于把"看哪块盘"和"写哪块盘"解耦，可能写进用户没在看的那块）。
+  // resolveCurrentWorkspace 已做归属校验，未拥有的值一律回退主盘。
+  const { connectedStorageId: driveId } = await resolveCurrentWorkspace();
+  const storageChoice = driveId ?? undefined;
 
   try {
     switch (body.type) {
@@ -41,7 +47,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ status: "reserved", message: "已预定，上映后会自动获取并通知你。" });
         }
         if (input.currentState === "can_reserve" && input.candidateId) {
-          const reservation = await reserveCandidate(input.candidateId, input.storageId);
+          const reservation = await reserveCandidate(input.candidateId, storageChoice);
           if (reservation.status === "unsupported") return NextResponse.json({ status: "unsupported", message: reservation.message });
           if (reservation.status === "already_running") return NextResponse.json({ status: "active_workflow", message: "获取任务已在运行中，不会重复创建。" });
           if (reservation.status === "already_tracked") return NextResponse.json({ status: "already_tracked", message: "已追踪，后台会继续按缺集状态检查。" });
@@ -51,7 +57,7 @@ export async function POST(request: NextRequest) {
         if (input.candidateId) {
           const preflight = await llmPreflight();
           if (preflight) return NextResponse.json(preflight);
-          const request = await queueCandidateTracking(input.candidateId, input.storageId);
+          const request = await queueCandidateTracking(input.candidateId, storageChoice);
           if (request.status === "already_tracked") return NextResponse.json({ status: "already_tracked", message: "已追踪，后台会继续按缺集状态检查。" });
           if (request.status === "already_running") return NextResponse.json({ status: "active_workflow", message: "获取任务已在运行中，不会重复创建。" });
           if (request.status === "unsupported") return NextResponse.json({ status: "unsupported", message: request.message });
@@ -64,7 +70,7 @@ export async function POST(request: NextRequest) {
       case "series": {
         const preflight = await llmPreflight();
         if (preflight) return NextResponse.json(preflight);
-        const request = await queueCandidateSeries(body.candidateId, body.storageId);
+        const request = await queueCandidateSeries(body.candidateId, storageChoice);
         if (request.status === "already_tracked") return NextResponse.json({ status: "already_tracked", message: "全剧已追踪，后台会继续按缺集状态检查。" });
         if (request.status === "already_running") return NextResponse.json({ status: "active_workflow", message: "全剧获取任务已在运行中。" });
         if (request.status === "unsupported") return NextResponse.json({ status: "unsupported", message: request.message });
@@ -75,7 +81,7 @@ export async function POST(request: NextRequest) {
       case "season": {
         const preflight = await llmPreflight();
         if (preflight) return NextResponse.json(preflight);
-        const request = await queueSeasonTracking(body.tmdbId, body.seasonNumber, body.storageId);
+        const request = await queueSeasonTracking(body.tmdbId, body.seasonNumber, storageChoice);
         if (request.status === "already_tracked") return NextResponse.json({ status: "already_tracked", message: "本季已追踪。" });
         if (request.status === "already_running") return NextResponse.json({ status: "active_workflow", message: "本季获取任务已在运行中。" });
         if (request.status === "unsupported") return NextResponse.json({ status: "unsupported", message: request.message });
@@ -87,7 +93,7 @@ export async function POST(request: NextRequest) {
       case "remaining": {
         const preflight = await llmPreflight();
         if (preflight) return NextResponse.json(preflight);
-        const request = await queueRemainingSeasons(body.tmdbId, body.storageId);
+        const request = await queueRemainingSeasons(body.tmdbId, storageChoice);
         if (request.status === "already_tracked") return NextResponse.json({ status: "already_tracked", message: "所有季都已在追踪。" });
         if (request.status === "already_running") return NextResponse.json({ status: "active_workflow", message: "获取任务已在运行中。" });
         if (request.status === "unsupported") return NextResponse.json({ status: "unsupported", message: request.message });
@@ -97,7 +103,7 @@ export async function POST(request: NextRequest) {
       }
 
       case "untrack": {
-        const result = await untrackTrackedTitle(body.tmdbId, body.storageId, body.mediaKind, body.seasonNumber);
+        const result = await untrackTrackedTitle(body.tmdbId, body.mediaKind, body.seasonNumber);
         revalidatePath("/");
         revalidatePath(`/show/${body.tmdbId}`);
         if (result.status === "in_flight") return NextResponse.json({ status: "in_flight", message: "获取进行中，完成或在活动页取消后再取消追踪。" });

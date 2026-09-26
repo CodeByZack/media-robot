@@ -1,4 +1,4 @@
-import { fetchTmdbList, REALITY_GENRE_ID } from "@media-track/workflow";
+import { fetchTmdbList, REALITY_GENRE_ID } from "@mediarobot/workflow";
 import { getTmdbAccesses, getAccountScopedSettings, getCurrentAccountId } from "./workflow-runtime";
 
 export type TrendingKind = "movie" | "tv" | "anime" | "variety";
@@ -58,7 +58,9 @@ export const TRENDING_KINDS: Record<
   },
 };
 
-export const TRENDING_KIND_ORDER: TrendingKind[] = ["movie", "tv", "anime", "variety"];
+/** 首页货架的展示顺序（设计稿要求的固定次序：剧集 → 综艺 → 电影 → 动漫）。
+ *  注意这**不是** feeds 的定义顺序 —— `TRENDING_KINDS` 的 key 集合才是契约。 */
+export const TRENDING_KIND_ORDER: TrendingKind[] = ["tv", "variety", "movie", "anime"];
 
 /** Short noun for a card's meta line — the kind label minus the 热门 prefix, so a
  *  card under 热门综艺 reads 「2025 · 综艺」 instead of the full tab label. */
@@ -70,8 +72,11 @@ export const TRENDING_NOUN: Record<TrendingKind, string> = {
 };
 
 /** Is this string one of the known feed kinds? Derived from the TRENDING_KINDS key
- *  set, so a 5th feed becomes reachable automatically. Used to validate `?trending=`
- *  (an unrecognized value must fall back, never be silently coerced). */
+ *  set, so a 5th feed becomes reachable automatically.
+ *
+ *  注：首页曾用 `?trending=` 药丸切换单个货架，现已改为四块同屏，URL 参数取消；
+ *  这个守卫因此暂无生产调用点，但保留 —— 它是 kind 集合的单一事实源校验，
+ *  lib 的公开契约 + 有测试覆盖，删掉会让「集合变更」失去编译期外的保障。 */
 export function isTrendingKind(value: string): value is TrendingKind {
   return (Object.keys(TRENDING_KINDS) as string[]).includes(value);
 }
@@ -153,4 +158,19 @@ export async function getTrending(kind: TrendingKind): Promise<TrendingCard[]> {
   } catch {
     return [];
   }
+}
+
+/** 首页要一次性展示全部货架（剧集/综艺/电影/动漫从上到下）。
+ *  返回**只含非空货架**的有序数组 —— 单个 feed 拿不到就整块不渲染，
+ *  而不是留下一个空标题；四个全失败则返回 []，页面回退到原本的空状态。
+ *  并发拉取（此前只有当前选中的那一类会被请求）。 */
+export async function getTrendingShelves(): Promise<
+  Array<{ kind: TrendingKind; label: string; note: string; cards: TrendingCard[] }>
+> {
+  const cards = await Promise.all(TRENDING_KIND_ORDER.map((kind) => getTrending(kind)));
+  return TRENDING_KIND_ORDER.flatMap((kind, index) => {
+    const shelfCards = cards[index] ?? [];
+    if (shelfCards.length === 0) return [];
+    return [{ kind, label: TRENDING_KINDS[kind].label, note: TRENDING_NOUN[kind], cards: shelfCards }];
+  });
 }

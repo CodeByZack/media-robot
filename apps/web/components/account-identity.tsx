@@ -17,7 +17,7 @@ export function AccountIdentity({ username, isOwner }: { username: string; isOwn
   // otherwise opening 账号 settings from a non-primary drive resets the context.
   const w = useSearchParams().get("w");
   const accountHref = (hash: string) =>
-    `/settings?tab=account${w ? `&w=${encodeURIComponent(w)}` : ""}${hash}`;
+    `/settings?tab=account${hash}`;
 
   const logout = () => {
     startTransition(async () => {

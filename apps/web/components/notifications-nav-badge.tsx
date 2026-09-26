@@ -10,7 +10,7 @@ import { getLastSeen } from "../lib/notifications-seen";
  *  In demo mode, this session's acquisitions are client-only (no DB row), so they
  *  are counted too — by the same last-seen diff (their cards carry data-created-at,
  *  so opening 通知 advances the watermark past them and clears the badge). */
-export function NotificationsNavBadge({ storageId }: { storageId?: string | undefined }) {
+export function NotificationsNavBadge() {
   const [count, setCount] = useState(0);
   const [demoUnread, setDemoUnread] = useState(0);
 
@@ -18,9 +18,7 @@ export function NotificationsNavBadge({ storageId }: { storageId?: string | unde
     let alive = true;
     const poll = async () => {
       try {
-        const url = storageId
-          ? `/api/notifications/meta?w=${encodeURIComponent(storageId)}`
-          : "/api/notifications/meta";
+        const url = "/api/notifications/meta";
         const res = await fetch(url, { cache: "no-store" });
         if (!res.ok) return;
         const data = (await res.json()) as { createdAts?: string[] };
@@ -37,7 +35,7 @@ export function NotificationsNavBadge({ storageId }: { storageId?: string | unde
       alive = false;
       clearInterval(id);
     };
-  }, [storageId]);
+  }, []);
 
   useEffect(() => {
     if (!isDemoModeClient()) {
