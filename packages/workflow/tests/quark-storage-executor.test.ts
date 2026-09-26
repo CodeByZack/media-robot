@@ -23,7 +23,7 @@ function makeFakeClient(opts?: {
   const calls: string[] = [];
   let nextId = 1;
   // seed the write-scope root + a staging dir under it
-  files.set("ROOT", { fid: "ROOT", file_name: "media-track", dir: true, size: 0, pdir_fid: "0" });
+  files.set("ROOT", { fid: "ROOT", file_name: "media-robot", dir: true, size: 0, pdir_fid: "0" });
   files.set("STAGE", { fid: "STAGE", file_name: "Movie (2020)", dir: true, size: 0, pdir_fid: "ROOT" });
 
   const client = {

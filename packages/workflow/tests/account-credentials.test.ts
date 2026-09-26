@@ -28,12 +28,12 @@ describe("resolveStorageBinding", () => {
 });
 
 describe("provisionCategoryDirs (find-or-create, idempotent)", () => {
-  it("default root name is the brand 'MediaRover'; reuses same-name, creates missing", async () => {
+  it("default root name is the drive-folder name 'MediaRobot'; reuses same-name, creates missing", async () => {
     const created: string[] = [];
     const fakeStorage = {
       async listChildDirs(parentId: string) {
         return parentId === "ROOT"
-          ? [{ name: "MediaRover", id: "rootcid" }]
+          ? [{ name: "MediaRobot", id: "rootcid" }]
           : [{ name: "Movies", id: "moviescid" }];
       },
       async createDirectory({ name, parentId }: { name: string; parentId: string }) {
@@ -43,7 +43,7 @@ describe("provisionCategoryDirs (find-or-create, idempotent)", () => {
       },
     };
     const cids = await provisionCategoryDirs({ storage: fakeStorage, baseParentId: "ROOT" });
-    expect(cids.rootCid).toBe("rootcid"); // reused the brand-named root
+    expect(cids.rootCid).toBe("rootcid"); // reused the drive-folder-named root
     expect(cids.moviesCid).toBe("moviescid"); // reused under root
     expect(cids.tvCid).toBe("new_TV"); // created
     expect(cids.animeCid).toBe("new_Anime"); // created
@@ -62,8 +62,8 @@ describe("provisionCategoryDirs (find-or-create, idempotent)", () => {
         return `new_${name}`;
       },
     };
-    await provisionCategoryDirs({ storage: fakeStorage, baseParentId: "ROOT", rootName: "media-track-test" });
-    expect(created[0]).toBe("media-track-test"); // explicit value still wins
+    await provisionCategoryDirs({ storage: fakeStorage, baseParentId: "ROOT", rootName: "media-robot-test" });
+    expect(created[0]).toBe("media-robot-test"); // explicit value still wins
   });
 
   it("honors custom root + category names (all five), creating them under the custom root", async () => {
@@ -118,15 +118,16 @@ describe("provisionCategoryDirs (find-or-create, idempotent)", () => {
       varietyName: "",
     });
     // Safety: an empty rootName must NOT place categories at the account root.
-    // It falls back to the brand default and creates a real container folder.
-    expect(created[0]).toBe("MediaRover@0");
-    expect(cids.rootCid).toBe("new_MediaRover");
+    // It falls back to the drive-folder default and creates a real container
+    // folder. This is the folder name in the user's drive, not brand copy.
+    expect(created[0]).toBe("MediaRobot@0");
+    expect(cids.rootCid).toBe("new_MediaRobot");
     expect(cids.rootCid).not.toBe("0");
     expect(created.slice(1)).toEqual([
-      "Movies@new_MediaRover",
-      "TV@new_MediaRover",
-      "Anime@new_MediaRover",
-      "Variety@new_MediaRover",
+      "Movies@new_MediaRobot",
+      "TV@new_MediaRobot",
+      "Anime@new_MediaRobot",
+      "Variety@new_MediaRobot",
     ]);
     expect(cids.varietyCid).toBe("new_Variety");
   });

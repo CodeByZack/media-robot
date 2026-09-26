@@ -9,6 +9,7 @@ node_modules
 .env.*
 !.env.example
 *.sqlite
+# 旧版（media-track 时期）留下的文件，见 .gitignore 里的同名说明 —— 故意保留。
 .media-track-*
 .DS_Store
 docs

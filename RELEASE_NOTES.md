@@ -1,4 +1,4 @@
-# MediaRobot 首个版本
+# Media Robot 首个版本
 
 **自己部署的个人媒体库助手。**
 

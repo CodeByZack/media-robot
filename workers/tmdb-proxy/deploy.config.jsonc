@@ -1,7 +1,7 @@
 {
   // ─── Worker 配置 ────────────────────────────────────────────────────────
   // Worker 名称（Cloudflare 全局唯一，只能含字母、数字、连字符）
-  "workerName": "media-track-tmdb-proxy",
+  "workerName": "media-robot-tmdb-proxy",
 
   // ─── TMDB Token ────────────────────────────────────────────────────────
   // TMDB read token（v3 key 或 v4 token 都行）
@@ -9,8 +9,8 @@
   "tmdbToken": "",
 
   // 是否将 tmdbToken 设为 Cloudflare Secret
-  // true  = 设 secret（推荐，token 存在 Worker 端，MediaRobot 不用传）
-  // false = 跳过 secret（token 由 MediaRobot 通过 Authorization header 传入）
+  // true  = 设 secret（推荐，token 存在 Worker 端，Media Robot 不用传）
+  // false = 跳过 secret（token 由 Media Robot 通过 Authorization header 传入）
   "storeSecret": true,
 
   // ─── Cloudflare 配置 ───────────────────────────────────────────────────

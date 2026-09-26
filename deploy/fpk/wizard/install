@@ -1,7 +1,7 @@
 [{
-  "stepTitle": "安装 MediaRobot",
+  "stepTitle": "安装 Media Robot",
   "items": [{
     "type": "tips",
-    "helpText": "安装完成后请打开飞牛桌面上的 MediaRobot 图标，或浏览器访问 http://<NAS地址>:3333 完成初始化配置。数据将保存在应用数据目录（升级不丢失）。"
+    "helpText": "安装完成后请打开飞牛桌面上的 Media Robot 图标，或浏览器访问 http://<NAS地址>:3333 完成初始化配置。数据将保存在应用数据目录（升级不丢失）。"
   }]
 }]

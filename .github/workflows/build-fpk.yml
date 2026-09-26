@@ -242,7 +242,7 @@ jobs:
             cp .github/release-notes.template.md "${RUNNER_TEMP}/release-body.md"
             echo "::notice::${NOTES} 不存在（老 tag 或 checkout 失败），改用模板"
           else
-            printf '%s\n' "MediaRobot 发布。" > "${RUNNER_TEMP}/release-body.md"
+            printf '%s\n' "Media Robot 发布。" > "${RUNNER_TEMP}/release-body.md"
             echo "::warning::${NOTES} 与模板都取不到，正文用占位一句"
           fi
           echo "--- 正文预览（前 20 行）---"
@@ -252,7 +252,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
-          name: MediaRobot ${{ steps.tag.outputs.tag }}
+          name: Media Robot ${{ steps.tag.outputs.tag }}
           body_path: ${{ runner.temp }}/release-body.md
           files: dist/*.fpk
           fail_on_unmatched_files: true

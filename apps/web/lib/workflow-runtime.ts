@@ -1581,7 +1581,7 @@ function extractStorageCredential(
 }
 
 /**
- * Provision a drive's media tree (MediaRover/{Movies,TV,Anime,Variety}) under the
+ * Provision a drive's media tree (MediaRobot/{Movies,TV,Anime,Variety}) under the
  * account root and return the CIDs. Uses an UNRESTRICTED bootstrap executor — a
  * fresh drive has no write scope yet, and the scope is meant to come FROM these
  * dirs (the catch-22 that left 115 drives stuck "目录待建"). Bounded, idempotent
@@ -2485,7 +2485,7 @@ async function bindPan115ConnectedStorage(input: {
     });
     return;
   }
-  // insert: provision a fresh media-track/ tree under the 115 root (dir names
+  // insert: provision a fresh media-robot/ tree under the 115 root (dir names
   // customizable via MEDIA_TRACK_LIBRARY_*_DIR). Provisioning is best-effort —
   // a failure still stores the connection (落点解析再提示重新连接建树)。
   let cids = {
@@ -2583,7 +2583,7 @@ export async function completePan115QrLogin(input: {
  * automation skill forbids auto-reading cookies, so v1 takes the cookie the user
  * copies from their Network request header (Copy as cURL). Enforces instance-wide
  * ownership (same uid can't belong to two accounts) and provisions the
- * media-track/{Movies,TV,Anime} tree on a genuinely new connection (best-effort).
+ * media-robot/{Movies,TV,Anime} tree on a genuinely new connection (best-effort).
  */
 export async function connectQuarkCookie(rawCookie: string): Promise<{ providerUid: string }> {
   const cookie = rawCookie.trim();

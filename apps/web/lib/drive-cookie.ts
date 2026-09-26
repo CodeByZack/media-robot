@@ -37,7 +37,7 @@ export function currentDriveIdFromCookie(): string | null {
 /** 每块盘各自记住上次搜索词的 sessionStorage key。key 里带盘 id，所以切盘后搜索框
  *  会恢复那块盘自己的关键词。 */
 export function lastQueryKeyForDrive(driveId: string | null): string {
-  return `media-track.lastQuery.${driveId ?? "none"}`;
+  return `media-robot.lastQuery.${driveId ?? "none"}`;
 }
 
 /** 同上，但用"当前盘"（切盘按钮需要按**目标盘**取 key，所以两个都要有）。 */

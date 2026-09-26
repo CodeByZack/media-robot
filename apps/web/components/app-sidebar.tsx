@@ -53,13 +53,20 @@ export function AppSidebar() {
         </span>
         <span className="brand-copy">
           <strong>
+            {/* 字标是 `MediaRobot`（**无分隔符**），而文案里的品牌名是 `Media Robot`。
+                不是漏改：这个双色 lockup 靠**颜色分界**把两个词分开（Media 前景色 /
+                Robot 信号青），颜色交界本身就是分隔符，再加连字符或空格是多一层噪声。
+                还有一个实测理由：20px/800 下副题只有 135.8px，字标
+                `MediaRobot` 121px（余 14.8px）→ `Media Robot` 125.8px（余 10.0px）
+                → `Media-Robot` 130.7px（余 5.1px）—— 加分隔符会明显吃掉
+                「副题要比字标宽」那层分层。改字标前先看 globals.css 里那份宽度预算。 */}
             Media<span className="brand-copy-accent">Robot</span>
           </strong>
           {/* 副题 = 设计稿横排 lockup 的**官方全文** `YOUR PERSONAL MEDIA AGENT`
               （25 字符），只是按品牌中文动词体系之外的书写习惯改成全小写。
               设计语言里「字标副题」是英文仅有的三个合法出场位之一。
               全小写是有意的：与 20px 的粗字标形成体重差，比全大写更安静，
-              也不会和 MediaRobot 抢视觉重量；同时小写比大写省宽度（同字号下
+              也不会和 Media Robot 抢视觉重量；同时小写比大写省宽度（同字号下
               约省 20px），否则这行会超预算。 */}
           <span className="brand-copy-sub">your personal media agent</span>
         </span>

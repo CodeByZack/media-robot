@@ -1,4 +1,4 @@
-# media-track self-host image: Next.js app + in-process queue worker
+# media-robot self-host image: Next.js app + in-process queue worker
 # (started via apps/web/instrumentation.ts). One container = web + worker.
 #
 # No `# syntax=docker/dockerfile:1` on purpose: this image uses only baseline
@@ -62,7 +62,7 @@ RUN npm config set registry "$NPM_REGISTRY" && npm ci
 # unreliable. Passed per commit by scripts/deploy.sh (build.args → ${GIT_SHA}); an
 # unset value defaults to "unknown".
 ARG GIT_SHA=unknown
-RUN echo "media-track build commit: ${GIT_SHA}" && echo "${GIT_SHA}" > /app/BUILD_COMMIT
+RUN echo "media-robot build commit: ${GIT_SHA}" && echo "${GIT_SHA}" > /app/BUILD_COMMIT
 COPY . .
 # build:web = build:workflow (tsc) + next build apps/web (output: standalone).
 # allowedOrigins is baked here — change it ⇒ rebuild (docker compose up -d --build).

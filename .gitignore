@@ -21,6 +21,8 @@ coverage/
 
 # macOS
 .DS_Store
+# 旧版（media-track 时期）的凭据备份文件名，**故意保留**：现在已无代码写它，
+# 但从老版本升级上来的工作区里可能还留着，换名会让忽略失效。
 .media-track-credentials-backup.json
 
 # 设计参考包(阶段 2/3 用,本地参照物,不进公共仓库)

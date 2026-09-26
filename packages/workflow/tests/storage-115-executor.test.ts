@@ -844,17 +844,17 @@ describe("Storage115Executor", () => {
 
     await expect(
       executor.createDirectory({
-        name: "media-track-smoke",
+        name: "media-robot-smoke",
         parentId: "outside_parent",
       }),
     ).rejects.toThrow("WRITE_SCOPE_VIOLATION");
 
     await expect(
       executor.createDirectory({
-        name: "media-track-smoke",
+        name: "media-robot-smoke",
         parentId: "test_root",
       }),
-    ).resolves.toContain("test_root_media-track-smoke");
+    ).resolves.toContain("test_root_media-robot-smoke");
   });
 
   it("spaces 115 API calls through the configured guard", async () => {
