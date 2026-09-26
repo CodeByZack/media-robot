@@ -154,18 +154,28 @@ jobs:
       # FPK_MODE=test 时打出独立测试版（media-robot-dev，端口3334），不影响正式版数据；
       # FPK_RUNTIME=fake 时 agent/网盘走 stub+fake（不调 LLM、不碰真网盘），产物带 -fake 后缀。
       - name: Build fpk (VERSION + ARCH + MODE + RUNTIME)
+        id: build
         env:
           VERSION: ${{ steps.version.outputs.version }}
           ARCH: ${{ matrix.platform }}
           FPK_MODE: ${{ inputs.mode }}
           FPK_RUNTIME: ${{ inputs.runtime }}
-        run: ./deploy/fpk/build-fpk.sh
+        run: |
+          ./deploy/fpk/build-fpk.sh
+          # ⚠️ 产物路径由脚本写进 $GITHUB_OUTPUT —— 命名逻辑只存在于 build-fpk.sh
+          # 一处（见脚本内那段注释：以前 workflow 自己拼名字，在「直接推 tag」
+          # 那条路上 inputs 全为空串，会拼出 media-robot--1.0.0-arm.fpk 这种名字）。
+          # 空路径必须当场失败，否则 upload 会拿空 path 报一个看不懂的错。
+          if [ ! -f "${GITHUB_OUTPUT}" ] || ! grep -q '^artifact_path=.' "${GITHUB_OUTPUT}"; then
+            echo "::error::build-fpk.sh 没有输出 artifact_path —— 无法确定要上传哪个文件"
+            exit 1
+          fi
 
       - name: Upload fpk artifact (${{ matrix.arch }})
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.mode == 'test' && format('fpk-{0}-dev-{1}', matrix.arch, inputs.runtime) || format('fpk-{0}-{1}', matrix.artifact, inputs.runtime) }}
-          path: deploy/fpk/dist/${{ inputs.mode == 'test' && 'media-robot-dev' || 'media-robot' }}${{ inputs.runtime != 'normal' && format('-{0}', inputs.runtime) || '' }}-${{ steps.version.outputs.version }}-${{ matrix.platform }}.fpk
+          path: ${{ steps.build.outputs.artifact_path }}
           if-no-files-found: error
           retention-days: 7
 
