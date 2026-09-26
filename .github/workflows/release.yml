@@ -89,7 +89,9 @@ jobs:
           echo "last_tag=${LAST_TAG}" >> "${GITHUB_OUTPUT}"
           wc -l "${RUNNER_TEMP}/commits.md"
 
-      - name: Bump package.json + push branch
+      - name: Bump package.json + 生成发布正文 RELEASE_NOTES.md + push branch
+        env:
+          LAST_TAG: ${{ steps.log.outputs.last_tag }}
         run: |
           set -euo pipefail
           VERSION="${{ steps.ver.outputs.version }}"
@@ -97,7 +99,29 @@ jobs:
           git config user.email "release-bot[bot]@users.noreply.github.com"
           git checkout -b "release/v${VERSION}"
           npm version "${VERSION}" --no-git-tag-version   # 同步 package.json + package-lock.json
-          git add package.json package-lock.json
+
+          # 生成**发布正文**并让它随本 PR 一起走：这样「将要发布到 Release 页的文字」
+          # 在合并前就能被看到和编辑 —— 在 PR 的 Files changed 里直接改
+          # RELEASE_NOTES.md 即可。build-fpk.yml 发布时读的就是 tag 上这份文件，
+          # 不再二次拼接：内容一旦在 PR 里审过，就不该在发布那一刻变样。
+          {
+            cat .github/release-notes.template.md
+            if [ -n "${LAST_TAG}" ]; then
+              echo
+              echo "<details>"
+              echo "<summary>本版改动（${LAST_TAG} → v${VERSION}）</summary>"
+              echo
+              git log "${LAST_TAG}..HEAD" --first-parent --pretty=format:'- %s (%h)' -n 200
+              echo
+              echo
+              echo "</details>"
+            fi
+            # 首版（无更早 tag）刻意**不列**改动：那区间会退化成整个历史，对读者是噪音。
+          } > RELEASE_NOTES.md
+          echo "--- RELEASE_NOTES.md 预览（前 24 行）---"
+          head -24 RELEASE_NOTES.md
+
+          git add package.json package-lock.json RELEASE_NOTES.md
           git commit -m "chore(release): v${VERSION}"
           # 重跑幂等：失败重试时该分支若存在，必然是本 workflow 上轮的中间产物，
           # force 覆盖无他人内容风险。⚠️ 必须先 fetch 建立 remote-tracking ref——
@@ -105,23 +129,41 @@ jobs:
           # 处理，恰好在重试场景被 stale info 拒推（ocr review #65 抓到的真 bug）。
           git fetch origin "+refs/heads/release/v${VERSION}:refs/remotes/origin/release/v${VERSION}" || true
           git push --force-with-lease origin "release/v${VERSION}"
-
       - name: Open PR (留人工合并)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          LAST_TAG="${{ steps.log.outputs.last_tag }}"
           set -euo pipefail
           VERSION="${{ steps.ver.outputs.version }}"
           CURRENT="${{ steps.ver.outputs.current }}"
           {
-            echo "自动发版 PR：\`${CURRENT}\` → \`${VERSION}\`（Release workflow 一键生成）。"
+            echo "把 \`package.json\` 的版本号从 \`${CURRENT}\` 提到 \`${VERSION}\`。"
             echo ""
-            cat "${RUNNER_TEMP}/commits.md"
+            echo "**合并后不需要再做任何事**：\`publish.yml\` 会自动在 main 上打 \`v${VERSION}\` tag，"
+            echo "随后 \`build-fpk.yml\`（release 模式，arm + x86）构建，把"
+            echo "\`media-robot-${VERSION}-arm.fpk\` / \`-x86.fpk\` 挂到 GitHub Release。"
             echo ""
             echo "---"
             echo ""
-            echo "✅ 你手动 merge 后，\`publish.yml\` 会自动在 main 上打 \`v${VERSION}\` tag，"
-            echo "随后 \`build-fpk.yml\`（release 模式，arm+x86）构建并把 *.fpk 挂到 GitHub Release。无需再手动做任何事。"
+            echo "### 发布说明就在这个 PR 里"
+            echo ""
+            echo "Release 页的正文 = 本 PR 新增/修改的 \`RELEASE_NOTES.md\`。"
+            echo "**在 Files changed 里直接编辑它**，改完合并即可 —— 发布时读的就是它，"
+            echo "不会在发布那一刻被重新生成或覆盖。"
+            echo ""
+            if [ -n "${LAST_TAG}" ]; then
+              echo "下面折叠的是自动生成的默认内容（自 ${LAST_TAG} 以来的改动），按需删减。"
+            else
+              echo "这是**首个版本**：默认只放产品简介、不列改动（那个区间会退化成整个历史）。"
+            fi
+            echo ""
+            echo "<details>"
+            echo "<summary>RELEASE_NOTES.md 当前内容</summary>"
+            echo ""
+            cat RELEASE_NOTES.md
+            echo ""
+            echo "</details>"
           } > "${RUNNER_TEMP}/body.md"
           # 重跑幂等：先探测该 head 是否已有 PR（create 失败原因多样，不能拿
           # 422 兜底猜）；有则同步 body，无则新建。
