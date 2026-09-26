@@ -22,7 +22,10 @@
 #   - node + npm（构建机与 NAS 同架构 + Node 24，ABI 匹配；CI 里 setup-node 用 24）
 #   - fnpack（/usr/local/bin/fnpack；CI 里从 https://static2.fnnas.com/fnpack/ 下载对应架构二进制）
 # 图标（ICON.PNG / ICON_256.PNG / app/ui/images/*.png）为一次性静态资源，
-# 首次已生成并随 fpk 目录持久保留，后续打包不再重新生成。
+# 打包时**不**重新生成（因此它不依赖 sharp / 浏览器）。改了 apps/web/app/icon.svg
+# 之后必须手动跑一次并提交：`node deploy/fpk/make-icons.mjs`
+# ⚠️ 2026-09-26 漏过一次：Web UI / 站点 / README 都换了新标，只有这里还是上游的
+#    绿罗盘图标，飞牛应用中心里一直显示旧的。
 set -euo pipefail
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
