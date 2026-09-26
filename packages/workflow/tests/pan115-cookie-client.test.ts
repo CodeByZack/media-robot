@@ -138,7 +138,7 @@ describe("Pan115CookieClient", () => {
         cid: "container",
         path: [
           { cid: "0", name: "根目录" },
-          { cid: "container", name: "media-track-test" },
+          { cid: "container", name: "media-robot-test" },
         ],
       }),
     });
@@ -147,7 +147,7 @@ describe("Pan115CookieClient", () => {
       state: true,
       path: [
         { cid: "0", name: "根目录" },
-        { cid: "container", name: "media-track-test" },
+        { cid: "container", name: "media-robot-test" },
       ],
     });
   });

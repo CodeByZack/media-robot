@@ -1,4 +1,4 @@
-# media-track TMDB 代理 Worker
+# Media-Robot TMDB 代理 Worker
 
 参考实现：把 TMDB 元数据请求经此 Worker 代理出海 + KV 缓存（电影 7d / 电视·搜索 1h），只代理白名单元数据路径。
 
@@ -36,7 +36,7 @@ npx wrangler secret put TMDB_READ_TOKEN --config workers/tmdb-proxy/wrangler.jso
 npx wrangler deploy --config workers/tmdb-proxy/wrangler.jsonc
 ```
 
-`wrangler.jsonc` 里声明了 custom domain（`tmdb-proxy.mediaryscout.app`）和 KV namespace id——那是作者那份专用值。**自部署用户请改三处再部署**：
+`wrangler.jsonc` 里的 `name` / KV namespace id / custom domain 都是**占位值**（域名尤其注意：之前那份是原作者的专用域名，不是给你的默认）。**自部署用户请改三处再部署**：
 
 - `name` → 你的 Worker 名（CF 全局唯一）
 - `kv_namespaces[0].id` → 第 1 步输出的 namespace id

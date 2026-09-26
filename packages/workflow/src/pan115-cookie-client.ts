@@ -20,7 +20,7 @@ const PAN115_ANDROID_USER_AGENT =
 const DEFAULT_LIST_LIMIT = 200; // 115's per-page cap for /files
 const DEFAULT_MAX_LIST_TOTAL = 1000; // stitch up to this across pages; beyond it, fail loud
 const DEFAULT_LIST_PAGE_DELAY_MS = 1_200; // 逆鳞 spacing between page fetches (matches the guard)
-const DEFAULT_USER_AGENT = "media-track/0.1";
+const DEFAULT_USER_AGENT = "media-robot/0.1";
 const DEFAULT_HTTP_TIMEOUT_MS = 20_000;
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));

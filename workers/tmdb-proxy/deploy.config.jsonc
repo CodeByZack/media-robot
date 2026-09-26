@@ -1,7 +1,7 @@
 {
   // ─── Worker 配置 ────────────────────────────────────────────────────────
   // Worker 名称（Cloudflare 全局唯一，只能含字母、数字、连字符）
-  "workerName": "media-track-tmdb-proxy",
+  "workerName": "media-robot-tmdb-proxy",
 
   // ─── TMDB Token ────────────────────────────────────────────────────────
   // TMDB read token（v3 key 或 v4 token 都行）

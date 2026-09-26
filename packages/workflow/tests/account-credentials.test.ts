@@ -62,8 +62,8 @@ describe("provisionCategoryDirs (find-or-create, idempotent)", () => {
         return `new_${name}`;
       },
     };
-    await provisionCategoryDirs({ storage: fakeStorage, baseParentId: "ROOT", rootName: "media-track-test" });
-    expect(created[0]).toBe("media-track-test"); // explicit value still wins
+    await provisionCategoryDirs({ storage: fakeStorage, baseParentId: "ROOT", rootName: "media-robot-test" });
+    expect(created[0]).toBe("media-robot-test"); // explicit value still wins
   });
 
   it("honors custom root + category names (all five), creating them under the custom root", async () => {

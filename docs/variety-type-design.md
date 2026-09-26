@@ -197,7 +197,7 @@ MediaRobot/
   `?trending=variety` 第 4 pill 可切换、demo 模式综艺条目可见(运行时白名单已改的活证据)。
 - C:account-credentials 建树测试 + 实测:连一个新账号看 Variety 目录建出、
   新导一档综艺(如「密室大逃脱」)type2 初始落 Variety;老 tracked tv 巡检无重复转存。
-- D:本地 `curl tmdb-proxy.mediaryscout.app/discover/tv?with_genres=10764…` 有结果,
+- D:本地 `curl <你的 tmdb-proxy 域名>/discover/tv?with_genres=10764…` 有结果,
   部署后页面 feed 命中 KV(proxy 日志无 miss)。
 
 ## 7. 拍板记录(2026-09-26 用户确认)

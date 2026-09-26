@@ -53,7 +53,12 @@ export function AppSidebar() {
         </span>
         <span className="brand-copy">
           <strong>
-            Media<span className="brand-copy-accent">-Robot</span>
+            {/* 字标**不加连字符**（`MediaRobot`），尽管正文品牌名是 `Media-Robot`。
+                这是 2026-09-26 拍板的例外：20px/800 下连字符会把字标从 121px 撑到
+                130.7px，而副题只有 135.8px —— 那层「副题要比字标宽」的分层会被压到
+                5.1px，几乎看不见。以视觉为主，故字标保留无连字符写法。
+                如要改回带连字符，先看 globals.css 里那份宽度预算。 */}
+            Media<span className="brand-copy-accent">Robot</span>
           </strong>
           {/* 副题 = 设计稿横排 lockup 的**官方全文** `YOUR PERSONAL MEDIA AGENT`
               （25 字符），只是按品牌中文动词体系之外的书写习惯改成全小写。

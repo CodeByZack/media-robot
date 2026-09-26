@@ -121,7 +121,7 @@ node deploy.mjs
 
 | 字段 | 必填 | 示例 | 说明 |
 |---|---|---|---|
-| `workerName` | ✅ | `media-track-tmdb-proxy` | Worker 名称，CF 全局唯一 |
+| `workerName` | ✅ | `media-robot-tmdb-proxy` | Worker 名称，CF 全局唯一 |
 | `tmdbToken` | ⚠️ | `a2fb790c...` | TMDB read token。留空则不设 CF secret，仅用于验证测试 |
 | `storeSecret` | ❌ | `true` | `true` = 设 CF secret（Media-Robot 页面上不用填 token）；`false` = 跳过 secret（Media-Robot 页面上需要填 token） |
 | `cfApiToken` | ❌ | `''` | Cloudflare API token（可选，浏览器登录也行） |
