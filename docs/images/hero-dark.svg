@@ -30,6 +30,7 @@
   <!-- 深底版本：Media 用前景色 / Robot 用信号青（与 .brand-copy-accent 一致） -->
   <text x="136" y="60" font-family="Inter,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif"
         font-size="34" font-weight="800" letter-spacing="0.025em" fill="#eef1f5">Media<tspan fill="#39c5ff">Robot</tspan></text>
-  <text x="137" y="86" font-family="Inter,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif"
-        font-size="14" font-weight="500" fill="#9aa4b2">your personal media agent</text>
+  <!-- 副题：用「字号 + 字距」把它排得比字标更宽 —— 上下两行右端对齐才稳。 -->
+  <text x="136" y="86" font-family="Inter,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif"
+        font-size="14.5" font-weight="500" letter-spacing="2.1" fill="#9aa4b2">your personal media agent</text>
 </svg>

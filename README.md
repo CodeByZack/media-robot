@@ -20,7 +20,9 @@
 
 不做的事:不往本地磁盘下载、不提供托管服务、失败就如实报「暂无资源」并继续尝试,**绝不伪造成功**。
 
-![MediaRobot —— 媒体库点开一部作品，海报从卡片形变进详情页](docs/images/demo.gif)
+<p align="center">
+  <img src="docs/images/demo.gif" alt="MediaRobot —— 搜到目标、点获取、去通知页看结果" width="820">
+</p>
 
 ---
 

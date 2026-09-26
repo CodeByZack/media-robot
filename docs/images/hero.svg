@@ -30,6 +30,8 @@
   <!-- 字标双色：Media 用 navy / Robot 用信号青（浅底版本） -->
   <text x="136" y="60" font-family="Inter,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif"
         font-size="34" font-weight="800" letter-spacing="0.025em" fill="#102b4d">Media<tspan fill="#2c83d9">Robot</tspan></text>
-  <text x="137" y="86" font-family="Inter,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif"
-        font-size="14" font-weight="500" fill="#5c6b7a">your personal media agent</text>
+  <!-- 副题：用「字号 + 字距」把它排得比字标更宽 —— 上下两行右端对齐才稳。
+       字标 10 字符 ×34px 约 200px；副题 26 字符，14px + 0.16em 字距 ≈ 240px。 -->
+  <text x="136" y="86" font-family="Inter,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif"
+        font-size="14.5" font-weight="500" letter-spacing="2.1" fill="#5c6b7a">your personal media agent</text>
 </svg>
