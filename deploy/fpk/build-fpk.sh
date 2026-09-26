@@ -342,6 +342,20 @@ cd "${FPK_DIR}"
 "${FNPACK_BIN}" build -d .
 mv "${APPNAME}.fpk" "${DIST_DIR}/${FPK_NAME}"
 
+# 把产物路径透出给 CI（GitHub 会设置 GITHUB_OUTPUT；本地跑没这个变量，跳过）。
+#
+# ⚠️ 为什么必须由**脚本**告诉 workflow 产物名，而不是 workflow 自己拼：
+#    产物名取决于 FPK_MODE / FPK_RUNTIME，而这两个输入**只在 workflow_dispatch /
+#    workflow_call 时存在** —— 「直接推 tag」那条路上 inputs 全是空串，
+#    workflow 里那套 `inputs.runtime != 'normal' && format('-{0}', …)` 会把空串
+#    判成"不是 normal"，多拼一个 '-'，于是去找 `media-robot--1.0.0-arm.fpk`
+#    （实际产出是 `media-robot-1.0.0-arm.fpk`）→ if-no-files-found 报错、
+#    release job 被跳过。2026-09-26 首次推 tag 发版时就这样挂的。
+#    命名逻辑只能有一处，脚本就是那一处。
+if [ -n "${GITHUB_OUTPUT:-}" ]; then
+    echo "artifact_path=${DIST_DIR}/${FPK_NAME}" >> "${GITHUB_OUTPUT}"
+fi
+
 echo
 echo "======================================================"
 echo " fpk 产物: ${DIST_DIR}/${FPK_NAME}"
