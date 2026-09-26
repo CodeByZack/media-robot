@@ -379,7 +379,15 @@ App Router 的 layout **在导航间不重新渲染**，所以侧栏放这里，
 | 做法 | 位置 | 作用 |
 | --- | --- | --- |
 | 海报交接 | `lib/poster-handoff.ts` + `components/hub-skeleton-poster.tsx` | 骨架屏用**真海报** + 同一个 name → 冷启动也有配对对象 |
-| Suspense reveal | `page.tsx` 的 `enter`/`exit` + `globals.css` | 骨架 → 内容从"硬切"变成有方向的交接 |
+| ~~Suspense reveal~~ | ~~`page.tsx` 的 `enter`/`exit` + `globals.css`~~ | **已移除**，原因见下 |
+
+> **为什么把 Suspense reveal 删了**：给骨架/内容包上 `<ViewTransition enter/exit>` 后，
+> 一次点击会产生**两次** `startViewTransition`（导航→骨架、骨架→内容）。第二次里
+> 海报那一侧**只有 new、没有 old** → 对浏览器是 **enter 而不是 share** → React 不挂
+> `.morph` → 走 UA 默认的 `-ua-view-transition-fade-in`（`opacity: 0 → 1`）→
+> **海报从透明淡出来**。此时改**任何**海报自己的规则都无效（那些类名根本没被挂上）。
+> 现在退回硬切，只保留第一次导航（那次海报有配对对象，是实心的）。
+> 详见下面「揭幕已移除」一节。
 
 交接的几个**必须守住的点**：
 
@@ -425,49 +433,43 @@ Chrome 默认对 `old(root)`/`new(root)` 用**叠加混合**（实测 keyframes 
 React 把 `default` 映射到 `vt-update` 属性，可在 DOM 里核对：
 `vt-update="morph"` + `vt-share="morph"`（旧值是 `vt-update="none"`）。
 
-#### ⚠️ 那条 `.morph` 规则的位置是**有语义的**，不要挪
+#### `.morph` 规则的顺序问题（**已不适用**，留作记录）
 
-`globals.css` 里 `::view-transition-old(.morph)` / `new(.morph)` 必须写在
-`::view-transition-old(.slide-down)` / `new(.slide-up)` **之后**。
+当年 `::view-transition-old(.morph)` / `new(.morph)` **必须**写在
+`::view-transition-old(.slide-down)` / `new(.slide-up)` **之后**：揭幕时海报那个伪元素
+会同时带上两个 class（自己的 `.morph` + 所在边界的 `.slide-*`），两条规则优先级相同
+→ 后写的赢；放前面会被 `.slide-*` 覆盖成「淡出 + 位移」。
 
-原因：揭幕（骨架 → 内容）时，海报那个伪元素会**同时**带上两个 class ——
-`.morph`（它自己与内容里的同一张海报配对成功 → share）**和** `.slide-down`／
-`.slide-up`（它所在的 Suspense 边界在做 exit/enter）。两条规则都是
-「伪元素 + 一个 class」，**优先级完全相同 → 后写的赢**。放在前面时 `.slide-down`
-会赢，`animation: none` 被覆盖成「淡出 + 位移」，于是海报在揭幕那一瞬间
-**暗一下再亮回来**（用户实测原话：\"在骨架屏数据回来的那一瞬间，海报闪烁了一下\"）。
+**现在 `.slide-*` 已整体删除**（见下），这个约束自然消失。日后若把揭幕加回来，
+顺序问题会重新出现。
 
-验证方式（不需要真实导航，也不依赖能不能复现骨架）：造一个
-`view-transition-class: morph slide-down` 的元素跑一次手动 `startViewTransition`，
-读 `getComputedStyle(documentElement, '::view-transition-old(<name>)')`：
+#### ⚠️ 揭幕已移除（骨架 → 内容现在是硬切）
 
-| 顺序 | `animation-name` | 观感 |
+**被移除的原因（这是最终定位的根因，前面几轮的结论都是错的）：**
+
+给骨架/内容包上 `<ViewTransition enter="slide-down" exit="slide-up">` 后，
+**一次点击会产生两次 `startViewTransition`**（实测：`[{s:2651,e:3086}, {s:3254,e:3696}]`）：
+
+| 第几次 | 旧侧 → 新侧 | 海报两侧 |
 | --- | --- | --- |
-| `.slide-*` 在前、`.morph` 在后（**现在**） | `none`, `opacity: 1` | 海报干净 |
-| 反过来（曾经的 bug） | 父边界的动画 | 海报跟着淡出再淡入 = 闪 |
+| ① 导航 | 列表卡片 → **骨架** | 两侧都有海报（交接过来的）→ **配对成功** |
+| ② 揭幕 | **骨架** → 内容 | 只有 new、没有 old → **单边进场** |
 
-#### ⚠️ 揭幕（`.slide-down` / `.slide-up`）**只做位移，绝不碰 opacity**
+第二次里海报是 **enter 而不是 share**，React 不给它挂 `.morph` → 它吃 UA 默认的
+`-ua-view-transition-fade-in`（`opacity: 0 → 1`）→ **从透明淡出来**。
 
-这两条规则是**共享元素的父边界**，所以它们写什么，海报就会跟着吃——哪怕海报自己有
-`.morph` 也一样。
+**这解释了那个很别扭的现象**：Computed 面板里 `opacity: 1 !important` 明明生效、
+画面却仍然透 —— 因为生效的那两层，和真正在动的那两层，**不是同一个**。
 
-原因：骨架里那张共享海报**不会形成自己的分组**（依据：用户看到海报「从完全透明到
-不透明」，而当时入场用的 `vt-slide-fade` 关键帧正是 `opacity: 0 → 1`，两者吻合），
-于是它被父边界的快照一起带着动。**动的是父边界的伪元素，`.morph` 够不着。**
+> **排查这类问题的入口：先数 `startViewTransition` 被调用了几次**，再看每次过渡里
+> 海报有没有 `old`/`new` **两侧**。多于一次就优先怀疑"多出来的那次"。
+> 前几轮我一直在改海报自己的规则（名字拼法、类名、`default`、级联顺序、`opacity`、
+> `mix-blend-mode`、`group(root)`），方向从头就错了。
 
-所以现在：
-
-```css
-::view-transition-old(.slide-down) { animation: 150ms ease-out both vt-slide-y reverse }
-::view-transition-new(.slide-up)    { animation: 400ms ease-in  both vt-slide-y }
-```
-
-方向感全部交给 `translateY(10px → 0)`。代价是内容**纯滑动**进入、没有淡入 —— 这是
-刻意取舍：海报和内容在同一个父边界快照里，无法只让内容淡而海报不淡。
-
-> 排查这类问题时记住这个顺序：**先确认"动的是谁的伪元素"**（海报自己的 group，还是
-> 父边界的 group），再去改对应那条规则。前几轮我一直在改海报自己的规则（名字、类名、
-> 级联顺序），方向错了，所以一直没修好。
+**想加回揭幕动效的正确姿势**：别让它成为一次 View Transition ——
+用**纯 CSS 动画**做进入效果（例如 `.hub-body { animation: fade-up 200ms }`），
+不包 `<ViewTransition>` 就不会产生额外过渡，自然没有 enter / 单边淡入；
+或者保证两侧**永远**都有同名海报（每次都配对，而不是进场）。
 
 #### 后退的过渡：用「记忆来路 + replace」拿到（已实现）
 
