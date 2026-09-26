@@ -1,0 +1,54 @@
+# 把 site/ 发布到 GitHub Pages。
+#
+# 一次性设置（只需人工做一次）：仓库 Settings → Pages → Source 选
+# **GitHub Actions**。之后每次 site/ 有改动都会自动发布。
+#
+# 为什么只监听 site/**：落地页与业务代码无关，改 apps/ 不该触发站点发布。
+#
+# 注意：用的是 actions/upload-pages-artifact + deploy-pages 这条「Actions 发布」
+# 路线，不是「从分支发布」。所以不会跑 Jekyll —— site/.nojekyll 是为了防万一有人
+# 把发布方式切回分支模式而留的（分支模式下 Jekyll 会吞掉下划线开头的目录）。
+name: Deploy site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+# GitHub Pages 的部署需要这三项，缺一不可：
+#   contents:read  —— checkout
+#   pages:write    —— 发布到 Pages
+#   id-token:write —— deploy-pages 用 OIDC 换取部署凭证
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同一时间只允许一个发布在跑；新的推送把排队中的旧任务取消（不让陈旧版本上线）。
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/configure-pages@v5
+      - name: Upload site/ as the Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

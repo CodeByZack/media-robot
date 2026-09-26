@@ -1,63 +1,60 @@
 import { describe, expect, it } from "vitest";
-import { detectPlatform, orderDownloads, formatStars, postersFrom } from "./lib.mjs";
+import { formatStars, repoUrl, starsLabel, REPO } from "./lib.mjs";
 
-describe("detectPlatform", () => {
-  it("mac UA → mac", () => { expect(detectPlatform("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)")).toBe("mac"); });
-  it("windows UA → win", () => { expect(detectPlatform("Mozilla/5.0 (Windows NT 10.0; Win64; x64)")).toBe("win"); });
-  it("other → other", () => { expect(detectPlatform("Mozilla/5.0 (X11; Linux x86_64)")).toBe("other"); });
-  it("iPhone UA（like Mac OS X）→ other，不是 mac", () => { expect(detectPlatform("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15")).toBe("other"); });
-  it("iPad UA → other", () => { expect(detectPlatform("Mozilla/5.0 (iPad; CPU OS 16_6 like Mac OS X) AppleWebKit/605.1.15")).toBe("other"); });
-});
-
-describe("orderDownloads", () => {
-  const rel = { tag_name: "v1.1.0", assets: [
-    { name: "Mediary.Scout-1.1.0-arm64.dmg", browser_download_url: "https://gh/d.dmg" },
-    { name: "Mediary.Scout.Setup.1.1.0.exe", browser_download_url: "https://gh/s.exe" }] };
-  it("win 平台把 exe 排第一并给出版本号", () => {
-    const r = orderDownloads(rel, "win");
-    expect(r.version).toBe("v1.1.0");
-    expect(r.items[0]).toEqual({ platform: "win", label: "Windows", url: "https://gh/s.exe" });
-    expect(r.items[1].platform).toBe("mac");
-  });
-  it("mac 平台保持 mac 第一", () => {
-    const r = orderDownloads(rel, "mac");
-    expect(r.items[0].platform).toBe("mac");
-  });
-  it("资产缺失时回退 Releases 页链接", () => {
-    const r = orderDownloads({ tag_name: "v9", assets: [] }, "mac");
-    expect(r.items[0].url).toContain("/releases");
-  });
-  it("release 为 null 时不炸", () => {
-    const r = orderDownloads(null, "other");
-    expect(r.version).toBe("");
-    expect(r.items).toHaveLength(2);
+describe("REPO / repoUrl", () => {
+  it("指向本仓库，不是被 fork 的上游", () => {
+    expect(REPO).toBe("CodeByZack/mediary-scout");
+    expect(REPO).not.toContain("fancydirty");
+    expect(repoUrl()).toBe("https://github.com/CodeByZack/mediary-scout");
   });
 });
 
 describe("formatStars", () => {
-  it("966 → 966", () => expect(formatStars(966)).toBe("966"));
-  it("1234 → 1.2k", () => expect(formatStars(1234)).toBe("1.2k"));
-  it("2000 → 2k（去掉 .0）", () => expect(formatStars(2000)).toBe("2k"));
+  it("1000 以下原样显示", () => {
+    expect(formatStars(0)).toBe("0");
+    expect(formatStars(7)).toBe("7");
+    expect(formatStars(999)).toBe("999");
+  });
+
+  it("1000 起折成 k，保留 1 位小数", () => {
+    expect(formatStars(1000)).toBe("1k");
+    expect(formatStars(1234)).toBe("1.2k");
+    expect(formatStars(12800)).toBe("12.8k");
+  });
+
+  it("去掉多余的 .0（1000 → 1k，不是 1.0k）", () => {
+    expect(formatStars(2000)).toBe("2k");
+    expect(formatStars(10000)).toBe("10k");
+  });
+
+  it("小数按四舍五入进位", () => {
+    expect(formatStars(1249)).toBe("1.2k");
+    expect(formatStars(1250)).toBe("1.3k");
+  });
+
+  it("非法输入返回 null —— 宁可整块不显示，也不编数字", () => {
+    expect(formatStars(NaN)).toBeNull();
+    expect(formatStars(-1)).toBeNull();
+    expect(formatStars(Infinity)).toBeNull();
+    expect(formatStars(undefined)).toBeNull();
+    expect(formatStars(null)).toBeNull();
+    expect(formatStars("1234")).toBeNull();
+  });
 });
 
-describe("postersFrom", () => {
-  it("取 poster_path 非空前 N 个拼 worker 图片代理 w342 URL（image.tmdb.org 被墙），movie/tv 标题都认", () => {
-    const data = { results: [{ poster_path: "/a.jpg", title: "甲" }, { poster_path: null }, { poster_path: "/b.jpg", name: "乙" }] };
-    expect(postersFrom([data], 2)).toEqual([
-      { url: "https://tmdb-proxy.mediaryscout.app/img/t/p/w342/a.jpg", title: "甲" },
-      { url: "https://tmdb-proxy.mediaryscout.app/img/t/p/w342/b.jpg", title: "乙" }]);
+describe("starsLabel", () => {
+  it("合法数字加星号", () => {
+    expect(starsLabel(1234)).toBe("★ 1.2k");
+    expect(starsLabel(6)).toBe("★ 6");
   });
-  it("跨 feed 收集且尊重 limit", () => {
-    const f1 = { results: [{ poster_path: "/1.jpg", title: "一" }] };
-    const f2 = { results: [{ poster_path: "/2.jpg", name: "二" }, { poster_path: "/3.jpg", name: "三" }] };
-    expect(postersFrom([f1, f2], 2).map((p) => p.title)).toEqual(["一", "二"]);
+
+  it("0 不显示 —— 真实的 0 也不显示（省略，不是编造）", () => {
+    expect(starsLabel(0)).toBeNull();
   });
-  it("坏 feed（null/无 results）跳过不炸", () => {
-    expect(postersFrom([null, {}], 5)).toEqual([]);
-  });
-  it("limit <= 0 返回空数组", () => {
-    const data = { results: [{ poster_path: "/a.jpg", title: "甲" }] };
-    expect(postersFrom([data], 0)).toEqual([]);
-    expect(postersFrom([data], -1)).toEqual([]);
+
+  it("非法数字返回 null（main.js 据此保持 hidden）", () => {
+    expect(starsLabel(NaN)).toBeNull();
+    expect(starsLabel(undefined)).toBeNull();
+    expect(starsLabel(-3)).toBeNull();
   });
 });
