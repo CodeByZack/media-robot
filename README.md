@@ -6,8 +6,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/CodeByZack/mediary-scout/actions/workflows/ci.yml"><img src="https://github.com/CodeByZack/mediary-scout/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/CodeByZack/mediary-scout/releases"><img src="https://img.shields.io/github/v/release/CodeByZack/mediary-scout?display_name=tag&sort=semver" alt="最新发布"></a>
+  <a href="https://github.com/CodeByZack/mediarobot/actions/workflows/ci.yml"><img src="https://github.com/CodeByZack/mediarobot/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/CodeByZack/mediarobot/releases"><img src="https://img.shields.io/github/v/release/CodeByZack/mediarobot?display_name=tag&sort=semver" alt="最新发布"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-0BSD-blue" alt="许可证"></a>
   <img src="https://img.shields.io/badge/self--hosted-only-success" alt="仅自部署">
 </p>
@@ -72,7 +72,7 @@ S03  10 / 10
 
 如果你使用飞牛 fnOS，可以直接安装原生应用。
 
-从 [Releases](https://github.com/CodeByZack/mediary-scout/releases/latest) 下载对应架构的 `.fpk`：
+从 [Releases](https://github.com/CodeByZack/mediarobot/releases/latest) 下载对应架构的 `.fpk`：
 
 ```text
 mediary-scout-arm.fpk
@@ -86,8 +86,8 @@ mediary-scout-x86.fpk
 任何可以运行 Docker 的常开设备都可以使用。
 
 ```bash
-git clone https://github.com/CodeByZack/mediary-scout
-cd mediary-scout
+git clone https://github.com/CodeByZack/mediarobot
+cd mediarobot
 
 cp .env.example .env
 
@@ -242,7 +242,12 @@ npm run build:web    # 生产构建
 
 ## 项目来源
 
-MediaRobot fork 自 [`fancydirty/clawd-media-track`](https://github.com/fancydirty/clawd-media-track)。
+MediaRobot fork 自 **[`fancydirty/mediary-scout`](https://github.com/fancydirty/mediary-scout)**。
+
+> 说明：本仓库 `git log` 的根 commit 是 `3b99776 "Initial public clawd-media-track release"`，
+> 而 GitHub 记录的 fork 父仓是 `fancydirty/mediary-scout` —— 两个上游仓库里**只有后者**
+> 包含那个根 commit，即上游是承接了早期 `clawd-media-track` 的那个项目。
+> 早期那个同名仓库（`fancydirty/clawd-media-track`，已停更）不是本 fork 的直接来源。
 
 原项目是一个基于 agent skill 的媒体获取与追踪工具，主要面向 115 网盘。
 
@@ -265,7 +270,7 @@ MediaRobot fork 自 [`fancydirty/clawd-media-track`](https://github.com/fancydir
 
 ## 致谢
 
-- [`fancydirty/clawd-media-track`](https://github.com/fancydirty/clawd-media-track) —— 项目来源
+- [`fancydirty/mediary-scout`](https://github.com/fancydirty/mediary-scout) —— 项目来源（fork 自它）
 - [PanSou](https://github.com/fish2018/pansou-web) —— 资源搜索后端
 - [Prowlarr](https://github.com/Prowlarr/Prowlarr) —— 索引器管理
 - [p115client](https://github.com/ChenyangGao/p115client) —— 115 API 参考

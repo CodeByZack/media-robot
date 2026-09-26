@@ -5,8 +5,8 @@
  * 直接测（vitest 的 environment 是 node，没有 jsdom）。
  */
 
-/** 唯一事实来源：本仓库地址（不是被 fork 的上游，上游是 fancydirty/clawd-media-track）。 */
-export const REPO = "CodeByZack/mediary-scout";
+/** 唯一事实来源：本仓库地址（不是被 fork 的上游；上游见仓库根的 README「项目来源」）。 */
+export const REPO = "CodeByZack/mediarobot";
 
 /** 仓库的 GitHub 页面地址。 */
 export function repoUrl(repo = REPO) {

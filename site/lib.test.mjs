@@ -3,9 +3,9 @@ import { formatStars, repoUrl, starsLabel, REPO } from "./lib.mjs";
 
 describe("REPO / repoUrl", () => {
   it("指向本仓库，不是被 fork 的上游", () => {
-    expect(REPO).toBe("CodeByZack/mediary-scout");
+    expect(REPO).toBe("CodeByZack/mediarobot");
     expect(REPO).not.toContain("fancydirty");
-    expect(repoUrl()).toBe("https://github.com/CodeByZack/mediary-scout");
+    expect(repoUrl()).toBe("https://github.com/CodeByZack/mediarobot");
   });
 });
 

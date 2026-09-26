@@ -628,8 +628,14 @@ React 把 `default` 映射到 `vt-update` 属性，可在 DOM 里核对：
 `MEDIA_TRACK_LIBRARY_ROOT_DIR` 覆盖）。**不要**跟着品牌名改成 `MediaRobot`：
 老用户的文件已在 `MediaRover/`，改了会把他们的文件拆到两个目录。
 
-同样属于运行时/数据契约、改名时**不动**的：`MEDIA_TRACK_*` 环境变量前缀、
-`mediary-scout` 仓库与打包产物名、115 请求的 User-Agent。
+同样属于数据契约、改名时**不动**的：`fpk` 的 `appname` / 打包产物名
+（`mediary-scout*`，是 fnOS 应用的安装标识与数据目录名，改了等于换一个应用、
+老用户数据会成孤儿）、README 里的 `.fpk` 附件名、`MEDIA_TRACK_*` 环境变量前缀、
+发往 PanSou 的 User-Agent（`clawd-media-track/1.0`，沿用上游标识）。
+
+**仓库名不属于**数据契约，可以自由改（本仓库已从 `mediary-scout` 改为
+`mediarobot`，以避开与上游仓库同名）—— 但注意 `fpk` 的 `appname` 刻意保持
+`mediary-scout` 不变，所以「仓库名」与「产物名」现在**是有意不一致的**。
 
 ---
 

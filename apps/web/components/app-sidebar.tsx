@@ -92,7 +92,7 @@ export function AppSidebar() {
         <div className="sidebar-meta">
           <a
             className="sidebar-meta-link"
-            href="https://github.com/CodeByZack/mediary-scout"
+            href="https://github.com/CodeByZack/mediarobot"
             target="_blank"
             rel="noopener noreferrer"
           >
