@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { connection } from "next/server";
-import { Suspense, ViewTransition, type ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { TriangleAlert } from "lucide-react";
 import { isMovieUnreleased } from "@mediarobot/workflow";
 import { AcquiringPoller } from "../../../../components/acquiring-poller";
@@ -52,23 +52,13 @@ export default function ShowPage({
   // outside a boundary. The fallback mirrors the hub骨架（侧栏与 <main> 已由
   // (shell)/layout.tsx 提供，这里只需骨架）。
   //
-  // 为什么要给两侧都包 `<ViewTransition>`（官方指南的 Suspense reveal）：
-  // 详情页必然 suspend 一次，而 Suspense 的「骨架 → 内容」在 React 眼里**也是一次
-  // transition**。不写的话那就是硬切（骨架啪一下消失、内容啪一下出现）。
-  // 这里让骨架 `exit="slide-down"`、内容 `enter="slide-up"`，交接就有了方向：
-  // 占位者向下让位，真内容向上到位。
-  // `default="none"` 保证它俩不参与**别的**过渡（否则每次导航都会跟着动一下）。
+  // ⚠️ 这里**故意不包** `<ViewTransition enter/exit>`（曾经有过一版 Suspense reveal）。
+  // 原因：那个匿名 `<ViewTransition>` 会生成一个 `_t_0_` 具名组，而它的 UA 交叉淡入
+  // 与海报的共享元素形变叠在一起，观感是"海报在过渡中途变透"。用户明确不要这个效果，
+  // 所以现在退回硬切（骨架直接消失、内容直接出现），只保留海报自己的形变。
   return (
-    <Suspense
-      fallback={
-        <ViewTransition exit="slide-down" default="none">
-          <HubSkeleton backLabel="返回" backHref="/" />
-        </ViewTransition>
-      }
-    >
-      <ViewTransition enter="slide-up" default="none">
-        <ShowContent params={params} searchParams={searchParams} />
-      </ViewTransition>
+    <Suspense fallback={<HubSkeleton backLabel="返回" backHref="/" />}>
+      <ShowContent params={params} searchParams={searchParams} />
     </Suspense>
   );
 }

@@ -2492,16 +2492,13 @@ p {
 
 /* 整页交接：**旧页不画**（既不淡出、也不遮挡）。
 
-   ⚠️ 为什么不是"淡出"：DevTools 的 Animations 面板给出的动画清单只有三条 ——
+   ⚠️ 为什么不是"淡出"：当年 DevTools 的 Animations 面板给出的清单里，
+   `::view-transition-old(root)` 带着一条 `vt-root-out`（整页旧帧淡出），而我为了让它
+   盖住新页又设了 `z-index: 2` —— 那层遮罩**连正在形变的海报一起盖住**，旧页越淡，
+   海报就被压得越透。所以改成整个不画。
 
-     ::view-transition-old(root)                    vt-root-out
-     ::view-transition-new(_t_0_)                   vt-slide-y
-     ::view-transition-group(poster-tv-299939)      -ua-…-anim-poster-tv-299939
-
-   注意：**没有海报自己的 old / new 动画** —— 说明海报本身并没有做透明度过渡。
-   唯一的淡出是 `old(root)`（整页旧帧）。而我为了让旧页盖住新页，给它设了
-   `z-index: 2` —— 这层遮罩**连正在形变的海报一起盖住了**，于是旧页越淡，海报就被
-   压得越透。用户看到的"海报有透明度过渡"，来源就在这里。
+   （当时清单里还有 `::view-transition-new(_t_0_)` 的 `vt-slide-y` —— 那是揭幕的
+   Suspense reveal，现已整体移除；详见下面"揭幕已移除"那段。）
 
    所以现在把旧页整个**不画**：既不淡、也不参与堆叠。新页本来就是不透明的，直接出现；
    海报走自己的命名分组，干净地形变过去。
@@ -2557,48 +2554,17 @@ p {
   opacity: 1 !important;
 }
 
-/* ---------- Suspense reveal（骨架 → 内容）----------
-   详情页必然 suspend 一次，而 React 眼里「骨架 → 内容」**也是一次 transition**。
-   page.tsx 给骨架挂了 `exit="slide-down"`、给内容挂了 `enter="slide-up"`，
-   这里补上两套动画。
+/* ---------- 揭幕（骨架 → 内容）：**已移除** ----------
+   page.tsx 以前给骨架/内容两侧包了 `<ViewTransition enter/exit>`，做"骨架下滑、
+   内容上滑"的交接。但那会生成一个匿名具名组（DevTools 里看到的 `_t_0_`），它的
+   UA 交叉淡入与海报的共享元素形变叠在一起 —— 观感就是"海报在过渡中途变透"。
 
-   ⚠️ **这里只做位移，绝不碰 opacity / filter。** 踩过两次，值得写清楚：
+   用户明确不要这个效果，所以现在**退回硬切**：骨架直接消失、内容直接出现，
+   只保留海报自己的形变。对应的 `.slide-down` / `.slide-up` 规则与 `vt-slide-y`
+   关键帧、`--vt-exit-duration` / `--vt-move-duration` 均已删除（无引用）。
 
-   详情页的骨架里有那张共享海报。揭幕时它**没有形成自己的分组** —— 依据是现象：
-   用户看到海报「从完全透明到不透明」，而 `vt-slide-fade` 的关键帧正是
-   `opacity: 0 → 1`（+ `blur(3px)`），两者吻合；说明海报是**被父边界 `.slide-up`
-   的快照一起带着淡进来**的。这也解释了为什么改 `.morph`（海报自己的规则）没用：
-   动的是**父边界**的伪元素，不是海报自己的。
-   （自动化环境里我没能抓到那次揭幕的逐帧画面 —— Next `<Link>` 点击链路在脚本里
-   不稳定，只能靠现象反推。）
-
-   所以父边界只做位移：谁都不会淡入淡出，海报保持实心；方向感由 translateY 给。
-
-   时长**非对称**是刻意的（官方指南的说法）：旧内容该快快离场、不争注意力；
-   新内容柔和到达，给用户时间 register 它。所以
-     · 退场 150ms
-     · 入场跑满 400ms —— 比退场长，所以"到位"的观感是滑上去的，不是弹出来 */
-:root {
-  --vt-exit-duration: 150ms;
-  --vt-move-duration: 400ms;
-}
-
-::view-transition-old(.slide-down) {
-  animation: var(--vt-exit-duration) ease-out both vt-slide-y reverse;
-}
-
-::view-transition-new(.slide-up) {
-  animation: var(--vt-move-duration) ease-in both vt-slide-y;
-}
-
-@keyframes vt-slide-y {
-  from {
-    transform: translateY(10px);
-  }
-  to {
-    transform: translateY(0);
-  }
-}
+   想加回来的话：page.tsx 那两处包回 `<ViewTransition>`，再把上面对应的两条
+   `::view-transition-*` 规则与 `vt-slide-y` 关键帧补上。 */
 
 /* 共享元素（海报）**永不做交叉淡入**。
    默认行为会让同一张图的新旧两帧叠加：group 在放大，而 old/new 又在互相淡入淡出，
@@ -2612,15 +2578,12 @@ p {
    这与 Chrome 官方文档「处理宽高比变化」里的做法一致（同样是一对
    `animation: none` + `mix-blend-mode: normal`，理由也一样：让新帧盖住旧帧）。
 
-   ⚠️⚠️ **这段必须留在 `.slide-*` 之后，不要往上挪。** 顺序在这里是有语义的，不是排版：
-   揭幕时（骨架 → 内容）海报那个伪元素会**同时**带上两个 class ——
-   `.morph`（它自己与内容里的同一张海报配对成功 → share）**和**
-   `.slide-down` / `.slide-up`（它所在的 Suspense 骨架/内容边界在做 exit/enter）。
-   两条规则都是伪元素 + 一个 class，**优先级完全相同 → 后写的赢**。
-   放在前面时 `.slide-down` 会赢，于是 `animation: none` 被覆盖成
-   「淡出 + 下移」→ 海报在揭幕那一瞬间**暗一下再亮回来**（实测被用户看到：
-   "在骨架屏数据回来的那一瞬间，海报闪烁了一下"）。挪到后面，海报的
-   old/new 两帧永远是不透明的，位移交给它的 group 去做。
+   ⚠️ 曾经的坑（现已不适用，留作记录）：这段规则**必须**写在揭幕的
+   `::view-transition-old(.slide-down)` / `new(.slide-up)` **之后**。因为揭幕时海报那个
+   伪元素会**同时**带上两个 class（自己的 `.morph` + 所在边界的 `.slide-*`），两条规则
+   优先级相同 → 后写的赢；放前面会被 `.slide-*` 覆盖成「淡出 + 下移」，海报就会
+   "暗一下再亮回来"。**现在 `.slide-*` 已整体删除**（见上面"揭幕已移除"那段），
+   这个顺序约束自然消失；但如果日后把揭幕加回来，顺序问题会重新出现。
 
    ⚠️⚠️ 这里同样是 `!important` —— 淡入淡出挂在 `old` / `new` 这两个**快照**伪元素上，
    而且由 **WAAPI** 驱动，`animation: none` 压不住它，只能压属性值（详见上面兜底那段）。 */
