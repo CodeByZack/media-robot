@@ -81,7 +81,7 @@ class RecordingExecutor implements StorageExecutor {
 
 class FakeDeadLinkStore {
   recorded: Array<{ key: string; kind: string; reason: string; permanent: boolean; ttlMs?: number }> = [];
-  async recordDeadLink(input: { key: string; kind: "pan115" | "magnet"; reason: string; permanent: boolean; ttlMs?: number }): Promise<void> {
+  async recordDeadLink(input: { key: string; kind: "pan115" | "magnet" | "quark"; reason: string; permanent: boolean; ttlMs?: number }): Promise<void> {
     this.recorded.push({ key: input.key, kind: input.kind, reason: input.reason, permanent: input.permanent, ...(input.ttlMs === undefined ? {} : { ttlMs: input.ttlMs }) });
   }
   async listDeadLinkKeys(): Promise<string[]> {
@@ -265,6 +265,38 @@ describe("RealStorageV2 — StorageExecutor → StorageV2 adapter", () => {
       const b = adapter(ok, new CandidateRegistry(), store);
       b.registry.record(candidate("share"));
       await b.storage.transferCandidate({ candidateId: "share", intoDirectoryId: "staging" });
+
+      expect(store.recorded).toEqual([]);
+    });
+
+    it("records a 夸克 share whose OWNER was banned (41031) as PERMANENT", async () => {
+      const store = new FakeDeadLinkStore();
+      const executor = new RecordingExecutor({
+        status: "failed",
+        message: "QUARK_SHARE_TOKEN_FAILED: code=41031 分享者用户封禁链接查看受限",
+      });
+      const { storage, registry } = adapter(executor, new CandidateRegistry(), store);
+      registry.record({ ...candidate("quark"), type: "quark", providerPayload: { url: "https://pan.quark.cn/s/Ab12Cd" } });
+
+      await storage.transferCandidate({ candidateId: "quark", intoDirectoryId: "staging" });
+
+      expect(store.recorded).toEqual([
+        {
+          key: "quark:Ab12Cd",
+          kind: "quark",
+          reason: "QUARK_SHARE_TOKEN_FAILED: code=41031 分享者用户封禁链接查看受限",
+          permanent: true,
+        },
+      ]);
+    });
+
+    it("does NOT record a 夸克 no_target_change — listing lag is not death", async () => {
+      const store = new FakeDeadLinkStore();
+      const executor = new RecordingExecutor({ status: "no_target_change", message: "转存完成但目标目录未出现新视频" });
+      const { storage, registry } = adapter(executor, new CandidateRegistry(), store);
+      registry.record({ ...candidate("quark"), type: "quark", providerPayload: { url: "https://pan.quark.cn/s/Ab12Cd" } });
+
+      await storage.transferCandidate({ candidateId: "quark", intoDirectoryId: "staging" });
 
       expect(store.recorded).toEqual([]);
     });
