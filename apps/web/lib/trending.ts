@@ -163,11 +163,15 @@ export async function getTrending(kind: TrendingKind): Promise<TrendingCard[]> {
 /** 首页要一次性展示全部货架（剧集/综艺/电影/动漫从上到下）。
  *  返回**只含非空货架**的有序数组 —— 单个 feed 拿不到就整块不渲染，
  *  而不是留下一个空标题；四个全失败则返回 []，页面回退到原本的空状态。
- *  并发拉取（此前只有当前选中的那一类会被请求）。 */
+ *  顺序拉取（undici 对同一 CF Worker 并发请求会因连接池耗尽抛
+ *  TypeError: fetch failed — 和 acquire 同族问题）。 */
 export async function getTrendingShelves(): Promise<
   Array<{ kind: TrendingKind; label: string; note: string; cards: TrendingCard[] }>
 > {
-  const cards = await Promise.all(TRENDING_KIND_ORDER.map((kind) => getTrending(kind)));
+  const cards: TrendingCard[][] = [];
+  for (const kind of TRENDING_KIND_ORDER) {
+    cards.push(await getTrending(kind));
+  }
   return TRENDING_KIND_ORDER.flatMap((kind, index) => {
     const shelfCards = cards[index] ?? [];
     if (shelfCards.length === 0) return [];
