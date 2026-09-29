@@ -62,12 +62,17 @@ async function fetchViaAccessChain(
 ): Promise<unknown> {
   let lastError: unknown = new Error("no TMDB access configured");
   let sawTimeout = false;
+  let sawFetchError = false;
   // NUL sentinel for a token-less access (undefined) so it never collides with a
   // real (even empty-string) token on the same host — the function treats those
   // distinctly when setting Authorization, and the dead key must too.
   const accessKey = (a: TmdbAccess) => `${a.baseURL}\n${a.readToken === undefined ? "\u0000" : a.readToken}`;
   const isTimeout = (error: unknown): boolean =>
     (error instanceof Error && error.name === "TimeoutError") || /timeout/i.test(String(error));
+  // Node.js undici throws "TypeError: fetch failed" (cause: AggregateError) when
+  // the HTTP connection pool is exhausted — a transient failure that retries fix.
+  const isFetchError = (error: unknown): boolean =>
+    error instanceof Error && error.name === "TypeError" && /fetch failed/i.test(error.message);
   const tryOnce = async (list: TmdbAccess[]): Promise<{ ok: true; value: unknown } | { ok: false }> => {
     for (const access of list) {
       const url = `${access.baseURL}/${path}?${new URLSearchParams(query).toString()}`;
@@ -96,6 +101,9 @@ async function fetchViaAccessChain(
         if (isTimeout(error)) {
           sawTimeout = true;
         }
+        if (isFetchError(error)) {
+          sawFetchError = true;
+        }
         deadAccesses?.add(accessKey(access));
       }
     }
@@ -107,11 +115,12 @@ async function fetchViaAccessChain(
   if (first.ok) {
     return first.value;
   }
-  // A timeout is the transient failure mode (network jitter, Worker cold start)
-  // — give the FULL chain exactly one more pass before surfacing an error to
-  // the page/action. Non-timeout failures (401/404/parse) are deterministic;
-  // retrying them only adds latency.
-  if (sawTimeout) {
+  // A timeout or a fetch error is the transient failure mode (network jitter,
+  // Worker cold start, undici connection-pool exhaustion) — give the FULL chain
+  // exactly one more pass before surfacing an error to the page/action.
+  // Non-timeout failures (401/404/parse) are deterministic; retrying them only
+  // adds latency.
+  if (sawTimeout || sawFetchError) {
     const second = await tryOnce(accesses);
     if (second.ok) {
       return second.value;
@@ -374,10 +383,12 @@ export async function fetchTmdbList(
 }
 
 export async function prepareTrackingTarget(input: TvTrackingTargetInput): Promise<PreparedTrackingTarget> {
-  const [details, seasonDetails] = await Promise.all([
-    input.metadataProvider.getTvDetails(input.tmdbId),
-    input.metadataProvider.getTvSeason(input.tmdbId, input.seasonNumber),
-  ]);
+  // Sequential (not Promise.all): undici fetch throws "TypeError: fetch failed"
+  // (cause: AggregateError) when racing two requests at the same Cloudflare Worker
+  // origin — connection-pool exhaustion that never recovers in the same tick.
+  // The proxy's KV cache makes the second call fast, so the latency cost is small.
+  const details = await input.metadataProvider.getTvDetails(input.tmdbId);
+  const seasonDetails = await input.metadataProvider.getTvSeason(input.tmdbId, input.seasonNumber);
   const titleId = `tmdb_tv_${details.id}`;
   const title = normalizeTitle(details.name);
   const totalEpisodes = totalEpisodesForSeason(details, seasonDetails, input.seasonNumber);
