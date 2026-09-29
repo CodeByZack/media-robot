@@ -34,6 +34,26 @@ import {
  */
 
 /**
+ * 「集数映射」这一步的本季/越季计数(2026-09-29 线上反馈修正)。
+ *
+ * AI 看到的是**整包**文件,而一包常常横跨多季(明星大侦探那条候选从 S01 一路铺到 S11)。
+ * 此前直接把 `Object.keys(clean).length` 当「AI 识别出 N 集」,于是在 28 集的目标下打出
+ * 「AI 识别出 23 集,还有 23 集没认出来」—— 两个数自相矛盾,观感像"识别了却没落盘";
+ * 实际那 23 集绝大多数属于别的季、本次本来就不需要。
+ *
+ * 口径:只有落在本次 need 里的 code 才算「本季命中」,其余单独计数并在文案里说明。
+ */
+export function episodeMappingCounts(
+  clean: Record<string, string>,
+  needCodes: string[],
+): { inScope: number; offScope: number } {
+  const need = new Set(needCodes);
+  const codes = Object.values(clean);
+  const inScope = codes.filter((code) => need.has(code)).length;
+  return { inScope, offScope: codes.length - inScope };
+}
+
+/**
  * 集数映射尝试(§2.2): 代码解析不出集数的落盘(纯数字 `01.mp4` / E01 / fansub),
  * 单季任务第一次收包时让 AI 给逐集映射,校验通过则重建 digest 并尽量归位。
  *
@@ -191,11 +211,16 @@ export async function tryEpisodeMapping(options: {
   // 重建 digest:overrides 把映射喂回代码解析。
   const re = options.ram(clean);
   options.onDigest(re);
+  // ★ 2026-09-29 线上反馈(明星大侦探):只把落在本季 need 里的映射算「识别出」,
+  // 越季的单独说明 —— 见 episodeMappingCounts。
+  const counts = episodeMappingCounts(clean, options.needCodes);
+  const offScopeNote = counts.offScope > 0 ? `,另 ${counts.offScope} 集不属于本季(不计)` : "";
   if (re.passes) {
     // issue #29 用户反馈:人话——AI 根据文件名补认了哪些集,结果如何。
     // review REQUEST_CHANGES ①:coveredCodes 是代码+AI 合并口径,混源包会把代码功劳
-    // 记在 AI 头上(AI 只认 3 集却报「AI 识别出 20 集」)——统一用 AI 有效映射数。
-    const mapDetail = `AI 识别出 ${Object.keys(clean).length} 集,目标集数已齐`;
+    // 记在 AI 头上(AI 只认 3 集却报「AI 识别出 20 集」)——统一用 AI 有效映射数
+    // (且只算本季命中,越季的不虚报)。
+    const mapDetail = `AI 识别出 ${counts.inScope} 集${offScopeNote},目标集数已齐`;
     stepLog(options.sandbox, options.targetTitle, "集数映射", mapDetail, "log");
     emitStep(options.onProgress, "arbitrateEpisodeMapping", "verify", mapDetail, { aiUsed: true, mapping: compactMapping(arbitration.mapping) });
     return "passed";
@@ -204,8 +229,9 @@ export async function tryEpisodeMapping(options: {
   // 「收不收」——需要的集数 vs 识别出的集数一对比就知道:全覆盖 → 收尾(failed 由
   // 调用方按 missingCodes 分流);没覆盖 → 换候选。这里如实报覆盖结果即可。
   // issue #29 用户拍板:title 计数化——AI 识别出 N 集,还有 M 集没认出来;
-  // 明细在下方 mapping 列表逐条展示。
-  const failDetail = `AI 识别出 ${Object.keys(clean).length} 集,还有 ${re.missingCodes.length} 集没认出来`;
+  // 明细在下方 mapping 列表逐条展示。N 只算本季命中(2026-09-29 修正,见上):
+  // 否则 28 集的目标会打出「识别出 23 集,还有 23 集没认出来」这种自相矛盾。
+  const failDetail = `AI 识别出 ${counts.inScope} 集${offScopeNote},还有 ${re.missingCodes.length} 集没认出来`;
   stepLog(options.sandbox, options.targetTitle, "集数映射", failDetail, "warn");
   emitStep(options.onProgress, "arbitrateEpisodeMapping", "verify", failDetail, { aiUsed: true, mapping: compactMapping(arbitration.mapping) });
   return "failed";
