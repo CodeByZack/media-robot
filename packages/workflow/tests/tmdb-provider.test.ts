@@ -940,4 +940,35 @@ describe("per-access timeout + timeout retry (2026-07-02 压测发现:软路由�
     await provider.getMovieDetails(278); // healed memo → single straight call
     expect(calls).toBe(3);
   });
+
+  it("retries the WHOLE chain once when a failure was TypeError: fetch failed (undici pool exhaustion)", async () => {
+    let calls = 0;
+    const provider = new TmdbMetadataProvider({
+      accesses: [{ baseURL: "https://proxy.example" }],
+      fetchJson: async () => {
+        calls += 1;
+        if (calls === 1) {
+          // undici's signature error: TypeError with "fetch failed" message
+          throw new TypeError("fetch failed");
+        }
+        return movieJson(278);
+      },
+    });
+    const details = await provider.getMovieDetails(278);
+    expect(details.id).toBe(278);
+    expect(calls).toBe(2); // first pass fetch-failed, single retry pass succeeded
+  });
+
+  it("does NOT retry when the TypeError is not a fetch failure (parse errors keep failing fast)", async () => {
+    let calls = 0;
+    const provider = new TmdbMetadataProvider({
+      accesses: [{ baseURL: "https://proxy.example", readToken: "k" }],
+      fetchJson: async () => {
+        calls += 1;
+        throw new TypeError("JSON.parse: unexpected token");
+      },
+    });
+    await expect(provider.getMovieDetails(278)).rejects.toThrow(/access/i);
+    expect(calls).toBe(1);
+  });
 });
