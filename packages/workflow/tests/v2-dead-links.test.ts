@@ -12,6 +12,18 @@ describe("deadLinkKey — the stable identity for a resource link", () => {
     expect(deadLinkKey("https://115.com/s/sww96353nl6")).toEqual({ key: "115:sww96353nl6", kind: "pan115" });
   });
 
+  it("keys a 夸克 share by its pwd_id, VERBATIM (pwd_id is case-sensitive)", () => {
+    expect(deadLinkKey("https://pan.quark.cn/s/ab12CD34ef")).toEqual({ key: "quark:ab12CD34ef", kind: "quark" });
+    // passcode / #fragment are irrelevant — same share, same key
+    expect(deadLinkKey("https://pan.quark.cn/s/ab12CD34ef?passcode=xyz#")).toEqual({
+      key: "quark:ab12CD34ef",
+      kind: "quark",
+    });
+    // case is NOT folded: a case-variant is a DIFFERENT share, and folding them
+    // could let a dead twin hide a live one.
+    expect(deadLinkKey("https://pan.quark.cn/s/ab12cd34ef")).toEqual({ key: "quark:ab12cd34ef", kind: "quark" });
+  });
+
   it("keys a magnet by its lowercased 40-hex infohash, stripping PanSou junk suffixes", () => {
     expect(deadLinkKey("magnet:?xt=urn:btih:edef9b0fc91c9ccdf5b3e43f6cc5278160e81dd5")).toEqual({
       key: "magnet:edef9b0fc91c9ccdf5b3e43f6cc5278160e81dd5",
@@ -31,7 +43,7 @@ describe("deadLinkKey — the stable identity for a resource link", () => {
 });
 
 describe("deadLinkReason — conservative dead detection (a false positive hides a link forever)", () => {
-  const dead = (status: string, message: string, kind: "pan115" | "magnet") =>
+  const dead = (status: string, message: string, kind: "pan115" | "magnet" | "quark") =>
     deadLinkReason({ status: status as never, providerMessage: message }, kind);
 
   it("records a 115 share that failed loud with a known death message", () => {
@@ -45,6 +57,30 @@ describe("deadLinkReason — conservative dead detection (a false positive hides
     expect(dead("failed", "错误的链接", "magnet")).toBe("错误的链接");
     // ok=true but nothing materialized → no_target_change → dead-for-us (we never wait)
     expect(dead("no_target_change", "; no target video materialized yet", "magnet")).toMatch(/materializ|秒传/);
+  });
+
+  it("records a 夸克 share whose OWNER was banned (41031) — that link is final", () => {
+    expect(dead("failed", "QUARK_SHARE_TOKEN_FAILED: code=41031 分享者用户封禁链接查看受限", "quark")).toBe(
+      "QUARK_SHARE_TOKEN_FAILED: code=41031 分享者用户封禁链接查看受限",
+    );
+  });
+
+  it("records a 夸克 share exposing no transferable file (fixed snapshot → final)", () => {
+    expect(dead("failed", "QUARK_TRANSFER_FAILED: share has no transferable files", "quark")).toBe(
+      "QUARK_TRANSFER_FAILED: share has no transferable files",
+    );
+  });
+
+  it("NEVER records a 夸克 no_target_change — that is the listing-lag false negative", () => {
+    // 「转存完成但目标目录未出现新视频」多半是夸克列目录索引滞后 2~6s,不是死链;
+    // 记下去会把一个**能转存**的分享永久藏掉(实测 run 4e858fba / c0bbc0f0 都撞过)。
+    expect(dead("no_target_change", "转存完成但目标目录未出现新视频", "quark")).toBeNull();
+  });
+
+  it("does NOT record an unknown/transient 夸克 failure, nor a succeeded transfer", () => {
+    expect(dead("failed", "QUARK_TRANSFER_FAILED: parse failed", "quark")).toBeNull();
+    expect(dead("failed", "", "quark")).toBeNull();
+    expect(dead("succeeded", "", "quark")).toBeNull();
   });
 
   it("NEVER records 任务已存在 (errcode 10008) — a prior GOOD task, not a dead link", () => {

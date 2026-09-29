@@ -69,9 +69,10 @@ describe("RealResourceProviderV2 — pansou → ResourceProviderV2 adapter", () 
         { ...realSnapshot().candidates[0]!, id: "live", providerPayload: { url: "https://115.com/s/livecode" } },
         { ...realSnapshot().candidates[0]!, id: "dead_share", providerPayload: { url: "https://115cdn.com/s/deadcode?password=x" } },
         { ...realSnapshot().candidates[0]!, id: "dead_magnet", type: "magnet", providerPayload: { url: "magnet:?xt=urn:btih:edef9b0fc91c9ccdf5b3e43f6cc5278160e81dd5" } },
+        { ...realSnapshot().candidates[0]!, id: "dead_quark", type: "quark", providerPayload: { url: "https://pan.quark.cn/s/deadPwd9?passcode=ab12" } },
       ],
     };
-    const deadKeys = ["115:deadcode", "magnet:edef9b0fc91c9ccdf5b3e43f6cc5278160e81dd5"];
+    const deadKeys = ["115:deadcode", "magnet:edef9b0fc91c9ccdf5b3e43f6cc5278160e81dd5", "quark:deadPwd9"];
     const deadLinkStore = {
       recordDeadLink: async () => {},
       listDeadLinkKeys: async () => deadKeys,
@@ -90,6 +91,10 @@ describe("RealResourceProviderV2 — pansou → ResourceProviderV2 adapter", () 
     expect(registry.get("live")).toBeDefined();
     expect(registry.get("dead_share")).toBeUndefined();
     expect(registry.get("dead_magnet")).toBeUndefined();
+    // 夸克 shares are keyed too (owner-banned / no-transferable-file deaths) — the
+    // pool must stop re-serving them on every run (they burned 13 transfers in one
+    // run on 明星大侦探 and were retried identically the next run).
+    expect(registry.get("dead_quark")).toBeUndefined();
   });
 
   it("carries an unreachable sourceHealth through to the V2 snapshot (Task 9)", async () => {
