@@ -12,7 +12,7 @@ async function setup() {
   });
   const stagingDirectoryId = await storage.createDirectory({ name: "staging", parentId: "root" });
   const targetSeasonDirectoryId = await storage.createDirectory({ name: "Season 1", parentId: "root" });
-  const sandbox = new TaskSandbox({ provider, storage, stagingDirectoryId, targetSeasonDirectoryIds: { 1: targetSeasonDirectoryId } });
+  const sandbox = new TaskSandbox({ provider, storage, stagingDirectoryId, targetSeasonDirectoryIds: { 1: targetSeasonDirectoryId }, recheckDelayMs: 0 });
   return { sandbox };
 }
 
@@ -31,8 +31,24 @@ describe("TaskSandbox — moveToSeason (agent-driven extract, scoped, reread)", 
     expect(result.staging.filter((file) => file.isVideo)).toHaveLength(0);
   });
 
-  it("refuses moving a file that is not in this task's staging (scope guard)", async () => {
+  it("SKIPS a file that is not in this task's staging（scope guard 仍成立：绝不搬本目录外的东西）", async () => {
+    // 2026-09-30 语义修正：守卫保证"只搬本 staging 里确实在的"，但"不在"不再升级成
+    // 整轮 failed（夸克索引滞后 2~6s 会让刚转存的文件一次读不到）。
     const { sandbox } = await setup();
-    await expect(sandbox.moveToSeason({ moves: [{ season: 1, fileIds: ["not_in_staging"] }] })).rejects.toThrow(/staging/i);
+    const result = await sandbox.moveToSeason({ moves: [{ season: 1, fileIds: ["not_in_staging"] }] });
+    expect(result.seasons[1] ?? []).toEqual([]);
+  });
+
+  it("moves the ones that ARE there and skips the ones that are not（混合场景）", async () => {
+    const { sandbox } = await setup();
+    const search = await sandbox.searchResources("show");
+    const transfer = await sandbox.transferCandidate({ snapshotId: search.snapshot!.id, candidateId: "cand_full" });
+    const videoIds = transfer.staging.filter((file) => file.isVideo).map((file) => file.id);
+
+    const result = await sandbox.moveToSeason({
+      moves: [{ season: 1, fileIds: [...videoIds, "not_in_staging"] }],
+    });
+
+    expect(result.seasons[1]!.filter((file) => file.isVideo)).toHaveLength(3);
   });
 });

@@ -16,6 +16,7 @@ async function setup() {
     stagingDirectoryId,
     pendingDirectoryId,
     targetSeasonDirectoryIds: { 1: targetSeasonDirectoryId },
+    recheckDelayMs: 0, // 测试里不等那 1.5s 的滞后窗口
   });
   return { sandbox, storage, stagingDirectoryId };
 }
@@ -62,11 +63,42 @@ describe("TaskSandbox — pending tools", () => {
     expect(pending.map((f) => f.path).sort()).toEqual(["Show.S01E01.mkv", "show.srt"]);
   });
 
-  it("moveToPending rejects files not in staging", async () => {
+  it("moveToPending SKIPS files not in staging instead of throwing（2026-09-30 语义修正）", async () => {
+    // 守卫的职责是「只动目录里确实在的」，不是「你要动的必须全在」——后者会把一次正常的
+    // 索引滞后（夸克 2~6s）升级成整轮 failed（云雀叫天录就是这么死的）。缺的跳过，
+    // 少搬了几集由 run 末对账如实报缺集。
     const { sandbox } = await setup();
-    await expect(
-      sandbox.moveToPending({ moves: [{ fileId: "nonexistent" }] }),
-    ).rejects.toThrow("SANDBOX_FILES_NOT_IN_STAGING");
+    await expect(sandbox.moveToPending({ moves: [{ fileId: "nonexistent" }] })).resolves.toBeDefined();
+  });
+
+  it("moveToPending survives a lagging first listing（重读确认救回，而不是跳过）", async () => {
+    const { storage, stagingDirectoryId } = await setup();
+    const videoId = await landFile(storage, stagingDirectoryId, "Show - 01.mkv");
+    // 第一次列目录故意漏掉它、第二次才读到 —— 模拟夸克异步 move 后的索引滞后。
+    let reads = 0;
+    const lagging = new Proxy(storage, {
+      get(target, prop, recv) {
+        if (prop !== "listTree") return Reflect.get(target, prop, recv);
+        return async (input: { directoryId: string }) => {
+          const tree = await (target as Storage115Simulator).listTree(input);
+          if (input.directoryId !== stagingDirectoryId) return tree;
+          reads += 1;
+          return reads === 1 ? tree.filter((f) => f.id !== videoId) : tree;
+        };
+      },
+    }) as Storage115Simulator;
+    const sandbox = new TaskSandbox({
+      provider: new FakeResourceProviderV2({ results: { show: [] } }),
+      storage: lagging,
+      stagingDirectoryId,
+      pendingDirectoryId: await lagging.createDirectory({ name: "pending2", parentId: "root" }),
+      targetSeasonDirectoryIds: { 1: await lagging.createDirectory({ name: "Season 1b", parentId: "root" }) },
+      recheckDelayMs: 0,
+    });
+
+    await sandbox.moveToPending({ moves: [{ fileId: videoId, newName: "Show.S01E01.mkv" }] });
+
+    expect((await sandbox.inspectPending()).map((f) => f.path)).toEqual(["Show.S01E01.mkv"]);
   });
 
   it("deleteFromPending removes files from pending", async () => {
@@ -84,11 +116,16 @@ describe("TaskSandbox — pending tools", () => {
     expect(result.pending).toEqual([]);
   });
 
-  it("deleteFromPending rejects files not in pending", async () => {
-    const { sandbox } = await setup();
-    await expect(
-      sandbox.deleteFromPending({ fileIds: ["nonexistent"] }),
-    ).rejects.toThrow("SANDBOX_FILES_NOT_IN_PENDING");
+  it("deleteFromPending SKIPS files not in pending（对删来说「不在」就是目标已达成）", async () => {
+    const { sandbox, storage, stagingDirectoryId } = await setup();
+    const videoId = await landFile(storage, stagingDirectoryId, "Show - 01.mkv");
+    await sandbox.moveToPending({ moves: [{ fileId: videoId, newName: "Show.S01E01.mkv" }] });
+    const kept = (await sandbox.inspectPending())[0]!.id;
+
+    const result = await sandbox.deleteFromPending({ fileIds: [kept, "nonexistent"] });
+
+    expect(result.deleted).toEqual([kept]);
+    expect(result.pending).toEqual([]);
   });
 
   it("renameInPending renames a file in pending", async () => {
@@ -131,11 +168,10 @@ describe("TaskSandbox — pending tools", () => {
     expect(result.pending).toEqual([]);
   });
 
-  it("moveToSeasonFromPending rejects files not in pending", async () => {
+  it("moveToSeasonFromPending SKIPS files not in pending（明星大侦探就死在这个 throw 上）", async () => {
     const { sandbox } = await setup();
-    await expect(
-      sandbox.moveToSeasonFromPending({ moves: [{ season: 1, fileIds: ["nonexistent"] }] }),
-    ).rejects.toThrow("SANDBOX_FILES_NOT_IN_PENDING");
+    const result = await sandbox.moveToSeasonFromPending({ moves: [{ season: 1, fileIds: ["nonexistent"] }] });
+    expect(result.pending).toEqual([]);
   });
 
   it("moveToSeasonFromPending rejects when no season directory exists", async () => {
@@ -219,5 +255,22 @@ describe("finalizeFromPending", () => {
 
     expect(result.marked).toEqual([]);
     expect(result.skippedOnDisk).toContain("S01E01");
+  });
+
+  it("改名保留真实扩展名（此前一律写死 .mkv）", async () => {
+    const { sandbox, storage, stagingDirectoryId } = await setup();
+    const videoId = await landFile(storage, stagingDirectoryId, "01.mp4");
+    await sandbox.moveToPending({ moves: [{ fileId: videoId, newName: "01.mp4" }] });
+
+    const result = await finalizeFromPending({
+      sandbox,
+      entries: [{ code: "S01E01", fileId: videoId }],
+      canonicalTitle: "Show",
+      seasons: [1],
+    });
+
+    expect(result.renamedPairs).toEqual([{ from: "01.mp4", to: "Show.S01E01.mp4" }]);
+    const landed = await sandbox.inspectTargetDir({ season: 1 });
+    expect(landed.map((f) => f.path)).toEqual(["Show.S01E01.mp4"]);
   });
 });

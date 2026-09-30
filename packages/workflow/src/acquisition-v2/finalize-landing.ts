@@ -367,6 +367,11 @@ export async function finalizeFromPending(options: {
   const skippedOnDisk: string[] = [];
   const skippedNotNeeded: string[] = [];
   const plannedCodes = new Set<string>();
+  // ★ 2026-09-30:原名快照提到改名循环【之前】—— 一是给日志的 from 用（09-10 的原意），
+  // 二是用来定扩展名：此前这里写死 `code + ".mkv"`，于是 mp4 全被改成 .mkv，
+  // 文件名与真实容器不符（线上日志:01.[…].mp4 -> 明星大侦探.S11E01.mkv）。
+  const pendingBefore = entries.length > 0 ? await sandbox.inspectPending() : [];
+  const pendingByIdBefore = new Map(pendingBefore.map((f) => [f.id, f.path.split("/").pop() ?? f.id]));
 
   for (const entry of entries) {
     const { code, fileId } = entry;
@@ -376,7 +381,12 @@ export async function finalizeFromPending(options: {
     if (onlySet && !onlySet.has(code)) { skippedNotNeeded.push(code + "(not needed)"); continue; }
     if (plannedCodes.has(code)) { skippedNotNeeded.push(code + "(dup)"); continue; }
     plannedCodes.add(code);
-    const newName = canonicalEpisodeFileName({ title: canonicalTitle, episodeCode: code, sourceName: code + ".mkv" });
+    const newName = canonicalEpisodeFileName({
+      title: canonicalTitle,
+      episodeCode: code,
+      // 真实扩展名（原文件叫 01.mp4 就还是 .mp4）；快照里找不到才回落 .mkv。
+      sourceName: pendingByIdBefore.get(fileId) ?? `${code}.mkv`,
+    });
     renames.push({ fileId, newName });
   }
 
@@ -385,10 +395,8 @@ export async function finalizeFromPending(options: {
   // failedByFileId 剔除后仍能取回原 id。
   const codeToNewFileId = new Map<string, string>();
   if (renames.length > 0) {
-    // ★ 2026-09-10:rename【之前】先快照 pending 原名 —— renamedPairs.from 用原名,
-    // 否则 from 取的是 rename 后的新名,日志变成「新名 -> 新名」没法看。
-    const pendingBefore = await sandbox.inspectPending();
-    const pendingByIdBefore = new Map(pendingBefore.map((f) => [f.id, f.path.split("/").pop() ?? f.id]));
+    // 原名快照已在改名循环之前取好（见上）：既给 renamedPairs.from 用（09-10 原意），
+    // 也给扩展名用。这里直接改名。
     const result = await sandbox.renameInPending({ renames });
     // ★ 2026-09-10 地球超新鲜案:renameInPending 失败曾被忽略 → finalize 用旧 id
     // 归位撞 SANDBOX_FILES_NOT_IN_PENDING。现在两层都显式:errors 全部列出,
