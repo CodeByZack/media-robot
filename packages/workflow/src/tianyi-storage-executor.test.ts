@@ -453,15 +453,27 @@ describe("TianyiStorageExecutor.deleteFiles", () => {
     expect(batchDelete).toHaveBeenCalledWith([{ id: "sub1", name: "多余字幕.srt", isFolder: false }]);
   });
 
-  it("refuses ids that are nowhere in the directory tree (SAFETY_VIOLATION)", async () => {
+  it("skips ids that are gone from the tree instead of failing the run", async () => {
     const listFiles = vi.fn<TianyiClient["listFiles"]>(async () => [file("sub1", "多余字幕.srt", 77944)]);
     const client = fakeClient({ listFiles });
     const executor = makeExecutor(client);
 
-    await expect(executor.deleteFiles({ directoryId: SCOPE, fileIds: ["ghost"] })).rejects.toThrow(
-      /SAFETY_VIOLATION/,
-    );
+    // 已删/已搬走/索引滞后 → 对删除来说「不在」就是目标已达成，不该抛 SAFETY_VIOLATION。
+    await expect(executor.deleteFiles({ directoryId: SCOPE, fileIds: ["ghost"] })).resolves.toEqual({
+      deleted: [],
+    });
     expect(client.batchDelete).not.toHaveBeenCalled();
+  });
+
+  it("deletes only the verified ids in a mixed batch", async () => {
+    const listFiles = vi.fn<TianyiClient["listFiles"]>(async () => [file("sub1", "多余字幕.srt", 77944)]);
+    const batchDelete = vi.fn<TianyiClient["batchDelete"]>(async () => {});
+    const executor = makeExecutor(fakeClient({ listFiles, batchDelete }));
+
+    await expect(
+      executor.deleteFiles({ directoryId: SCOPE, fileIds: ["sub1", "ghost"] }),
+    ).resolves.toEqual({ deleted: ["sub1"] });
+    expect(batchDelete).toHaveBeenCalledWith([{ id: "sub1", name: "多余字幕.srt", isFolder: false }]);
   });
 });
 
