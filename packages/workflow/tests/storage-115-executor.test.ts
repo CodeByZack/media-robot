@@ -808,7 +808,34 @@ describe("Storage115Executor", () => {
     expect(api.deletes).toEqual([{ fileIds: ["sub_1"] }]);
   });
 
-  it("rejects delete file ids that were not verified in the target directory", async () => {
+  it("skips (not rejects) delete file ids that are not in the target directory", async () => {
+    const api = new FakePan115Api({
+      directories: {
+        season_1: [
+          {
+            fid: "file_1",
+            n: "Show.S01E01.mkv",
+            s: "1000000000",
+          },
+        ],
+      },
+      directoryInfo: {
+        season_1: seasonPathInfo("test_root", "season_1"),
+      },
+    });
+    const executor = new Storage115Executor({ api, writeScopeDirectoryIds: ["test_root"] });
+
+    // 已删/已搬走/索引滞后 → 对删除来说「不在」就是目标已达成，不该让整轮 failed。
+    await expect(
+      executor.deleteFiles({
+        directoryId: "season_1",
+        fileIds: ["file_2"],
+      }),
+    ).resolves.toEqual({ deleted: [] });
+    expect(api.deletes).toEqual([]);
+  });
+
+  it("deletes only the verified ids in a mixed batch and skips the ghosts", async () => {
     const api = new FakePan115Api({
       directories: {
         season_1: [
@@ -828,10 +855,10 @@ describe("Storage115Executor", () => {
     await expect(
       executor.deleteFiles({
         directoryId: "season_1",
-        fileIds: ["file_2"],
+        fileIds: ["file_1", "file_2"],
       }),
-    ).rejects.toThrow("SAFETY_VIOLATION: refusing to delete unverified file ids");
-    expect(api.deletes).toEqual([]);
+    ).resolves.toEqual({ deleted: ["file_1"] });
+    expect(api.deletes).toEqual([{ fileIds: ["file_1"] }]);
   });
 
   it("allows creating folders only under the configured write scope", async () => {

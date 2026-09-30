@@ -282,13 +282,24 @@ describe("QuarkStorageExecutor", () => {
     expect(calls).toContain("deleteFiles:sub1");
   });
 
-  it("deleteFiles still refuses ids that are nowhere in the directory tree", async () => {
+  it("deleteFiles skips ids that are gone from the tree instead of failing the run", async () => {
     const { client, files, calls } = makeFakeClient();
     files.set("sub1", { fid: "sub1", file_name: "多余字幕.srt", dir: false, size: 77944, pdir_fid: "STAGE" });
     const exec = quarkExecutor(client);
-    await expect(exec.deleteFiles({ directoryId: "STAGE", fileIds: ["ghost"] })).rejects.toThrow(
-      /SAFETY_VIOLATION/,
-    );
+    // 已删/已搬走/索引滞后 → 对删除来说「不在」就是目标已达成，不该抛 SAFETY_VIOLATION。
+    await expect(exec.deleteFiles({ directoryId: "STAGE", fileIds: ["ghost"] })).resolves.toEqual({
+      deleted: [],
+    });
     expect(calls.filter((c) => c.startsWith("deleteFiles:"))).toEqual([]);
+  });
+
+  it("deleteFiles deletes only the verified ids in a mixed batch", async () => {
+    const { client, files, calls } = makeFakeClient();
+    files.set("sub1", { fid: "sub1", file_name: "多余字幕.srt", dir: false, size: 77944, pdir_fid: "STAGE" });
+    const exec = quarkExecutor(client);
+    await expect(
+      exec.deleteFiles({ directoryId: "STAGE", fileIds: ["sub1", "ghost"] }),
+    ).resolves.toEqual({ deleted: ["sub1"] });
+    expect(calls.filter((c) => c.startsWith("deleteFiles:"))).toEqual(["deleteFiles:sub1"]);
   });
 });

@@ -26,6 +26,7 @@ import { episodeCodeFromFileName } from "./episode-code.js";
 import { isGuangYaAuthError } from "./guangya-client.js";
 import type { GuangYaResolvedRes, GuangYaTaskStatus } from "./guangya-client.js";
 import type { StorageExecutor, UnparsedVideoFile } from "./ports.js";
+import { logSkippedDeletes, splitDeletable } from "./deletion-scope.js";
 
 const MAX_RECURSIVE_COLLECT_DEPTH = 6;
 const DEFAULT_MIN_VIDEO_SIZE_BYTES = 10 * 1024 * 1024;
@@ -480,9 +481,16 @@ export class GuangYaStorageExecutor implements StorageExecutor {
       return { deleted: [] };
     }
     const safeDirectoryId = this.assertWithinWriteScope(input.directoryId, "delete files");
-    await this.assertFilesBelongToDirectory(safeDirectoryId, input.fileIds);
-    await this.client.deleteFiles(input.fileIds);
-    return { deleted: input.fileIds };
+    // 只删此刻确实在本目录里的 id：缺的跳过（已搬走/已删/索引滞后），不抛错。
+    // 理由与安全边界见 deletion-scope.ts。
+    const tree = await this.listVerifiedFiles(safeDirectoryId);
+    const { toDelete, gone } = splitDeletable(tree.map((f) => f.providerFileId), input.fileIds);
+    logSkippedDeletes("guangya", safeDirectoryId, gone);
+    if (toDelete.length === 0) {
+      return { deleted: [] };
+    }
+    await this.client.deleteFiles(toDelete);
+    return { deleted: toDelete };
   }
 
   /** Poll list_task until the task leaves the in-progress state or a cap is hit;
@@ -580,17 +588,11 @@ export class GuangYaStorageExecutor implements StorageExecutor {
    *  eyes (inspectStaging/inspectTargetDir) see every file, and cleanup targets
    *  are mostly NON-video (extra subtitles, ads, nfo). Verifying videos-only made
    *  deleting a subtitle impossible on every drive — caught live 2026-07-02 when
-   *  the 黑客帝国3@光鸭 run's cleanup was refused twice (SAFETY_VIOLATION). */
-  private async assertFilesBelongToDirectory(directoryId: string, fileIds: string[]): Promise<void> {
-    const verified = new Set((await this.listTree({ directoryId })).map((f) => f.providerFileId));
-    const unverified = fileIds.filter((id) => !verified.has(id));
-    if (unverified.length === 0) {
-      return;
-    }
-    throw new Error(
-      "SAFETY_VIOLATION: refusing to delete unverified file ids from target directory; " +
-        `fileId=${directoryId}; fileIds=${unverified.join(",")}`,
-    );
+   *  the 黑客帝国3@光鸭 run's cleanup was refused twice (SAFETY_VIOLATION).
+   *  ★ 2026-09-30：本方法**不再抛错**，只把树交回调用方，由 splitDeletable 决定删哪些
+   *  （缺的跳过）—— 理由见 deletion-scope.ts。 */
+  private async listVerifiedFiles(directoryId: string): Promise<PackageTreeFile[]> {
+    return this.listTree({ directoryId });
   }
 
   /** Refuse recursive listing of root/protected dirs (huge scan / 风控 risk).

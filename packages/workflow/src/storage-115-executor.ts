@@ -7,6 +7,7 @@ import type {
 } from "./domain.js";
 import { episodeCodeFromFileName } from "./episode-code.js";
 import type { StorageExecutor, UnparsedVideoFile } from "./ports.js";
+import { logSkippedDeletes, splitDeletable } from "./deletion-scope.js";
 
 /**
  * Depth bound for the recursive video collectors, matching listTree's default.
@@ -804,9 +805,16 @@ export class Storage115Executor implements StorageExecutor {
       return { deleted: [] };
     }
     const safeDirectoryId = await this.assertWithinWriteScope(input.directoryId, "delete files");
-    await this.assertFilesBelongToDirectory(safeDirectoryId, input.fileIds);
-    const result = await this.callApi("deleteItems", () => this.api.deleteItems({ fileIds: input.fileIds }));
-    return { deleted: result.ok ? input.fileIds : [] };
+    // 只删此刻确实在本目录里的 id：缺的跳过（已搬走/已删/索引滞后），不抛错。
+    // 理由与安全边界见 deletion-scope.ts。
+    const tree = await this.listVerifiedFiles(safeDirectoryId);
+    const { toDelete, gone } = splitDeletable(tree.map((f) => f.providerFileId), input.fileIds);
+    logSkippedDeletes("115", safeDirectoryId, gone);
+    if (toDelete.length === 0) {
+      return { deleted: [] };
+    }
+    const result = await this.callApi("deleteItems", () => this.api.deleteItems({ fileIds: toDelete }));
+    return { deleted: result.ok ? toDelete : [] };
   }
 
   /** Has any video-extension file landed in the staging tree yet? Used to wait
@@ -935,16 +943,8 @@ export class Storage115Executor implements StorageExecutor {
    *  deleting a subtitle impossible on every drive — caught live 2026-07-02 on
    *  光鸭, and explains the `._*.ass` AppleDouble leftover from the 黑客帝国2@115
    *  stress test. */
-  private async assertFilesBelongToDirectory(directoryId: string, fileIds: string[]): Promise<void> {
-    const verifiedFileIds = new Set((await this.listTree({ directoryId })).map((file) => file.providerFileId));
-    const unverifiedFileIds = fileIds.filter((fileId) => !verifiedFileIds.has(fileId));
-    if (unverifiedFileIds.length === 0) {
-      return;
-    }
-    throw new Error(
-      "SAFETY_VIOLATION: refusing to delete unverified file ids from target directory; " +
-        `cid=${directoryId}; fileIds=${unverifiedFileIds.join(",")}`,
-    );
+  private async listVerifiedFiles(directoryId: string): Promise<PackageTreeFile[]> {
+    return this.listTree({ directoryId });
   }
 
   private async assertWithinWriteScope(directoryId: string, action: string): Promise<string> {
