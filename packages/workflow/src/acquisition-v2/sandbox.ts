@@ -548,10 +548,18 @@ export class TaskSandbox {
     return { present, gone };
   }
 
-  /** Move files from staging to pending, with optional rename. */
+  /** Move files from staging to pending, with optional rename.
+   *
+   *  ★ 2026-09-30：返回值由 `{ pending, staging }` 改为 `{ moved }`。
+   *  旧版搬完还额外做 `listTree(pending)` + `listTree(staging)` 塞进返回值，而**唯一**
+   *  调用方（fast-path/tv.ts 的 onPartial）根本不接这两个字段 —— 两趟递归全树遍历纯浪费。
+   *  代价在真实包上不是小数：staging 700+ 个文件、夸克每页 50 条，一趟就是十几个请求；
+   *  而 onPartial 曾经一集调一次本方法，于是 75 集的包变成 75×3 趟遍历 ≈ 3700 个请求
+   *  （明星大侦探 run 525c9bac：AI 早已返回，这段又跑了 7 分钟，活动页看着像卡死）。
+   *  现在如实回报搬了哪些 id，调用方按 id 判断，不必再自己回读。 */
   async moveToPending(input: {
     moves: Array<{ fileId: string; newName?: string; subtitleFileIds?: string[] }>;
-  }): Promise<{ pending: SimTreeFile[]; staging: SimTreeFile[] }> {
+  }): Promise<{ moved: string[] }> {
     if (!this.storage || !this.stagingDirectoryId || !this.pendingDirectoryId) {
       throw new Error("SANDBOX: no storage/staging/pending handle configured");
     }
@@ -561,6 +569,7 @@ export class TaskSandbox {
     // 只搬"此刻确实在暂存区"的：缺的跳过，不抛错（见 presentIn）。
     const allIds = input.moves.flatMap((m) => [m.fileId, ...(m.subtitleFileIds ?? [])]);
     const { present } = await this.presentIn(stagingId, allIds);
+    const moved: string[] = [];
     for (const { fileId, newName, subtitleFileIds } of input.moves) {
       const idsToMove = [fileId, ...(subtitleFileIds ?? [])].filter((id) => present.has(id));
       if (idsToMove.length === 0) continue;
@@ -572,15 +581,13 @@ export class TaskSandbox {
         await storage.renameFile({ directoryId: stagingId, fileId, newName });
       }
       await storage.moveFiles({ fileIds: idsToMove, targetDirectoryId: pendingId });
+      moved.push(...idsToMove);
     }
     // 不做搬入后的落盘校验:move 任务 status===2 之后源目录(staging)的 list
     // 索引滞后约 2s,单次回读看不到 ≠ 搬失败。旧版在这里 throw
     // SANDBOX_MOVE_NOT_LANDED 就是假阳性(run 53bf287e 第 6 轮报「19/20 不在
     // pending」,而 rename 时刻那 20 个 id 全都在 pending 里)。
-    return {
-      pending: await storage.listTree({ directoryId: pendingId }),
-      staging: await storage.listTree({ directoryId: stagingId }),
-    };
+    return { moved };
   }
 
   /** Read-only full raw tree of a scoped target directory — ground truth for what
