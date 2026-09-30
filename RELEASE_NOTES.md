@@ -16,10 +16,11 @@ Media Robot 是**自己部署的个人媒体库助手**。
 > 与 [部署文档](https://github.com/CodeByZack/media-robot/blob/main/docs/deploy.md)。
 
 <details>
-<summary>本版改动（v1.0.0 → v1.0.1）</summary>
+<summary>本版改动（v1.0.1 → v1.0.2）</summary>
 
-- fix(tmdb): 修复 acquire/trending TypeError: fetch failed（undici 连接池耗尽） (b1075cc)
-- chore(release): bump version to 1.0.1 (0b1add6)
-- fix(release): 恢复根 package.json 被清空的依赖声明 (05aca1c)
+- fix(workflow): 守卫缺了跳过而非抛错 + 夸克 settle 窗口 + 改名保留真实扩展名 (#17) (82d1b92)
+- docs(release): 把 RELEASE_NOTES.md 同步为 v1.0.1 的真实正文 (#16) (fa9838b)
+- fix(dead-links): 夸克分享接入死链库（封禁/无可用文件永久拉黑） (#14) (11a7e95)
+- fix(tv): 集数映射计数只算本季命中，消除自相矛盾文案 (#15) (7ddf287)
 
 </details>
