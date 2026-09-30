@@ -136,11 +136,17 @@ jobs:
         id: version
         run: |
           V=""
-          if [ "${{ github.event_name }}" = "push" ]; then
-            V="${GITHUB_REF_NAME#v}"
-          elif [ -n "${{ inputs.tag }}" ]; then
+          # ⚠️ 先看 inputs.tag，**不要**先看 event_name：被 publish.yml 以 workflow_call
+          # 调用时 github context 是**调用方**的（event_name 显示成 push、ref_name 是
+          # main），于是原来的判断取到 V=main —— 产物名变成 media-robot-main-arm.fpk，
+          # manifest 里的 version 也被 sed 成 "main"（v1.0.2 / v1.0.3 连续两版都这样，
+          # 不只是文件名难看，是包内版本号错了）。下面的 release job 早就按这个判据写
+          # （见其 if 与 Determine release tag 的注释），这里与它对齐。
+          if [ -n "${{ inputs.tag }}" ]; then
             V="${{ inputs.tag }}"
             V="${V#v}"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            V="${GITHUB_REF_NAME#v}"
           fi
           # 不带 tag 的手动构建:V 为空 → build-fpk.sh 回退读 package.json;
           # 上传 path 必须用同一个版本号,否则 artifact 路径匹配失败(if-no-files-found: error)。
