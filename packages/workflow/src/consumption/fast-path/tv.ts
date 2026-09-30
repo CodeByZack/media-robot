@@ -339,8 +339,11 @@ async function runTvCandidatePhase(
             // ★ 2026-09-10 地球超新鲜案:搬移失败曾被静默吞掉 → entry 留在 map,
             // 磁盘没进 pending,后续 finalize 撞 SANDBOX_FILES_NOT_IN_PENDING。
             // ★ 2026-09-11:moveToPending 不再对「回读看不到」throw(那是异步
-            // move 的 list 滞后,run 53bf287e 已证伪),这里只会遇到真失败
-            // (作用域不符/鉴权/接口报错)——同样剔除,避免 finalize 拿假 id 归位。
+            // move 的 list 滞后,run 53bf287e 已证伪)。
+            // ★ 2026-09-30:守卫对"不在暂存区"的 id 也改成跳过(不抛),所以这里只
+            // 会遇到接口级真失败。被跳过的文件仍留在 ctx.pendingEntries 里 —— 它若真
+            // 没进 pending,renameInPending 会按文件报 SANDBOX_FILE_NOT_IN_PENDING,
+            // finalize 把它剔出计划(不归位、不 mark),run 末对账如实报缺集。
             stepLog(
               sandbox,
               target.title,

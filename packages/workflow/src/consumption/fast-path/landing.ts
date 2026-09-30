@@ -795,9 +795,10 @@ export async function closeOutTvLanding(options: {
       await options.onPartial(landingDigest.coveredFileMap, leftover);
     }
     // ★ 2026-09-10 地球超新鲜案修复:onPartial 可能已把「代码识别出的已覆盖文件」
-    // 从 staging 搬去 pending,上面 leftover 是搬移前的快照——若照单全删,被搬走的
-    // 文件 id 会触发 deleteFiles 的 SANDBOX_FILES_NOT_IN_STAGING 守卫,把整个 run
-    // 打成 failed(本应优雅换候选)。必须重读 staging,只删此刻仍在暂存区的剩余文件。
+    // 从 staging 搬去 pending,上面 leftover 是搬移前的快照 —— 必须重读 staging,只删
+    // 此刻仍在暂存区的剩余文件:挡的是"把正在搬走的文件删掉",不是守卫误报。
+    // （2026-09-30 起 deleteFiles 的守卫对"缺了"改为跳过,那句 throw 已不存在;
+    //  这条重读因此仍然必要,但不再是唯一防线。）
     const remaining = await sandbox.inspectStaging();
     if (remaining.length > 0) {
       await sandbox.deleteFiles({ directory: "staging", fileIds: remaining.map((f) => f.id) });

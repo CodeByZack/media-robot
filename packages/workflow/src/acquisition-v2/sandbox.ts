@@ -95,6 +95,9 @@ export interface TaskSandboxOptions {
    *  episodes across candidates before finalization. Same run-scoped pattern as
    *  staging; created by ensureSeasonAcquisitionDirectories. */
   pendingDirectoryId?: string;
+  /** 「缺了先重读一次」的等待毫秒 —— 唯一使用者是 presentIn 的滞后窗口。
+   *  默认 1500ms（夸克列目录索引滞后实测 2~6s，比这更短的等待等于没等）；测试传 0。 */
+  recheckDelayMs?: number;
   /** TV/anime: season number -> scoped Season directory. A multi-season / complete-
    *  series pack's files are distributed across these per season (§2 targetSeasons +
    *  moveToSeason(fileIds, season); architecture §Multi-season; permission-audit 105/209). */
@@ -215,6 +218,9 @@ export class TaskSandbox {
   /** 病4: 本任务的审计事件（no_coverage 上报/dedup 重复/禁忌词警告）。runner 持久化到 workflowRun.auditEvents。 */
   private readonly auditEvents: AuditEvent[] = [];
 
+  /** presentIn 的滞后重读等待（见 options.recheckDelayMs）。 */
+  private readonly recheckDelayMs: number;
+
   constructor(options: TaskSandboxOptions) {
     this.provider = options.provider;
     this.workflowRunId = options.workflowRunId;
@@ -237,6 +243,7 @@ export class TaskSandbox {
     this.canonicalTitle = options.canonicalTitle;
     this.canonicalYear = options.canonicalYear;
     this.subtitleProvider = options.subtitleProvider;
+    this.recheckDelayMs = options.recheckDelayMs ?? 1500;
   }
 
   /** The run id surfaced in step logs (`[mediary-run][{id}] …`): the workflow run
@@ -471,25 +478,16 @@ export class TaskSandbox {
       }
       return { season: move.season, targetDir, fileIds: move.fileIds };
     });
-    const pendingIds = new Set(
-      (await this.storage.listTree({ directoryId: this.pendingDirectoryId })).map((f) => f.id),
+    const { present } = await this.presentIn(
+      this.pendingDirectoryId,
+      resolved.flatMap((m) => m.fileIds),
     );
-    const outOfScope = resolved.flatMap((m) => m.fileIds).filter((id) => !pendingIds.has(id));
-    if (outOfScope.length > 0) {
-      // ★ 2026-09-10 地球超新鲜案:报 NOT_IN_PENDING 前把「想要搬的」vs「pending 实况」
-      // 全量对照**写进 error message**(而非裸 console.error)——
-      // activity 的 emitStep 只透传 error.message,裸 console.error 不进 agent_steps,
-      // UI/数据库都看不到,排查只能翻服务端日志(踩过坑)。
-      // 对照三份:need=finalize 想搬的 id,missing=不在 pending 的 id,pending=move 前实况。
-      const needIds = JSON.stringify(resolved.flatMap((m) => m.fileIds));
-      const missingIds = JSON.stringify(outOfScope);
-      const pendingNow = JSON.stringify([...pendingIds]);
-      throw new Error(
-        `SANDBOX_FILES_NOT_IN_PENDING: ${outOfScope.join(",")} (need=${needIds} missing=${missingIds} pending=${pendingNow})`,
-      );
-    }
+    // 只搬"此刻确实在 pending"的：缺的跳过（见 presentIn）。没搬到的集由 run 末对账
+    // 如实反映，不让守卫把整轮打成 failed（云雀叫天录就是这么死的）。
     for (const move of resolved) {
-      await this.storage.moveFiles({ fileIds: move.fileIds, targetDirectoryId: move.targetDir });
+      const fileIds = move.fileIds.filter((id) => present.has(id));
+      if (fileIds.length === 0) continue;
+      await this.storage.moveFiles({ fileIds, targetDirectoryId: move.targetDir });
     }
     // 归位后的读全部指向**目标**季目录。move 任务 status===2 之后源目录(pending)
     // 的 list 索引滞后约 2s(run 82a02640 实测:+0ms 仍看到 14 个已搬走的文件,
@@ -512,6 +510,44 @@ export class TaskSandbox {
     return this.storage.listTree({ directoryId: this.pendingDirectoryId });
   }
 
+  /** 目录实况核对：返回"此刻确实在本目录里"的 id，缺的单独返回给调用方**跳过**。
+   *
+   *  ★ 2026-09-30 语义修正：守卫的职责是「只动本目录里确实在的东西」，**不是**
+   *  「你要动的必须全部在」。后者会把一次正常的索引滞后升级成整轮 failed ——
+   *  夸克异步 move/delete 之后列目录有 2~6s 索引滞后（本文件 deleteFromPending
+   *  的旧注释已记过这个数），线上两次被它打死：
+   *    · 云雀叫天录：deleteFiles 删残留时读到刚被搬走的文件 → throw；
+   *    · 明星大侦探：moveToSeasonFromPending 归位时同上 → throw。
+   *  所以缺了的先等一小会儿重读一次确认，仍缺的交给调用方跳过（gone）。
+   *
+   *  跳过并不削弱安全：调用方只会对 present 里的 id 动手，绝不会碰到本目录之外的
+   *  东西；而"少搬了几集"由 run 末对账（重新读真实目标目录）如实反映，不必由守卫裁决。 */
+  private async presentIn(
+    directoryId: string,
+    fileIds: string[],
+  ): Promise<{ present: Set<string>; gone: string[] }> {
+    const storage = this.storage;
+    if (!storage) {
+      throw new Error("SANDBOX: no storage configured");
+    }
+    const list = async (): Promise<Set<string>> =>
+      new Set((await storage.listTree({ directoryId })).map((f) => f.id));
+    let present = await list();
+    let gone = fileIds.filter((id) => !present.has(id));
+    if (gone.length > 0) {
+      // 滞后窗口：只有当缺了才多读一次（正常路径零开销）。
+      await new Promise((resolve) => setTimeout(resolve, this.recheckDelayMs));
+      present = await list();
+      gone = fileIds.filter((id) => !present.has(id));
+      if (gone.length > 0) {
+        console.warn(
+          `[sandbox] 跳过 ${gone.length} 个重读后仍不在目录里的 id（已搬走 / 索引滞后）: ${gone.join(",")}`,
+        );
+      }
+    }
+    return { present, gone };
+  }
+
   /** Move files from staging to pending, with optional rename. */
   async moveToPending(input: {
     moves: Array<{ fileId: string; newName?: string; subtitleFileIds?: string[] }>;
@@ -519,20 +555,16 @@ export class TaskSandbox {
     if (!this.storage || !this.stagingDirectoryId || !this.pendingDirectoryId) {
       throw new Error("SANDBOX: no storage/staging/pending handle configured");
     }
-    const stagingIds = new Set(
-      (await this.storage.listTree({ directoryId: this.stagingDirectoryId })).map((f) => f.id),
-    );
-    const allIds = input.moves.flatMap((m) => [m.fileId, ...(m.subtitleFileIds ?? [])]);
-    const outOfScope = allIds.filter((id) => !stagingIds.has(id));
-    if (outOfScope.length > 0) {
-      throw new Error("SANDBOX_FILES_NOT_IN_STAGING: " + outOfScope.join(","));
-    }
     const storage = this.storage;
     const stagingId = this.stagingDirectoryId;
     const pendingId = this.pendingDirectoryId;
+    // 只搬"此刻确实在暂存区"的：缺的跳过，不抛错（见 presentIn）。
+    const allIds = input.moves.flatMap((m) => [m.fileId, ...(m.subtitleFileIds ?? [])]);
+    const { present } = await this.presentIn(stagingId, allIds);
     for (const { fileId, newName, subtitleFileIds } of input.moves) {
-      const idsToMove = [fileId, ...(subtitleFileIds ?? [])];
-      if (newName) {
+      const idsToMove = [fileId, ...(subtitleFileIds ?? [])].filter((id) => present.has(id));
+      if (idsToMove.length === 0) continue;
+      if (newName && present.has(fileId)) {
         // ★ 2026-09-11:夸克 rename 不换 fid(run 53bf287e 的 rename 前/后快照:
         // 21 个 fid 完全一致),改名后直接用原 id 搬。旧代码这里每改一个名就
         // 重读整棵 staging 树去查新 id——staging 是递归树,大包时是几十次
@@ -731,17 +763,16 @@ export class TaskSandbox {
       }
       return { season: move.season, targetDir, fileIds: move.fileIds };
     });
-    // Validate ALL fileIds against the current staging snapshot before any move.
-    const stagingIds = new Set(
-      (await this.storage.listTree({ directoryId: this.stagingDirectoryId })).map((file) => file.id),
+    // 只搬"此刻确实在暂存区"的（见 presentIn）：缺的跳过而不是抛错 —— 搬了几集算
+    // 几集，没搬到的由 run 末对账如实报缺集，不让守卫替对账裁决成败。
+    const { present } = await this.presentIn(
+      this.stagingDirectoryId,
+      resolved.flatMap((move) => move.fileIds),
     );
-    const outOfScope = resolved.flatMap((move) => move.fileIds).filter((fileId) => !stagingIds.has(fileId));
-    if (outOfScope.length > 0) {
-      throw new Error(`SANDBOX_FILES_NOT_IN_STAGING: ${outOfScope.join(",")}`);
-    }
-    // Execute each move (the system does the per-file moves under the hood).
     for (const move of resolved) {
-      await this.storage.moveFiles({ fileIds: move.fileIds, targetDirectoryId: move.targetDir });
+      const fileIds = move.fileIds.filter((fileId) => present.has(fileId));
+      if (fileIds.length === 0) continue;
+      await this.storage.moveFiles({ fileIds, targetDirectoryId: move.targetDir });
     }
     // Force-reread every touched target season + staging for one-shot verification.
     const seasons: Record<number, SimTreeFile[]> = {};
@@ -754,8 +785,10 @@ export class TaskSandbox {
   }
 
   /** Delete agent-chosen files from a named scoped directory (the dedup
-   *  keep-larger execution, or residue cleanup). Scope guard: every id must
-   *  currently be in that directory — no deleting arbitrary/raw ids. Rereads. */
+   *  keep-larger execution, or residue cleanup). Scope guard: only ids that are
+   *  CURRENTLY in that directory are touched — nothing outside it can ever be
+   *  deleted; ids that are already gone are skipped, not treated as a violation
+   *  (for a delete, "not there" is the goal — see presentIn). */
   async deleteFiles(input: {
     directory: "staging" | "season";
     season?: number;
@@ -769,53 +802,30 @@ export class TaskSandbox {
     if (!directoryId) {
       throw new Error(`SANDBOX: no ${input.directory} handle configured`);
     }
-    const present = new Set(
-      (await this.storage.listTree({ directoryId })).map((file) => file.id),
-    );
-    const outOfScope = input.fileIds.filter((fileId) => !present.has(fileId));
-    if (outOfScope.length > 0) {
-      throw new Error(`SANDBOX_FILES_NOT_IN_${input.directory.toUpperCase()}: ${outOfScope.join(",")}`);
+    const { present } = await this.presentIn(directoryId, input.fileIds);
+    const toDelete = input.fileIds.filter((fileId) => present.has(fileId));
+    if (toDelete.length === 0) {
+      return { deleted: [], directory: await this.storage.listTree({ directoryId }) };
     }
-    const { deleted } = await this.storage.deleteFiles({ directoryId, fileIds: input.fileIds });
+    const { deleted } = await this.storage.deleteFiles({ directoryId, fileIds: toDelete });
     return { deleted, directory: await this.storage.listTree({ directoryId }) };
   }
 
   /** Delete files from the pending directory. Scope guard: every id must
    *  currently be in THIS task's pending directory.
    *
-   *  二次确认:「不在 pending」有两种可能。run 53bf287e 的误报就出在这里——
-   *  finalize 归位(异步 move)刚完成,紧随其后的 inspectPending 读到 15 个
-   *  「残留」,本方法再读一次只剩 4 个,于是 11 个被判 NOT_IN_PENDING 并 throw,
-   *  把一个已成功的 run 记成「缺集」。所以守卫失败时先重读一次确认:确实不
-   *  存在的视为已清理(搬走/删掉)并从批量剔除,仍在的才是真残留,原样抛错。
-   *  只在 missing 非空(错误路径)才多读一次,正常路径零开销。
-   *  安全检查不变:要删的 id 仍然逐个核对本任务 pending 的实况。 */
+   *  run 53bf287e 的误报就出在这里 —— finalize 归位(异步 move)刚完成,紧随其后的
+   *  inspectPending 读到 15 个「残留」,再读一次只剩 4 个,于是 11 个被判
+   *  NOT_IN_PENDING 并 throw,把一个已成功的 run 记成「缺集」。
+   *  现在统一走 presentIn：缺的（已搬走/已删/索引滞后）跳过，只删仍在的，不抛错。
+   *  安全检查不变：只会删本任务 pending 里此刻确实在的 id。 */
   async deleteFromPending(input: { fileIds: string[] }): Promise<{ deleted: string[]; pending: SimTreeFile[] }> {
     if (!this.storage || !this.pendingDirectoryId) {
       throw new Error("SANDBOX: no storage/pending handle configured");
     }
     const storage = this.storage;
     const pendingId = this.pendingDirectoryId;
-    let present = new Set(
-      (await storage.listTree({ directoryId: pendingId })).map((f) => f.id),
-    );
-    let missing = input.fileIds.filter((id) => !present.has(id));
-    if (missing.length > 0) {
-      // 异步 move/delete 的 list 索引滞后(实测 2~6s):重读一次确认这些 id
-      // 是真的不在,而不是刚搬走/刚删掉还没同步。
-      present = new Set((await storage.listTree({ directoryId: pendingId })).map((f) => f.id));
-      missing = input.fileIds.filter((id) => !present.has(id));
-    }
-    if (missing.length > 0) {
-      // 报错前把「想删的」vs「pending 实况」写进 error message(裸 console.error
-      // 不进 agent_steps,UI 看不到),对照三份便于定性。
-      const needIds = JSON.stringify(input.fileIds);
-      const missingIds = JSON.stringify(missing);
-      const pendingNow = JSON.stringify([...present]);
-      throw new Error(
-        `SANDBOX_FILES_NOT_IN_PENDING: ${missing.join(",")} (need=${needIds} missing=${missingIds} pending=${pendingNow})`,
-      );
-    }
+    const { present } = await this.presentIn(pendingId, input.fileIds);
     const toDelete = input.fileIds.filter((id) => present.has(id));
     if (toDelete.length === 0) {
       // 请求删的全都不在 pending 了——清理目标已达成(异步 move/delete 已完成)。

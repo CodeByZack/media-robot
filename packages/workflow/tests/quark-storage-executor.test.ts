@@ -18,10 +18,22 @@ interface FakeFile {
 function makeFakeClient(opts?: {
   share?: { items: Array<{ fid: string; share_fid_token: string; file_name: string; dir: boolean; size: number }> };
   shareTokenError?: Error;
+  /** 目标目录"滞后"：前 N 次列目录看不到刚转存进来的文件（模拟夸克索引滞后 2~6s）。 */
+  lagReads?: number;
 }) {
   const files = new Map<string, FakeFile>();
   const calls: string[] = [];
   let nextId = 1;
+  // 滞后模拟：saveShare 写过的目标目录，在前 lagRemaining 次列目录里"看不见"。
+  let lagRemaining = opts?.lagReads ?? 0;
+  let lagDir: string | null = null;
+  const visibleIn = (directoryId: string) => {
+    const hide = lagDir !== null && directoryId === lagDir && lagRemaining > 0;
+    if (hide) lagRemaining -= 1;
+    return [...files.values()]
+      .filter((f) => f.pdir_fid === directoryId && !hide)
+      .map((f) => ({ fid: f.fid, file_name: f.file_name, dir: f.dir, size: f.size }));
+  };
   // seed the write-scope root + a staging dir under it
   files.set("ROOT", { fid: "ROOT", file_name: "media-robot", dir: true, size: 0, pdir_fid: "0" });
   files.set("STAGE", { fid: "STAGE", file_name: "Movie (2020)", dir: true, size: 0, pdir_fid: "ROOT" });
@@ -29,14 +41,11 @@ function makeFakeClient(opts?: {
   const client = {
     async listItems({ directoryId }: { directoryId: string }) {
       calls.push(`listItems:${directoryId}`);
-      return [...files.values()]
-        .filter((f) => f.pdir_fid === directoryId)
-        .map((f) => ({ fid: f.fid, file_name: f.file_name, dir: f.dir, size: f.size }));
-    },    async listAllItems({ directoryId }: { directoryId: string }) {
+      return visibleIn(directoryId);
+    },
+    async listAllItems({ directoryId }: { directoryId: string }) {
       calls.push(`listAllItems:${directoryId}`);
-      return [...files.values()]
-        .filter((f) => f.pdir_fid === directoryId)
-        .map((f) => ({ fid: f.fid, file_name: f.file_name, dir: f.dir, size: f.size }));
+      return visibleIn(directoryId);
     },
     async getFileInfo(fid: string) {
       const f = files.get(fid);
@@ -62,6 +71,7 @@ function makeFakeClient(opts?: {
     },
     async saveShare({ to_pdir_fid }: { to_pdir_fid: string }) {
       calls.push(`saveShare:${to_pdir_fid}`);
+      lagDir = to_pdir_fid; // 之后 N 次列目录"看不见"这些文件（滞后模拟）
       // materialize the share's files into the destination dir
       for (const item of opts?.share?.items ?? []) {
         files.set(item.fid, {
@@ -98,12 +108,17 @@ function makeFakeClient(opts?: {
   return { client, files, calls };
 }
 
-function quarkExecutor(client: unknown, files?: Map<string, FakeFile>) {
+function quarkExecutor(
+  client: unknown,
+  extra: Partial<ConstructorParameters<typeof QuarkStorageExecutor>[0]> = {},
+) {
   return new QuarkStorageExecutor({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     client: client as any,
     writeScopeDirectoryIds: ["ROOT"],
     minVideoSizeBytes: 1,
+    sleep: async () => {}, // 测试不等那 3 × 1.5s 的真实窗口
+    ...extra,
   });
 }
 
@@ -143,6 +158,44 @@ describe("QuarkStorageExecutor", () => {
     expect(attempt.materializedFileIds).toEqual(["shared_mkv"]);
     expect(attempt.workflowRunId).toBe("run_1");
     expect(attempt.candidateId).toBe("cand_1");
+  });
+
+  it("settle 窗口：目标目录第一次列不到新文件时重读，不再误判 no_target_change", async () => {
+    // 夸克 saveShare 返回成功 ≠ 文件已经出现在目录列表里（索引滞后 2~6s）。
+    // 只读一次就报「转存完成但目标目录未出现新视频」→ 上游快路径把空 staging 当死链，
+    // 一个能转存的分享就被丢了。115 早有同类 settle 窗口。
+    const { client, calls } = makeFakeClient({
+      share: { items: [{ fid: "shared_mkv", share_fid_token: "t1", file_name: "Movie.2020.1080p.mkv", dir: false, size: 5_000_000_000 }] },
+      lagReads: 1,
+    });
+    const exec = quarkExecutor(client, { materializeAttempts: 3, materializeDelayMs: 0 });
+
+    const attempt = await exec.transfer({
+      workflowRunId: "run_1",
+      directoryId: "STAGE",
+      candidate: shareCandidate("https://pan.quark.cn/s/abc123", "pw"),
+    });
+
+    expect(attempt.status).toBe("succeeded");
+    expect(attempt.materializedFileIds).toEqual(["shared_mkv"]);
+    const reads = calls.filter((c) => c.startsWith("listAllItems:STAGE") || c.startsWith("listItems:STAGE"));
+    expect(reads.length).toBeGreaterThanOrEqual(2); // 第一次空 + 重读后看到
+  });
+
+  it("settle 窗口有界：窗口内一直读不到才报 no_target_change", async () => {
+    const { client } = makeFakeClient({
+      share: { items: [{ fid: "ghost", share_fid_token: "t1", file_name: "Ghost.2020.mkv", dir: false, size: 5_000_000_000 }] },
+      lagReads: 99,
+    });
+    const exec = quarkExecutor(client, { materializeAttempts: 2, materializeDelayMs: 0 });
+
+    const attempt = await exec.transfer({
+      workflowRunId: "run_1",
+      directoryId: "STAGE",
+      candidate: shareCandidate("https://pan.quark.cn/s/abc123", "pw"),
+    });
+
+    expect(attempt.status).toBe("no_target_change");
   });
 
   it("transfer fails loud (status failed) on a dead share, never silent success", async () => {

@@ -21,6 +21,10 @@ import {
 
 const MAX_RECURSIVE_COLLECT_DEPTH = 6;
 const DEFAULT_MAX_WRITE_SCOPE_DEPTH = 8;
+/** 转存后的目标目录确认窗口：3 × 1500ms ≈ 4.5s（115 视频侧是 4 × 2000ms ≈ 8s）。
+ *  夸克索引滞后实测 2~6s；再长就是拿预算换边际收益，先按这个跑。 */
+const DEFAULT_MATERIALIZE_ATTEMPTS = 3;
+const DEFAULT_MATERIALIZE_DELAY_MS = 1500;
 const DEFAULT_MIN_VIDEO_SIZE_BYTES = 10 * 1024 * 1024;
 const SAVE_SHARE_BATCH_SIZE = 50; // 夸克 save 单次 fid_list/分享文件数有上限,分批保存
 
@@ -49,6 +53,13 @@ export interface QuarkStorageExecutorOptions {
   minVideoSizeBytes?: number;
   videoExtensions?: string[];
   maxWriteScopeDepth?: number;
+  /** 转存后确认"目标目录出现新视频"的窗口：次数 × 间隔。夸克列目录索引滞后实测
+   *  2~6s，只读一次会把好候选误判成 no_target_change（上游快路径把"暂存区没文件"
+   *  当死链丢掉）。115 早有同类窗口（offlineMaterializeAttempts × pollMs）。 */
+  materializeAttempts?: number;
+  materializeDelayMs?: number;
+  /** 注入 sleep（测试传 no-op）。 */
+  sleep?: (ms: number) => Promise<void>;
 }
 
 interface VideoFact {
@@ -64,6 +75,9 @@ export class QuarkStorageExecutor implements StorageExecutor {
   private readonly minVideoSizeBytes: number;
   private readonly videoExtensions: Set<string>;
   private readonly maxWriteScopeDepth: number;
+  private readonly materializeAttempts: number;
+  private readonly materializeDelayMs: number;
+  private readonly sleep: (ms: number) => Promise<void>;
   private nextTransferNumber = 1;
 
   constructor(options: QuarkStorageExecutorOptions) {
@@ -79,6 +93,9 @@ export class QuarkStorageExecutor implements StorageExecutor {
       (options.videoExtensions ?? DEFAULT_VIDEO_EXTENSIONS).map((ext) => ext.toLowerCase()),
     );
     this.maxWriteScopeDepth = options.maxWriteScopeDepth ?? DEFAULT_MAX_WRITE_SCOPE_DEPTH;
+    this.materializeAttempts = options.materializeAttempts ?? DEFAULT_MATERIALIZE_ATTEMPTS;
+    this.materializeDelayMs = options.materializeDelayMs ?? DEFAULT_MATERIALIZE_DELAY_MS;
+    this.sleep = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
   }
 
   async createDirectory(input: { name: string; parentId: string }): Promise<string> {
@@ -172,8 +189,19 @@ export class QuarkStorageExecutor implements StorageExecutor {
       providerMessage = error instanceof Error ? error.message : String(error);
     }
 
-    const after = await this.listVideoFiles(safeDirectoryId);
-    const materializedFileIds = after.filter((f) => !before.has(f.id)).map((f) => f.id);
+    // ★ 2026-09-30 settle 窗口：转存任务 status=2 之后，目标目录列表也可能还没同步
+    // 出来（索引滞后 2~6s）。只读一次就把好候选判成 no_target_change，日得日志里那句
+    // 「转存完成但目标目录未出现新视频」多半是这么来的 —— 上游快路径再把空 staging
+    // 当死链，一个能转存的分享就被丢了。只在"一个都没看到且没有报错"时才多等几轮。
+    let materializedFileIds = (await this.listVideoFiles(safeDirectoryId))
+      .filter((f) => !before.has(f.id))
+      .map((f) => f.id);
+    for (let i = 0; i < this.materializeAttempts && !providerMessage && materializedFileIds.length === 0; i++) {
+      await this.sleep(this.materializeDelayMs);
+      materializedFileIds = (await this.listVideoFiles(safeDirectoryId))
+        .filter((f) => !before.has(f.id))
+        .map((f) => f.id);
+    }
     const status: TransferStatus = providerMessage
       ? "failed"
       : materializedFileIds.length > 0
