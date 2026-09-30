@@ -16,8 +16,9 @@ Media Robot 是**自己部署的个人媒体库助手**。
 > 与 [部署文档](https://github.com/CodeByZack/media-robot/blob/main/docs/deploy.md)。
 
 <details>
-<summary>本版改动（v1.0.2 → v1.0.3）</summary>
+<summary>本版改动（v1.0.3 → v1.0.4）</summary>
 
-- fix(workflow): 删除守卫遇缺失 id 跳过而非整轮抛错（5 盘统一） (#19) (cc723e1)
+- perf(workflow): pending 搬运批量化 + 去掉搬完的两趟全树遍历 (#22) (b16eb50)
+- fix(release): fpk 版本号取 inputs.tag 而非调用方 ref（产物名/包内版本曾是 main） (#21) (c7d3e1c)
 
 </details>
