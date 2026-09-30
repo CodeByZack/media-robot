@@ -1,24 +1,25 @@
-# Media Robot 首个版本
+Media Robot 是**自己部署的个人媒体库助手**。
 
-**自己部署的个人媒体库助手。**
+说一个片名，它去搜资源、转存进你自己的网盘，**回读落盘的真实文件做验证**，
+再按 TMDB 规范命名归位。剧集还会持续盯着**还缺哪些集**，定时巡检只补缺口。
 
-说一个片名 —— 它去搜资源、转存进你自己的网盘、**回读落盘的真实文件做验证**、
-按 TMDB 规范命名归位；剧集持续盯着**还缺哪些集**，定时巡检只补缺口。
+- **不下载到本地磁盘**，也不提供托管服务 —— 跑在你自己 NAS / 服务器上。
+- 找不到资源就如实报「暂无资源」并继续尝试，**绝不伪造成功**。
+- 需要自备三样：TMDB API Key、一个 OpenAI 兼容的 LLM 端点、一块网盘账号
+  （夸克 / 115 / 光鸭 / 123 / 天翼）。
+- 开源 0BSD，与上述网盘及 TMDB 均无隶属关系。
 
-**核心几点**
+**安装**：飞牛 fnOS 按架构下载下面的 `.fpk`（x86 / arm），在应用中心「手动安装」；
+其他常开主机用 Docker Compose。
 
-- **不下载到本地磁盘**，也不提供托管服务，跑在你自己 NAS / 服务器上。
-- 转存「成功」不算数 —— 会**再读一遍网盘里的实际文件**确认落盘才标记已入库。
-- 五块盘（115 / 夸克 / 123 / 光鸭 / 天翼）可同时接，各是一等工作区。
-- 过程在**活动页**逐步可查；找不到资源就如实报「暂无资源」，**绝不伪造成功**。
-- 媒体库按 电影 / 剧集 / 动漫 / 综艺 分架，海报带「已入库 / 有缺集 / 追更中」。
+> 说明与部署步骤见 [README](https://github.com/CodeByZack/media-robot)
+> 与 [部署文档](https://github.com/CodeByZack/media-robot/blob/main/docs/deploy.md)。
 
-**用之前准备三样**：TMDB API Key（免费申请，**无内置 key**）、一个 OpenAI 兼容的
-LLM 端点、一块网盘账号。
+<details>
+<summary>本版改动（v1.0.0 → v1.0.1）</summary>
 
-**装**：飞牛 fnOS 按架构下载下面的 `.fpk`，应用中心「手动安装」；其他常开主机用
-Docker Compose（见 [README](https://github.com/CodeByZack/media-robot)）。
+- fix(tmdb): 修复 acquire/trending TypeError: fetch failed（undici 连接池耗尽） (b1075cc)
+- chore(release): bump version to 1.0.1 (0b1add6)
+- fix(release): 恢复根 package.json 被清空的依赖声明 (05aca1c)
 
----
-
-0BSD 开源，与上述网盘及 TMDB 均无隶属关系。
+</details>
