@@ -68,7 +68,31 @@ describe("TaskSandbox — pending tools", () => {
     // 索引滞后（夸克 2~6s）升级成整轮 failed（云雀叫天录就是这么死的）。缺的跳过，
     // 少搬了几集由 run 末对账如实报缺集。
     const { sandbox } = await setup();
-    await expect(sandbox.moveToPending({ moves: [{ fileId: "nonexistent" }] })).resolves.toBeDefined();
+    await expect(sandbox.moveToPending({ moves: [{ fileId: "nonexistent" }] })).resolves.toEqual({
+      moved: [],
+    });
+  });
+
+  it("moveToPending 批量搬 + 如实回报 moved（2026-09-30 去掉每次搬完的两趟全树遍历）", async () => {
+    const { sandbox, storage, stagingDirectoryId } = await setup();
+    const v1 = await landFile(storage, stagingDirectoryId, "Show - 01.mkv");
+    const v2 = await landFile(storage, stagingDirectoryId, "Show - 02.mkv");
+    const result = await sandbox.moveToPending({
+      moves: [
+        { fileId: v1, newName: "Show.S01E01.mkv" },
+        { fileId: v2, newName: "Show.S01E02.mkv" },
+        { fileId: "ghost" },
+      ],
+    });
+
+    // moved 只含真正搬了的 id（ghost 跳过）——调用方据此判断哪一集没搬成，
+    // 不必再自己回读一遍 pending/staging。
+    expect(result.moved.sort()).toEqual([v1, v2].sort());
+    expect((await sandbox.inspectPending()).map((f) => f.path).sort()).toEqual([
+      "Show.S01E01.mkv",
+      "Show.S01E02.mkv",
+    ]);
+    expect(await sandbox.inspectStaging()).toEqual([]);
   });
 
   it("moveToPending survives a lagging first listing（重读确认救回，而不是跳过）", async () => {

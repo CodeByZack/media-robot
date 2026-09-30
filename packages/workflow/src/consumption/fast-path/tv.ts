@@ -317,41 +317,48 @@ async function runTvCandidatePhase(
             stepLog(sandbox, target.title, "pending 积累", "补充:" + added + " 集");
           }
         }
-        // Move covered files from staging to pending (with subtitle matching)
-        let movedCount = 0;
+        // ★ 2026-09-30：批量搬，不再一集一次 moveToPending。
+        // 旧写法在 75 集的包上是 75 次串行调用，而每次 moveToPending 都要把 staging
+        // 递归树整棵走一遍（夸克每页 50 条，700 个文件 ≈ 每趟十几个请求）—— 明星大侦探
+        // run 525c9bac 在 AI 返回后又跑了 7 分钟就是这段：75 次 × 3 趟遍历 ≈ 3700 个请求。
+        // moves 本来就是数组，一次交出去即可（下标/字幕配对逻辑不变）。
+        const batch: Array<{ fileId: string; newName?: string; subtitleFileIds?: string[] }> = [];
         for (const [code, entry] of ctx.pendingEntries) {
           if (entry.candidateId !== current) continue;
+          // Match subtitles by episode code (same as buildSeasonMoves)
+          const subtitleIds = stagingTree
+            .filter((f) => f.isSubtitle && f.id !== entry.fileId)
+            .filter((f) => episodeCodeFromPath(f.path, seasons, ctx.episodeNames, ctx.episodeRules).code === code)
+            .map((f) => f.id);
+          if (subtitleIds.length > 0) entry.subtitles = subtitleIds;
+          batch.push({
+            fileId: entry.fileId,
+            ...(subtitleIds.length > 0 ? { subtitleFileIds: subtitleIds } : {}),
+          });
+        }
+        let movedCount = 0;
+        if (batch.length > 0) {
           try {
-            // Match subtitles by episode code (same as buildSeasonMoves)
-            const subtitleIds = stagingTree
-              .filter((f) => f.isSubtitle && f.id !== entry.fileId)
-              .filter((f) => episodeCodeFromPath(f.path, seasons, ctx.episodeNames, ctx.episodeRules).code === code)
-              .map((f) => f.id);
-            if (subtitleIds.length > 0) entry.subtitles = subtitleIds;
-            await sandbox.moveToPending({
-              moves: [{
-                fileId: entry.fileId,
-                ...(subtitleIds.length > 0 ? { subtitleFileIds: subtitleIds } : {}),
-              }],
-            });
-            movedCount++;
+            const { moved } = await sandbox.moveToPending({ moves: batch });
+            const movedSet = new Set(moved);
+            movedCount = batch.filter((m) => movedSet.has(m.fileId)).length;
           } catch (err) {
             // ★ 2026-09-10 地球超新鲜案:搬移失败曾被静默吞掉 → entry 留在 map,
             // 磁盘没进 pending,后续 finalize 撞 SANDBOX_FILES_NOT_IN_PENDING。
             // ★ 2026-09-11:moveToPending 不再对「回读看不到」throw(那是异步
             // move 的 list 滞后,run 53bf287e 已证伪)。
             // ★ 2026-09-30:守卫对"不在暂存区"的 id 也改成跳过(不抛),所以这里只
-            // 会遇到接口级真失败。被跳过的文件仍留在 ctx.pendingEntries 里 —— 它若真
-            // 没进 pending,renameInPending 会按文件报 SANDBOX_FILE_NOT_IN_PENDING,
+            // 会遇到接口级真失败。批量失败不再猜「哪几集搬成了」（旧逐集写法只知道
+            // 出事的那一条，批量下无从区分）——条目一律留在 ctx.pendingEntries 里：
+            // 真没进 pending 的，renameInPending 会按文件报 SANDBOX_FILE_NOT_IN_PENDING,
             // finalize 把它剔出计划(不归位、不 mark),run 末对账如实报缺集。
             stepLog(
               sandbox,
               target.title,
               "pending 积累",
-              `搬入失败 ${code} ${entry.fileId}${(entry.subtitles ?? []).length > 0 ? " +字幕" + (entry.subtitles ?? []).join(",") : ""}: ${err instanceof Error ? err.message : String(err)}`,
+              `批量搬入失败（${batch.length} 集）: ${err instanceof Error ? err.message : String(err)}`,
               "warn",
             );
-            ctx.pendingEntries.delete(code);
           }
         }
         if (movedCount > 0) {
