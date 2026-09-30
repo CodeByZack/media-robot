@@ -27,6 +27,7 @@
 import type { PackageTreeFile, ResourceCandidate, TransferAttempt, TransferStatus, VerifiedFile } from "./domain.js";
 import { episodeCodeFromFileName } from "./episode-code.js";
 import type { StorageExecutor, UnparsedVideoFile } from "./ports.js";
+import { logSkippedDeletes, splitDeletable } from "./deletion-scope.js";
 import { isTianyiAuthError } from "./tianyi-client.js";
 import type { TianyiBatchEntry, TianyiClient, TianyiItem } from "./tianyi-client.js";
 
@@ -363,17 +364,23 @@ export class TianyiStorageExecutor implements StorageExecutor {
       return { deleted: [] };
     }
     const safeDirectoryId = this.assertWithinWriteScope(input.directoryId, "delete files");
-    const treeFiles = await this.assertFilesBelongToDirectory(safeDirectoryId, input.fileIds);
-    // Names are free from the just-walked tree (basename of the path); every id
-    // passed the verification above, i.e. it IS one of these tree FILES.
+    // 只删此刻确实在本目录里的 id：缺的跳过（已搬走/已删/索引滞后），不抛错。
+    // 理由与安全边界见 deletion-scope.ts。
+    const treeFiles = await this.listVerifiedFiles(safeDirectoryId);
+    const { toDelete, gone } = splitDeletable(treeFiles.map((f) => f.providerFileId), input.fileIds);
+    logSkippedDeletes("tianyi", safeDirectoryId, gone);
+    if (toDelete.length === 0) {
+      return { deleted: [] };
+    }
+    // Names are free from the just-walked tree (basename of the path).
     const nameById = new Map(treeFiles.map((f) => [f.providerFileId, basenameOf(f.path)]));
     await this.client.batchDelete(
-      input.fileIds.map((id) => {
+      toDelete.map((id) => {
         const name = nameById.get(id);
         return { id, ...(name ? { name } : {}), isFolder: false };
       }),
     );
-    return { deleted: input.fileIds };
+    return { deleted: toDelete };
   }
 
   private async directoryContainsLargeVideo(directoryId: string): Promise<boolean> {
@@ -436,21 +443,11 @@ export class TianyiStorageExecutor implements StorageExecutor {
    *  deleting a subtitle impossible on every drive — caught live 2026-07-02 on
    *  光鸭 (黑客帝国3 cleanup refused twice). Returns the walked tree so the
    *  caller can reuse it (e.g. deleteFiles harvests fileName for taskInfos)
-   *  instead of walking twice. */
-  private async assertFilesBelongToDirectory(
-    directoryId: string,
-    fileIds: string[],
-  ): Promise<PackageTreeFile[]> {
-    const treeFiles = await this.listTree({ directoryId });
-    const verified = new Set(treeFiles.map((f) => f.providerFileId));
-    const unverified = fileIds.filter((id) => !verified.has(id));
-    if (unverified.length === 0) {
-      return treeFiles;
-    }
-    throw new Error(
-      "SAFETY_VIOLATION: refusing to delete unverified file ids from target directory; " +
-        `fileId=${directoryId}; fileIds=${unverified.join(",")}`,
-    );
+   *  instead of walking twice.
+   *  ★ 2026-09-30：本方法**不再抛错**，只把树交回调用方，由 splitDeletable 决定删哪些
+   *  （缺的跳过）—— 理由见 deletion-scope.ts。 */
+  private async listVerifiedFiles(directoryId: string): Promise<PackageTreeFile[]> {
+    return this.listTree({ directoryId });
   }
 
   /** Refuse recursive listing of root/protected dirs (huge scan / 风控 risk).
